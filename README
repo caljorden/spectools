@@ -1,0 +1,160 @@
+Spectrum Tools 
+--------------
+(c) 2007 Michael Kershaw/Dragorn <dragorn@kismetwireless.net>
+Licensed under GPL
+
+Wi-Spy and Metageek are (c)/(tm)/(foo) MetaGeek LLC
+
+Spectrum-Tools is a set of utilities for using the Wi-Spy USB spectrum
+analyzer tools from Metageek LLC (http://www.metageek.net).  They include
+userspace drivers for the hardware (implemented via libusb), a graphing 
+UI built on GTK/Cairo, network servers for remote devices, and simple 
+utilities for developing additional tools.
+
+Extra thanks to Ryan Woodings and Metageek at large for providing hardware,
+device specs, and support for open source!
+
+* Spectool GTK
+
+  A GTK/Cairo based grapher for the Wi-Spy devices.  Roughly analogous to
+  the Metageek windows application, the GTK UI provides Planar (standard
+  SA interface), Topographic (time-based 2d view) and Spectral (waterfall)
+  graphs, supports multiple simultaneous devices, and network devices.
+
+  Planar Graph:
+    A traditional view of the spectrum showing average, peak, and current
+    values.  Markers may be placed on the graph to show detailed information
+    about specific frequencies.
+
+  Spectral Graph:
+    A traditional waterfall view of the spectrum over time, color intensity
+    indicates power levels at a given time.
+
+  Topographic Graph:
+    2d view of signal peaks over time.  Graph points are calculated by
+    the frequency at which it was the peak power sample for that slice of
+    spectrum.
+
+  Requirements:
+    * A Wi-Spy analyzer
+    * LibUSB
+    * GTK 2.0 with Cairo support
+
+* Spectool Raw
+
+  Minimal interface to the device which prints supported ranges and 
+  spectral data.  Multiple device and network device support included.
+
+  Requirements:
+    * A Wi-Spy analyzer
+    * LibUSB
+ 
+* Spectool Net
+
+  Network server for the cross-platform cross-tool network protocol for
+  remote sensors.  Supports broadcast announcement, device locking, remote
+  device configuration, etc.
+
+  Requirements:
+    * A Wi-Spy analyzer
+    * LibUSB
+
+COMPILING:
+  Prepare the source using './configure', the standard autoconf configuration
+  should detect the presence of GTK, libUSB, etc.  Review the
+  configuration output if a component is not detected.
+
+  To build the tools, simply run 'make' (or 'gmake', depending on platform).
+
+INSTALLING UDEV RULES:
+  Udev is the dynamic device system for Linux.  The file "99-wispy.rules" contains
+  the rules to make the wispy device accessible by users in the group "plugdev"
+  without requiring root access.
+
+  Typically udev rules go in /etc/udev/rules.d/ however it may depend on your
+  distribution.  Those packaging wispy-tools for distros should modify this
+  location as necessary.  Depending on your distro, it may be necessary to 
+  restart udevd with "/etc/init.d/udevd restart"
+
+ODDS & ENDS:
+  * Can I use an 802.11 card instead of a Wi-Spy?
+
+    NO.
+
+    The Wi-Spy might look like a wireless card, but it's not.  It's designed
+    to report signal levels, not decode traffic.  An 802.11 card is a very
+    different beast, and if theres a way to get spectral data out, it's 
+    not public (and would be completely dependent on the device type).
+
+  * Can I make this suid root?
+
+    I suppose you could, but I wouldn't recommend it.  While it doesn't handle
+    any foreign data (all data comes from the USB device, which reports signal
+    levels, not packet data), there could be unknown overflows in the local
+    app or in one of the libraries it uses, like GTK.  It'd be a better idea 
+    to not create an exposure unnecessarily.
+
+    A much better method would be to add the udev rules.
+
+  * Will this work on *BSD?
+
+    Maybe - I've made efforts to make it cross-platform, however not all
+    *BSD variants have support for detaching HID devices and don't know
+    to ignore the Wi-Spy hardware.
+
+  * When will you add feature $foo?
+
+    When I get to it, when someone asks for it, or when someone sends me a
+    patch.
+
+  * What about Kismet?
+
+    Some form of integration with Kismet will come in the NewCore branch of
+    Kismet at some point in the not-too-distant future.
+
+  * You don't know what you're doing, $bar isn't written right
+
+    Probably.  I'm not a big graphics coder.  Send me patches.
+
+  * What happened to curses and log?
+
+    Curses was more hassle than I thought it was worth to port to the new
+    framework.  If people complain about it going missing, I'll rewrite it
+    to use the new stuff.
+
+    Logging has evolved into a binary file.  Support will be added in a 
+    future release, as standalone and as part of the GUI.
+
+TROUBLESHOOTING:
+
+  * Unable to claim device
+  
+    The Spectrum tools have to be able to claim the device.  If another 
+    tool has already grabbed it (like another copy of one of the tools, or 
+    more often, the kernel HID) then it won't be able to run.
+
+    If you are running on a platform for which LibUSB has detach support,
+    the tools will try to disconnect the device from whatever is claiming it
+    currently.
+
+    If you are running on older versions of Linux and LibUSB, the tools
+    contain a terrible hack which guess at libusb and kernel internals and
+    attempt to disconnect.
+
+  * Strange GTK errors and compile fails
+
+    You probably have an older GTK which doesn't have Cairo integration.
+    Upgrade.
+
+  * Unable to attach - are you root?
+
+    The spectrum tools use a userspace driver implemented in LibUSB.  It has to
+    be able to directly open and write to the USB device, which means it has 
+    to be running as root, or as an account with equivalent hardware access
+    rights.  The enclosed udev rules should allow you to set the ownsership
+    of the devices automatically.
+
+  * Something crashed
+
+    Let me know what happened, send me a core dump or a gdb backtrace.
+

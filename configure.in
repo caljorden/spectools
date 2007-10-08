@@ -1,0 +1,242 @@
+dnl Blah blah standard autoconf
+AC_INIT(Makefile.in)
+
+dnl Host type
+AC_CANONICAL_HOST
+	
+dnl Check for standard tools
+AC_PROG_CC
+
+# Liberated from ethereal's configure.in
+#
+# Add any platform-specific compiler flags needed.
+#
+AC_MSG_CHECKING(for platform-specific compiler flags)
+if test "x$GCC" = x
+then
+    #
+    # Not GCC - assume it's the vendor's compiler.
+    #
+    case "$host_os" in
+    hpux*)
+        #
+        # HP's ANSI C compiler; flags suggested by Jost Martin.
+        # "-Ae" for ANSI C plus extensions such as "long long".
+        # "+O2", for optimization.  XXX - works with "-g"?
+        #
+        CFLAGS="-Ae +O2 $CFLAGS"
+        AC_MSG_RESULT(HP ANSI C compiler - added -Ae +O2)
+        ;;
+    darwin*)
+        #
+        # It may be called "cc", but it's really a GCC derivative
+        # with a problematic special precompiler and precompiled
+        # headers; turn off the special precompiler, as some
+        # apparently-legal code won't compile with its precompiled
+        # headers.
+        #
+        CFLAGS="-no-cpp-precomp $CFLAGS"
+		LIBS="$LIBS -framework IOKit -framework CoreFoundation"
+		AC_DEFINE(SYS_DARWIN, 1, Compiling for OSX)
+        AC_MSG_RESULT(Apple GCC - added -no-cpp-precomp)
+		darwin="yes"
+        ;;
+	linux*)
+		AC_MSG_RESULT(none needed)
+		AC_DEFINE(SYS_LINUX, 1, Compiling for Linux OS)
+        linux="yes"
+		;;
+	freebsd*)
+		AC_MSG_RESULT(none needed)
+		AC_DEFINE(SYS_FREEBSD, 1, Compiling for FreeBSD)
+		;;
+	openbsd*)
+		AC_MSG_RESULT(none needed)
+		AC_DEFINE(SYS_OPENBSD, 1, Compiling for OpenBSD)
+		;;
+	cygwin*)
+		AC_MSG_RESULT(none needed)
+		AC_DEFINE(SYS_CYGWIN, 1, Compiling for Cygwin)
+		cygwin="yes"
+		;;
+    *)
+        AC_MSG_RESULT(none needed)
+        ;;
+    esac
+else
+    case "$host_os" in
+    solaris*)
+        # the X11 headers don't automatically include prototype info
+        # and a lot don't include the return type
+        CFLAGS="$CFLAGS -Wno-return-type -DFUNCPROTO=15"
+        AC_MSG_RESULT(GCC on Solaris - added -Wno-return-type -DFUNCPROTO=15)
+        ;;
+    darwin*)
+        #
+        # See comments above about Apple's lovely C compiler.
+        #
+        CFLAGS="-no-cpp-precomp $CFLAGS"
+		LIBS="$LIBS -framework IOKit -framework CoreFoundation"
+		AC_DEFINE(SYS_DARWIN, 1, Compiling for OSX)
+        AC_MSG_RESULT(Apple GCC - added -no-cpp-precomp)
+		darwin="yes"
+        ;;
+	linux*)
+		AC_MSG_RESULT(none needed)
+		AC_DEFINE(SYS_LINUX, 1, Compiling for Linux OS)
+        linux="yes"
+		;;
+    freebsd*)
+        AC_MSG_RESULT(none needed)
+        AC_DEFINE(SYS_FREEBSD, 1, Compiling for FreeBSD)
+        ;;
+    openbsd*)
+       AC_MSG_RESULT(none needed)
+        AC_DEFINE(SYS_OPENBSD, 1, Compiling for OpenBSD)
+        ;;
+	cygwin*)
+		AC_MSG_RESULT(none needed)
+		AC_DEFINE(SYS_CYGWIN, 1, Compiling for Cygwin)
+		cygwin="yes"
+		;;
+    *)
+        AC_MSG_RESULT(none needed)
+        ;;
+    esac
+fi
+
+dnl Check for endian
+AC_C_BIGENDIAN
+
+dnl Check for headers and such
+AC_HEADER_STDC
+
+TARGETS="spectool_raw spectool_net"
+
+AC_CHECK_HEADERS(stdio.h sys/types.h signal.h sys/socket.h pthread.h)
+
+AC_CHECK_LIB([pthread], [pthread_create], AC_DEFINE(HAVE_LIBPTHREAD, 1, LibPthread) 
+			LIBS="$LIBS -lpthread",
+			 AC_MSG_ERROR(*** Pthreads required.  Linking -lpthread failed.))
+
+AC_CHECK_LIB([m], [pow], AC_DEFINE(HAVE_LIBM, 1, LibM) 
+			LIBS="$LIBS -lm",
+			 AC_MSG_ERROR(*** Math lib (libM) required.  Linking -lm failed.))
+
+dnl Look for LibUSB and validate its function
+AC_CHECK_HEADER([usb.h], ,AC_MSG_ERROR(*** LibUSB required.))
+AC_CHECK_LIB([usb], [usb_init], AC_DEFINE(HAVE_LIBUSB, 1, LibUSB) LIBS="$LIBS -lusb",
+			 AC_MSG_ERROR(*** LibUSB required.  Linking -lusb failed.))
+
+dnl bsd/osx doesn't have this
+AC_CHECK_HEADER([values.h], AC_DEFINE(HAVE_VALUES_H, 1, values.h header))
+
+dnl Let them override the gtk version
+AC_ARG_WITH(gtk-version,
+	[  --with-gtk-version=\[1|2\]     Force a GTK version instead of autodetect ],
+	[
+	if test "$withval" == "1" ; then
+		AC_MSG_WARN(*** Overriding GTK detection to use GTK1 only ***)
+		forcegtk=1
+	elif test "$withval" == "2" ; then
+		AC_MSG_WARN(*** Overriding GTK detection to use GTK2 only ***)
+		forcegtk=2
+	fi
+	])
+
+
+dnl Look for gtk-2.0
+AC_CHECK_PROG(pkggtk2, [pkg-config gtk+-2.0], yes, no)
+if test "$pkggtk2" = "yes" -a "$forcegtk" != "1"; then
+	GTK_CONFIG="pkg-config gtk+-2.0"
+	GTK2="yes"
+else
+	AC_CHECK_PROG(gtkconf, [gtk-config], yes, no)
+	if test "$gtkconf" = "yes" -a "$forcegtk" != "2"; then
+		GTK_CONFIG="gtk-config"
+	else
+		AC_MSG_WARN(*** GTK does not appear to be installed.  GTK client will not be built.)
+	fi
+fi
+
+dnl Try to link gtk/gdk
+if test "$GTK_CONFIG"x != "x"; then
+  ocfl="$CFLAGS"
+  olfl="$LIBS"
+  CFLAGS="$CFLAGS `$GTK_CONFIG --cflags`"
+  LIBS="$LIBS `$GTK_CONFIG --libs`"
+  
+  AC_MSG_CHECKING(that we can link gtk/gdk)
+  	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+  	#include <stdio.h>
+  	#include <usb.h>
+  	#include <gtk/gtk.h>
+  	]], [[
+  		GdkPixmap *pxm;
+  	]])],
+  	[
+  		AC_MSG_RESULT(yes)
+  	],[
+  		AC_MSG_RESULT(no)
+  		GTK_CONFIG=""
+  		AC_MSG_WARN(*** GTK present but could not link a test program ***)
+  		CFLAGS="$ocfl"
+  		LIBS="$olfl"
+  	])
+	
+	AC_CHECK_HEADER([cairo.h], , AC_MSG_WARN(*** cairo.h graphics header required for gtk UI) && GTK_CONFIG="")
+  
+  	if test "$GTK_CONFIG"x != "x"; then
+  		TARGETS="$TARGETS spectool_gtk"
+		AC_DEFINE(HAVE_GTK, 1, we have a gtk ui)
+
+  		GTKLIBS="$LIBS"
+  		LIBS="$olfl"
+
+		if test "$GTK2" == "yes"; then
+			AC_DEFINE(HAVE_LIB_GTK2, 1, we have libgtk2.x)
+		else
+			AC_MSG_WARN(*** GTK1 being used.  GTK2 is preferred and GTK1 support may vanish in future releases ***)
+			AC_DEFINE(HAVE_LIB_GTK1, 1, we have libgtk1.x)
+		fi
+
+  	fi
+fi
+
+dnl Look for linux headers and if we can issue a HID release
+AC_MSG_CHECKING([for Linux headers with DEVFS_DISCONNECT support])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+		#include <stdio.h>
+		#include <unistd.h>
+		#include <sys/stat.h>
+		#include <sys/ioctl.h>
+		#include <linux/usbdevice_fs.h>
+		#include <errno.h>
+		]], [[
+		int io = USBDEVFS_DISCONNECT;
+		]])],[linux_devfs_discon=yes],[linux_devfs_discon=no])
+if test $linux_devfs_discon = "yes"; then
+	AC_MSG_RESULT([yes])
+	AC_DEFINE(HAVE_LINUX_DEVDISCONNECT, 1, system has HID DEVFS_DISCONNECT)
+else
+	AC_MSG_RESULT([no])
+fi
+
+dnl Replace the values
+AC_SUBST(TARGETS)
+AC_SUBST(GTKLIBS)
+AC_SUBST(CURSLIBS)
+AC_SUBST(CFLAGS)
+	
+AC_CONFIG_HEADER(config.h)
+
+dnl Write it
+AC_OUTPUT(Makefile)
+
+echo
+echo
+echo "*** Configuration complete"
+echo "*** Check the configure output if a target you want is not configured."
+echo "*** The following targets are configured: "
+echo "    $TARGETS"
+
