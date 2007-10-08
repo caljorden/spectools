@@ -734,7 +734,10 @@ int wts_send_bcast(int sock, short int port, char *errstr) {
 }
 
 void Usage() {
-
+	printf("spectool_net [-b <secs>] [-p <port>] [-a <bind address>]\n"
+		   " --broadcast/-b  <secs>	    Send broadcast announce\n"
+		   " --port/-p <port>           Use alternate port\n"
+		   " --bindaddr/-a <address>    Bind to specific address\n");
 }
 
 void sigcatch(int sig) {
