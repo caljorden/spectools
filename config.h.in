@@ -15,9 +15,6 @@
 /* LibUSB */
 #undef HAVE_LIBUSB
 
-/* we have libgtk1.x */
-#undef HAVE_LIB_GTK1
-
 /* we have libgtk2.x */
 #undef HAVE_LIB_GTK2
 

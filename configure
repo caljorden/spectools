@@ -1254,11 +1254,6 @@ if test -n "$ac_init_help"; then
 
   cat <<\_ACEOF
 
-Optional Packages:
-  --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
-  --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-gtk-version=\1|2\     Force a GTK version instead of autodetect
-
 Some influential environment variables:
   CC          C compiler command
   CFLAGS      C compiler flags
@@ -4569,24 +4564,6 @@ fi
 
 
 
-
-# Check whether --with-gtk-version was given.
-if test "${with_gtk_version+set}" = set; then
-  withval=$with_gtk_version;
-	if test "$withval" == "1" ; then
-		{ echo "$as_me:$LINENO: WARNING: *** Overriding GTK detection to use GTK1 only ***" >&5
-echo "$as_me: WARNING: *** Overriding GTK detection to use GTK1 only ***" >&2;}
-		forcegtk=1
-	elif test "$withval" == "2" ; then
-		{ echo "$as_me:$LINENO: WARNING: *** Overriding GTK detection to use GTK2 only ***" >&5
-echo "$as_me: WARNING: *** Overriding GTK detection to use GTK2 only ***" >&2;}
-		forcegtk=2
-	fi
-
-fi
-
-
-
 # Extract the first word of "pkg-config gtk+-2.0", so it can be a program name with args.
 set dummy pkg-config gtk+-2.0; ac_word=$2
 { echo "$as_me:$LINENO: checking for $ac_word" >&5
@@ -4879,7 +4856,6 @@ fi
 
 
   	if test "$GTK_CONFIG"x != "x"; then
-  		TARGETS="$TARGETS spectool_gtk"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_GTK 1
@@ -4889,20 +4865,16 @@ _ACEOF
   		GTKLIBS="$LIBS"
   		LIBS="$olfl"
 
-		if test "$GTK2" == "yes"; then
+		if test "$GTK2" = "yes"; then
+  			TARGETS="$TARGETS spectool_gtk"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_LIB_GTK2 1
 _ACEOF
 
 		else
-			{ echo "$as_me:$LINENO: WARNING: *** GTK1 being used.  GTK2 is preferred and GTK1 support may vanish in future releases ***" >&5
-echo "$as_me: WARNING: *** GTK1 being used.  GTK2 is preferred and GTK1 support may vanish in future releases ***" >&2;}
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_LIB_GTK1 1
-_ACEOF
-
+			{ echo "$as_me:$LINENO: WARNING: *** Gtk2 + Cairo is now required for the GTK ui" >&5
+echo "$as_me: WARNING: *** Gtk2 + Cairo is now required for the GTK ui" >&2;}
 		fi
 
   	fi
