@@ -59,6 +59,7 @@ install:	@TARGETS@
 	if [ -e $(RAWBIN) ]; then install -m 755 $(RAWBIN) $(BIN)/$(RAWBIN); fi
 	if [ -e $(NETBIN) ]; then install -m 755 $(NETBIN) $(BIN)/$(NETBIN); fi
 	if [ -e $(GTKBIN) ]; then install -m 755 $(GTKBIN) $(BIN)/$(GTKBIN); fi
+	if [ -e $(CURSBIN) ]; then install -m 755 $(CURSBIN) $(BIN)/$(CURSBIN); fi
 
 clean:
 	@-rm *.o
