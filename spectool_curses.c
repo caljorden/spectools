@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
 
 	int amp_offset_mdbm = 0, amp_res_mdbm = 0, base_db_offset = 0;
 	int min_db_draw = 0, start_db = 0;
-	int nuse = 0, mod, avg, pos;
+	int nuse = 0, mod, avg, pos, group;
 
 	static struct option long_options[] = {
 		{ "net", required_argument, 0, 'n' },
@@ -322,10 +322,8 @@ int main(int argc, char *argv[]) {
 		}
 
 		/* Interpolate the data down into an appropriate graph */
-		if (sweepcache->avg->num_samples < (COLS - 7))
-			mod = 1;
-		else
-			mod = ceilf((float) sweepcache->avg->num_samples / (float) (COLS - 7));
+		mod = ceilf((float) sweepcache->avg->num_samples / (float) (COLS - 7));
+		group = mod * 2;
 
 		r = 0;
 		for (x = 0; x < (COLS - 7); x++) {
@@ -337,7 +335,7 @@ int main(int argc, char *argv[]) {
 			r = ((float) x / (float) (COLS - 7)) * 
 				(float) sweepcache->peak->num_samples;
 
-			for (pos = -1 * (mod / 2); pos < (mod / 2); pos++) {
+			for (pos = -1 * (group / 2); pos < (group / 2); pos++) {
 				if (r + pos >= sweepcache->peak->num_samples || r + pos < 0)
 					continue;
 
@@ -374,7 +372,7 @@ int main(int argc, char *argv[]) {
 			r = ((float) x / (float) (COLS - 7)) * 
 				(float) sweepcache->avg->num_samples;
 
-			for (pos = -1 * (mod / 2); pos < (mod / 2); pos++) {
+			for (pos = -1 * (group / 2); pos < (group / 2); pos++) {
 				if (r + pos >= sweepcache->avg->num_samples || r + pos < 0)
 					continue;
 
