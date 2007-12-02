@@ -128,6 +128,32 @@ AC_CHECK_HEADER([usb.h], ,AC_MSG_ERROR(*** LibUSB required.))
 AC_CHECK_LIB([usb], [usb_init], AC_DEFINE(HAVE_LIBUSB, 1, LibUSB) LIBS="$LIBS -lusb",
 			 AC_MSG_ERROR(*** LibUSB required.  Linking -lusb failed.))
 
+dnl Look for curses/libcurses
+termcontrol="none";
+
+AC_CHECK_LIB([ncurses], [initscr], 
+			 AC_DEFINE(HAVE_LIBNCURSES, 1, NCurses terminal lib) \
+			 foundlcurses=yes curseaux="-lncurses" termcontrol="ncurses" )
+
+if test "$foundlcurses" != "yes"; then
+	AC_CHECK_LIB([curses], [initscr],
+			 AC_DEFINE(HAVE_LIBCURSES, 1, Curses terminal lib) \
+			 foundlcurses=yes curseaux="-lcurses" termcontrol="curses" )
+fi
+
+if test "$termcontrol" = "ncurses"; then
+	AC_CHECK_HEADER([ncurses.h], [foundhcurses=yes])
+elif test "$termcontrol" = "curses"; then
+	AC_CHECK_HEADER([curses.h], [foundhcurses=yes])
+fi
+
+if test "$foundhcurses$foundlcurses" != "yesyes"; then
+	AC_MSG_WARN(*** Could not find curses library.  Curses grapher will not be built.)
+else
+	TARGETS="$TARGETS spectool_curses"
+	CURSLIBS="$curseaux"
+fi
+
 dnl bsd/osx doesn't have this
 AC_CHECK_HEADER([values.h], AC_DEFINE(HAVE_VALUES_H, 1, values.h header))
 

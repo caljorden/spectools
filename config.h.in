@@ -6,8 +6,14 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Curses terminal lib */
+#undef HAVE_LIBCURSES
+
 /* LibM */
 #undef HAVE_LIBM
+
+/* NCurses terminal lib */
+#undef HAVE_LIBNCURSES
 
 /* LibPthread */
 #undef HAVE_LIBPTHREAD

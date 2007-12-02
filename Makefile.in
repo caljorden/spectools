@@ -23,6 +23,10 @@ RAWOBJS = spectool_container.o wispy_hw_gen1.o wispy_hw_24x.o \
 	spectool_net_client.o spectool_raw.o
 RAWBIN = spectool_raw
 
+CURSOBJS = spectool_container.o wispy_hw_gen1.o wispy_hw_24x.o \
+	spectool_net_client.o spectool_curses.o
+CURSBIN = spectool_curses
+
 NETOBJS = spectool_container.o wispy_hw_gen1.o wispy_hw_24x.o \
 	spectool_net_server.o
 NETBIN = spectool_net
@@ -40,6 +44,9 @@ all:	$(DEPEND) @TARGETS@
 
 $(RAWBIN):	$(RAWOBJS)
 	$(CC) $^ -o $(RAWBIN) $(LDFLAGS) $(LIBS)
+
+$(CURSBIN):	$(CURSOBJS)
+	$(CC) $^ -o $(CURSBIN) $(LDFLAGS) $(LIBS) $(CURSLIBS)
 
 $(NETBIN):	$(NETOBJS)
 	$(CC) $^ -o $(NETBIN) $(LDFLAGS) $(LIBS)

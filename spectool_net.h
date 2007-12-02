@@ -185,7 +185,7 @@ typedef struct _wispy_fr_broadcast {
 	uint32_t sentinel;
 	uint8_t version;
 	uint16_t server_port;
-} wispy_fr_broadcast;
+} __attribute__ ((packed)) wispy_fr_broadcast;
 
 #endif
 
