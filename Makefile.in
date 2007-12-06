@@ -43,8 +43,8 @@ HILDOBJS = spectool_container.o wispy_hw_gen1.o wispy_hw_24x.o \
 	spectool_net_client.o \
 	spectool_gtk_hw_registry.o spectool_gtk_widget.o spectool_gtk_channel.o \
 	spectool_gtk_planar.o spectool_gtk_spectral.o spectool_gtk_topo.o \
-	spectool_gtk.o
-HILDBIN = spectool_gtk
+	spectool_hildon.o
+HILDBIN = spectool_hildon
 
 DEPEND	= .depend
 
