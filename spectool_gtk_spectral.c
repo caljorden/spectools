@@ -133,6 +133,7 @@ void wispy_spectral_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 	cairo_pattern_t *pattern;
 	cairo_matrix_t matrix;
 	GdkPixmap *linemap;
+	GdkColormap *cmap = gdk_colormap_get_system();
 	cairo_t *lcr;
 
 	g_return_if_fail(widget != NULL);
@@ -201,8 +202,9 @@ void wispy_spectral_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 			/* Current sample */
 			samp = wwidget->sweepcache->sweeplist[nsamp];
 
-			/* Max a pixmap cache, 24 bits, sh pixels high, width of the graph */
-			linemap = gdk_pixmap_new(NULL, wwidget->g_len_x, sh, 24);
+			linemap = gdk_pixmap_new(NULL, wwidget->g_len_x, sh, 
+									 cmap->visual->depth);
+			gdk_drawable_set_colormap(linemap, cmap);
 
 			/* Make a pattern for cairo to draw */
 			pattern = 

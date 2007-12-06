@@ -158,7 +158,7 @@ dnl bsd/osx doesn't have this
 AC_CHECK_HEADER([values.h], AC_DEFINE(HAVE_VALUES_H, 1, values.h header))
 
 dnl Look for gtk-2.0
-AC_CHECK_PROG(pkggtk2, [pkg-config gtk+-2.0], yes, no)
+PKG_CHECK_MODULES(pkggtk2, [gtk+-2.0], pkggtk2=yes, pkggtk2=no)
 if test "$pkggtk2" = "yes" -a "$forcegtk" != "1"; then
 	GTK_CONFIG="pkg-config gtk+-2.0"
 	GTK2="yes"
@@ -212,6 +212,16 @@ if test "$GTK_CONFIG"x != "x"; then
 		fi
 
   	fi
+
+	dnl Look for hildon
+	PKG_CHECK_MODULES(pkghildon, [hildon-1], pkghildon=yes, pkghildon=no)
+	if test "$pkghildon" = "yes"; then
+		HILD_CONFIG="pkg-config hildon-1"
+		HILD="yes"
+	  	CFLAGS="$CFLAGS `$HILD_CONFIG --cflags`"
+	  	HILDLIBS="`$HILD_CONFIG --libs`"
+		TARGETS="$TARGETS spectool_hildon"
+	fi
 fi
 
 dnl Look for linux headers and if we can issue a HID release
@@ -236,6 +246,7 @@ fi
 dnl Replace the values
 AC_SUBST(TARGETS)
 AC_SUBST(GTKLIBS)
+AC_SUBST(HILDLIBS)
 AC_SUBST(CURSLIBS)
 AC_SUBST(CFLAGS)
 	

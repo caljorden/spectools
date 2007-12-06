@@ -610,11 +610,13 @@ GtkWidget *wispy_planar_new() {
 	return GTK_WIDGET(planar);
 }
 
-wispy_planar_marker *wispy_planar_marker_new(double r, double g, double b,
+wispy_planar_marker *wispy_planar_marker_new(GtkWidget *widget, 
+											 double r, double g, double b,
 											 int samp) {
 	wispy_planar_marker *mkr = malloc(sizeof(wispy_planar_marker));
 	cairo_t *cr;
 	GdkPixmap *pixmap;
+	GdkColormap *cmap;
 
 	mkr->r = r;
 	mkr->g = g;
@@ -623,7 +625,9 @@ wispy_planar_marker *wispy_planar_marker_new(double r, double g, double b,
 
 	mkr->cur = mkr->avg = mkr->peak = 0;
 
-	pixmap = gdk_pixmap_new(NULL, 9, 9, 24);
+	cmap = gdk_colormap_get_system();
+	pixmap = gdk_pixmap_new(NULL, 9, 9, cmap->visual->depth);
+	gdk_drawable_set_colormap(pixmap, gdk_colormap_get_system());
 	cr = gdk_cairo_create(pixmap);
 	cairo_rectangle(cr, 0, 0, 9, 9);
 	cairo_clip(cr);
@@ -820,7 +824,7 @@ static void wispy_planar_init(WispyPlanar *planar) {
 	g_object_unref(planar->mkr_treelist);
 	pango_attr_list_unref(attr_lst);
 
-	mkr = wispy_planar_marker_new(1, 0, 0, -1);
+	mkr = wispy_planar_marker_new(GTK_WIDGET(planar), 1, 0, 0, -1);
 	planar->mkr_list = g_list_append(planar->mkr_list, mkr);
 	gtk_list_store_append(GTK_LIST_STORE(planar->mkr_treelist), &iter);
 	gtk_list_store_set(GTK_LIST_STORE(planar->mkr_treelist), &iter,
@@ -832,7 +836,7 @@ static void wispy_planar_init(WispyPlanar *planar) {
 					   5, mkr,
 					   -1);
 
-	mkr = wispy_planar_marker_new(0, 1, 0, -1);
+	mkr = wispy_planar_marker_new(GTK_WIDGET(planar), 0, 1, 0, -1);
 	planar->mkr_list = g_list_append(planar->mkr_list, mkr);
 	gtk_list_store_append(GTK_LIST_STORE(planar->mkr_treelist), &iter);
 	gtk_list_store_set(GTK_LIST_STORE(planar->mkr_treelist), &iter,
@@ -844,7 +848,7 @@ static void wispy_planar_init(WispyPlanar *planar) {
 					   5, mkr,
 					   -1);
 
-	mkr = wispy_planar_marker_new(0, 0, 1, -1);
+	mkr = wispy_planar_marker_new(GTK_WIDGET(planar), 0, 0, 1, -1);
 	planar->mkr_list = g_list_append(planar->mkr_list, mkr);
 	gtk_list_store_append(GTK_LIST_STORE(planar->mkr_treelist), &iter);
 	gtk_list_store_set(GTK_LIST_STORE(planar->mkr_treelist), &iter,
@@ -856,7 +860,7 @@ static void wispy_planar_init(WispyPlanar *planar) {
 					   5, mkr,
 					   -1);
 
-	mkr = wispy_planar_marker_new(1, 1, 0, -1);
+	mkr = wispy_planar_marker_new(GTK_WIDGET(planar), 1, 1, 0, -1);
 	planar->mkr_list = g_list_append(planar->mkr_list, mkr);
 	gtk_list_store_append(GTK_LIST_STORE(planar->mkr_treelist), &iter);
 	gtk_list_store_set(GTK_LIST_STORE(planar->mkr_treelist), &iter,

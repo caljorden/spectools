@@ -1,6 +1,7 @@
 # Kismet wireless sniffer
 
 KIS_INC_DIR		= /home/dragorn/src/kismet-newcore/
+WISPY_INC_DIR	= /home/dragorn/src/spectools
 
 HOME	= .
 CXX	= g++
@@ -13,12 +14,12 @@ CXXFLAGS = -fPIC -pthread -g
 CPPFLAGS = -I/usr/include -I../ -I$(KIS_INC_DIR)
 
 PLUGOBJS = wispy_container.o wispy_hw_gen1.o kismet-wispy.o
-CPLUGOBJS = kismet-wispy-client.o
+CPLUGOBJS = spectool_net_client.o kismet-wispy-client.o
 
-all:	kismet-wispy.so kismet-wispy-client.so
+all:	kismet-wispy-client.so
 
-kismet-wispy.so:	$(PLUGOBJS)
-	$(LD) $(LDFLAGS) $(PLUGOBJS) -o kismet-wispy.so $(LIBS)
+# kismet-wispy.so:	$(PLUGOBJS)
+# 	$(LD) $(LDFLAGS) $(PLUGOBJS) -o kismet-wispy.so $(LIBS)
 
 kismet-wispy-client.so:	$(CPLUGOBJS)
 	$(LD) $(LDFLAGS) $(CPLUGOBJS) -o kismet-wispy-client.so $(LIBS)

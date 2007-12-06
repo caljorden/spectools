@@ -30,6 +30,97 @@
 #include <kismet/kis_panel_network.h>
 #include <kismet/kis_panel_preferences.h>
 
+class WispyNetClient : public Pollable {
+public:
+	WispyNetClient() {
+		fprintf(stderr, "fatal oops - called wispynetclient();\n");
+		exit(1);
+	}
+
+	WispyNetClient(GlobalRegistry *in_globalreg) {
+		sr = NULL;
+	}
+
+	int OpenHost(string in_url) {
+		char errstr[WISPY_ERROR_MAX];
+
+		sr = (spectool_server *) malloc(sizeof(spectool_server));
+
+		if (spectool_netcli_init(sr, in_url.c_str(), errstr)  < 0) {
+			_MSG("SPECTOOL - Error initializing network connection: " +
+				 string(errstr), MSGFLAG_ERROR);
+			free(sr);
+			sr = NULL;
+			return -1;
+		}
+
+		if (spectool_netcli_connect(sr, errstr) < 0) {
+			_MSG("SPECTOOL - Error connecting to " + in_url + ": " + 
+				 string(errstr), MSGFLAG_ERROR);
+			free(sr);
+			sr = NULL;
+			return -1;
+		}
+	}
+
+	virtual ~WispyNetClient() {
+		globalreg->RemovePollableSubsys(this);
+
+		if (sr != NULL) {
+			spectool_netcli_close(sr);
+			sr = NULL;
+		}
+	}
+
+	virtual unsigned int MergeSet(unsigned int in_max_fd, fd_set *out_rset,
+								  fd_set *out_wset) {
+		if (sr == NULL)
+			return in_max_fd;
+
+		FD_SET(spectool_netcli_getpollfd(sr));
+
+		if (spectool_netcli_getwritepend(sr) > 0)
+			FD_SET(spectool_netcli_getpollfd(sr), sr);
+
+		if ((int) in_max_fd < spectool_netcli_getpollfd(sr))
+			return spectool_netcli_getpollfd(sr);
+
+		return in_max_fd;
+	}
+
+	virtual int Poll(fd_set& in_rset, fd_set& in_wset) {
+		char errstr[WISPY_ERROR_MAX];
+
+		if (sr == NULL)
+			return 0;
+
+		if (FD_ISSET(spectool_netcli_getpollfd(sr), &in_rset)) {
+			int ret = SPECTOOL_NETCLI_POLL_ADDITIONAL;
+
+			while ((ret & SPECTOOL_NETCLI_POLL_ADDITIONAL)) {
+
+				if ((ret = spectool_netcli_poll(sr, errstr)) < 0) {
+					_MSG("SPECTOOL - Error polling network connection, " + 
+						 string(errstr), MSG_ERROR);
+					return -1;
+				}
+
+				if ((ret & SPECTOOL_NETCLI_POLL_NEWDEVS)) {
+					spectool_net_dev *ndi = sr.devlist;
+					while (ndi != NULL) {
+						_MSG("SPECTOOL - Enabling network device " +
+							 string(ndi->device_name));
+
+
+		}
+
+	}
+
+protected:
+	spectool_server *sr;
+
+}
+
 int wispy_menu_callback(void *auxptr);
 
 #define KIS_WISPY_DFIELDS	"id,name,version"
