@@ -688,6 +688,7 @@ int spectool_netcli_initbroadcast(short int port, char *errstr) {
 		return -1;
 	}
 
+	/* we don't seem to need this in listen mode?
 	x = 1;
 	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &x, sizeof(x)) < 0) {
 		snprintf(errstr, WISPY_ERROR_MAX,
@@ -696,6 +697,7 @@ int spectool_netcli_initbroadcast(short int port, char *errstr) {
 		close(sock);
 		return -1;
 	}
+	*/
 
 	fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) | O_NONBLOCK);
 
