@@ -95,7 +95,7 @@ $(DEPEND):
 	@-rm -f $(DEPEND)
 	@echo "Generating dependencies... "
 	@echo > $(DEPEND)
-	@$(CXX) $(CPPFLAGS) -MM \
+	@$(CXX) $(CFLAGS) -MM \
 		`echo $(RAWOBJS) $(GTKOBJS) $(CUROBJS) $(NETOBJS) \
 		| sed -e "s/\.o/\.c/g"` >> $(DEPEND)
 
