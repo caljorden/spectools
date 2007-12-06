@@ -26,6 +26,7 @@
 
 #include <hildon/hildon-program.h>
 #include <gtk/gtkmain.h>
+#include <gdk/gdkkeysyms.h>
 
 #include "config.h"
 
@@ -38,6 +39,9 @@
 
 #define GETTEXT_PACKAGE	"spectool_gtk"
 #define LOCALEDIR		"/usr/share/locale/spectool_gtk"
+
+/* One of the few globals */
+int fullscreen;
 
 void Wispy_Alert_Dialog(char *text) {
 	GtkWidget *dialog, *okbutton, *label;
@@ -287,6 +291,26 @@ void create_window(wg_aux *auxptr) {
 	wispy_channel_append_update(auxptr->channel, auxptr->spectral);
 }
 
+/* Callback for hardware keys */
+gboolean key_press_cb(GtkWidget *widget, GdkEventKey *event,
+					  HildonWindow *window)
+{
+	switch (event->keyval) {
+		case GDK_F6:
+			if (fullscreen) {
+				gtk_window_unfullscreen(GTK_WINDOW(window));
+				fullscreen = 0;
+			} else {
+				gtk_window_fullscreen(GTK_WINDOW(window));
+				fullscreen = 1;
+			}
+
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
 int main(int argc, char *argv[]) {
 	HildonProgram *program;
 	HildonWindow *window;
@@ -306,6 +330,8 @@ int main(int argc, char *argv[]) {
 	bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
 	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
 	textdomain(GETTEXT_PACKAGE);
+
+	fullscreen = 0;
 
 	gtk_init(&argc, &argv);
 
@@ -383,6 +409,9 @@ int main(int argc, char *argv[]) {
 
 	g_signal_connect(G_OBJECT (window), "delete_event",
 					 G_CALLBACK (gtk_main_quit), NULL);
+
+    g_signal_connect(G_OBJECT(window), 
+        "key_press_event", G_CALLBACK(key_press_cb), window);
 
 	vbox = gtk_vbox_new(FALSE, 0);
 	gtk_container_add(GTK_CONTAINER(window), vbox); 
