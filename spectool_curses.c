@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
 
 	int amp_offset_mdbm = 0, amp_res_mdbm = 0, base_db_offset = 0;
 	int min_db_draw = 0, start_db = 0;
-	int nuse = 0, mod, avg, pos, group;
+	int nuse = 0, mod, avg, avgc, pos, group;
 
 	static struct option long_options[] = {
 		{ "net", required_argument, 0, 'n' },
@@ -327,9 +327,10 @@ int main(int argc, char *argv[]) {
 
 		r = 0;
 		for (x = 0; x < (COLS - 7); x++) {
-			int py;
+			int py, pyc;
 
 			avg = 0;
+			avgc = 0;
 			nuse = 0;
 
 			r = ((float) x / (float) (COLS - 7)) * 
@@ -340,6 +341,7 @@ int main(int argc, char *argv[]) {
 					continue;
 
 				avg += sweepcache->peak->sample_data[r + pos];
+				avgc += sweepcache->latest->sample_data[r + pos];
 				nuse++;
 			}
 
@@ -347,26 +349,42 @@ int main(int argc, char *argv[]) {
 				continue;
 
 			avg = WISPY_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm, (avg / nuse));
+			avgc = WISPY_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm, (avgc / nuse));
 
 			py = (float) (LINES - 4) *
 				(float) ((float) (abs(avg) + base_db_offset) /
 						 (float) (abs(min_db_draw) + base_db_offset));
 
+			pyc = (float) (LINES - 4) *
+				(float) ((float) (abs(avgc) + base_db_offset) /
+						 (float) (abs(min_db_draw) + base_db_offset));
+
 			for (y = 0; y < (LINES - 4); y++) {
+				if (pyc == y) {
+					if (py > y)
+						wcolor_set(window, 4, NULL);
+					else
+						wcolor_set(window, 5, NULL);
+
+					mvwaddstr(window, y + 1, x + 1, "#");
+					continue;
+				}
+
 				if (py > y)
 					continue;
 
 				wcolor_set(window, 2, NULL);
-				mvwaddstr(window, y + 1, x + 1, "p");
+				mvwaddstr(window, y + 1, x + 1, " ");
 				wcolor_set(window, 0, NULL);
 			}
 		}
 
 		r = 0;
 		for (x = 0; x < (COLS - 7); x++) {
-			int py;
+			int py, pyc;
 
 			avg = 0;
+			avgc = 0;
 			nuse = 0;
 
 			r = ((float) x / (float) (COLS - 7)) * 
@@ -377,6 +395,7 @@ int main(int argc, char *argv[]) {
 					continue;
 
 				avg += sweepcache->avg->sample_data[r + pos];
+				avgc += sweepcache->latest->sample_data[r + pos];
 				nuse++;
 			}
 
@@ -384,12 +403,24 @@ int main(int argc, char *argv[]) {
 				continue;
 
 			avg = WISPY_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm, (avg / nuse));
+			avgc = WISPY_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm, (avgc / nuse));
 
 			py = (float) (LINES - 4) *
 				(float) ((float) (abs(avg) + base_db_offset) /
 						 (float) (abs(min_db_draw) + base_db_offset));
 
+			pyc = (float) (LINES - 4) *
+				(float) ((float) (abs(avgc) + base_db_offset) /
+						 (float) (abs(min_db_draw) + base_db_offset));
+
 			for (y = 0; y < (LINES - 4); y++) {
+				if (pyc == y && y >= py) {
+					wcolor_set(window, 6, NULL);
+
+					mvwaddstr(window, y + 1, x + 1, "#");
+					continue;
+				}
+
 				if (py > y)
 					continue;
 
