@@ -5546,6 +5546,11 @@ fi
 	  	CFLAGS="$CFLAGS `$HILD_CONFIG --cflags`"
 	  	HILDLIBS="`$HILD_CONFIG --libs`"
 		TARGETS="$TARGETS spectool_hildon"
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_HILDON 1
+_ACEOF
+
 	fi
 fi
 

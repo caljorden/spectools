@@ -221,6 +221,7 @@ if test "$GTK_CONFIG"x != "x"; then
 	  	CFLAGS="$CFLAGS `$HILD_CONFIG --cflags`"
 	  	HILDLIBS="`$HILD_CONFIG --libs`"
 		TARGETS="$TARGETS spectool_hildon"
+		AC_DEFINE(HAVE_HILDON, 1, we have hildon)
 	fi
 fi
 

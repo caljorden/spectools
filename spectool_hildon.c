@@ -329,6 +329,56 @@ void enable_periph(gpointer *aux) {
 	system("/usr/libexec/usbcontrol peripheral");
 }
 
+void enable_host_cb(gpointer *aux) {
+	GtkWidget *dialog, *okbutton, *cancelbutton, *label;
+
+	label = gtk_label_new("This will attempt to place the USB chipset of your "
+						  "Nokia into HOST mode.");
+	dialog = gtk_dialog_new_with_buttons ("USB", NULL,
+										  GTK_DIALOG_MODAL, NULL);
+	gtk_window_set_default_size (GTK_WINDOW (dialog), 350, 100);
+	okbutton = gtk_dialog_add_button (GTK_DIALOG (dialog), 
+									  GTK_STOCK_OK, GTK_RESPONSE_NONE);
+	cancelbutton = gtk_dialog_add_button (GTK_DIALOG (dialog), 
+									  GTK_STOCK_CANCEL, GTK_RESPONSE_NONE);
+
+	g_signal_connect_swapped(GTK_OBJECT(dialog), 
+							  "response", G_CALLBACK(gtk_widget_destroy), 
+							  GTK_OBJECT (dialog));
+	g_signal_connect_swapped(GTK_OBJECT(okbutton),
+							 "clicked", G_CALLBACK(enable_host));
+
+	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
+	gtk_widget_grab_focus(okbutton);
+	gtk_container_add(GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), label);
+	gtk_widget_show_all(dialog);
+}
+
+void enable_periph_cb(gpointer *aux) {
+	GtkWidget *dialog, *okbutton, *cancelbutton, *label;
+
+	label = gtk_label_new("This will attempt to place the USB chipset of your "
+						  "Nokia into PERIPHERAL (normal) mode.");
+	dialog = gtk_dialog_new_with_buttons ("USB", NULL,
+										  GTK_DIALOG_MODAL, NULL);
+	gtk_window_set_default_size (GTK_WINDOW (dialog), 350, 100);
+	okbutton = gtk_dialog_add_button (GTK_DIALOG (dialog), 
+									  GTK_STOCK_OK, GTK_RESPONSE_NONE);
+	cancelbutton = gtk_dialog_add_button (GTK_DIALOG (dialog), 
+									  GTK_STOCK_CANCEL, GTK_RESPONSE_NONE);
+
+	g_signal_connect_swapped(GTK_OBJECT(dialog), 
+							  "response", G_CALLBACK(gtk_widget_destroy), 
+							  GTK_OBJECT (dialog));
+	g_signal_connect_swapped(GTK_OBJECT(okbutton),
+							 "clicked", G_CALLBACK(enable_periph));
+
+	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
+	gtk_widget_grab_focus(okbutton);
+	gtk_container_add(GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), label);
+	gtk_widget_show_all(dialog);
+}
+
 /* Callback for hardware keys */
 gboolean key_press_cb(GtkWidget *widget, GdkEventKey *event,
 					  HildonWindow *window)
@@ -427,9 +477,9 @@ int main(int argc, char *argv[]) {
 							 G_CALLBACK(reinit_window), auxptr);
 
 	g_signal_connect_swapped(G_OBJECT(mi_usb_host), "activate",
-							 G_CALLBACK(enable_host), NULL);
+							 G_CALLBACK(enable_host_cb), NULL);
 	g_signal_connect_swapped(G_OBJECT(mi_usb_periph), "activate",
-							 G_CALLBACK(enable_periph), NULL);
+							 G_CALLBACK(enable_periph_cb), NULL);
 
 	g_signal_connect(G_OBJECT(mi_quit), "activate",
 			GTK_SIGNAL_FUNC(gtk_main_quit), NULL);

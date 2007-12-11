@@ -356,10 +356,25 @@ void wispy_widget_buildgui(WispyWidget *widget) {
 	gtk_signal_connect(GTK_OBJECT(widget->draw), "button_press_event",
 					   (GtkSignalFunc) wispy_widget_mouse_click, 
 					   widget);
+#ifndef HAVE_HILDON
+	/* Hildon doesn't get mouseover events since it doesn't have mouse
+	 * movements */
 	if (widget->draw_mouse_move_func != NULL)
 		gtk_signal_connect(GTK_OBJECT(widget->draw), "motion_notify_event",
 						   (GtkSignalFunc) widget->draw_mouse_move_func, 
 						   widget);
+#else
+	/* Hildon DOES get context menus for menufunc instead of right-click
+	 * though */
+	if (widget->menu_func != NULL) {
+		temp = gtk_menu_new();
+		gtk_widget_show(temp);
+
+		(*widget->menu_func)(GTK_WIDGET(widget), temp);
+
+		gtk_widget_tap_and_hold_setup(GTK_WIDGET(widget->draw), temp, NULL, 0);
+	}
+#endif
 
 	gtk_box_pack_start(GTK_BOX(hbox), widget->draw, TRUE, TRUE, 0);
 
