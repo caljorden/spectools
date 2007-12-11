@@ -46,6 +46,9 @@ HILDOBJS = spectool_container.o wispy_hw_gen1.o wispy_hw_24x.o \
 	spectool_hildon.o
 HILDBIN = spectool_hildon
 
+HILDUSBOBJS = maemo_usb_helper.o
+HILDUSBBIN = usbcontrol
+
 DEPEND	= .depend
 
 all:	$(DEPEND) @TARGETS@
@@ -62,8 +65,11 @@ $(NETBIN):	$(NETOBJS)
 $(GTKBIN):	$(GTKOBJS)
 	$(CC) $^ -o $(GTKBIN) $(LDFLAGS) $(GTKLIBS)
 
-$(HILDBIN):	$(HILDOBJS)
-	$(CC) $^ -o $(HILDBIN) $(LDFLAGS) $(GTKLIBS) $(HILDLIBS)
+$(HILDUSBBIN):	$(HILDUSBOBJS)
+	$(CC) $^ -o $(HILDUSBBIN) $(LDFLAGS)
+
+$(HILDBIN):	$(HILDOBJS) $(HILDUSBBIN)
+	$(CC) $(HILDOBJS) -o $(HILDBIN) $(LDFLAGS) $(GTKLIBS) $(HILDLIBS)
 
 install:	@TARGETS@
 	install -d -m 755 $(BIN)
@@ -71,14 +77,14 @@ install:	@TARGETS@
 	if [ -e $(NETBIN) ]; then install -m 755 $(NETBIN) $(BIN)/$(NETBIN); fi
 	if [ -e $(GTKBIN) ]; then install -m 755 $(GTKBIN) $(BIN)/$(GTKBIN); fi
 	if [ -e $(CURSBIN) ]; then install -m 755 $(CURSBIN) $(BIN)/$(CURSBIN); fi
+	# No make install for hildon binaries, they should be packaged
 
 clean:
 	@-rm *.o
-	@-rm $(RAWBIN) $(GTKBIN) $(NETBIN) $(CURSBIN)
+	@-rm $(RAWBIN) $(GTKBIN) $(NETBIN) $(CURSBIN) $(HILDBIN) $(HILDUSBBIN)
 
 distclean:
-	@-rm -f *.o
-	@-rm -f $(RAWBIN) $(GTKBIN) $(NETBIN)
+	@-make clean
 	@-rm -f $(DEPEND)
 	@-rm -f config.status
 	@-rm -f config.h

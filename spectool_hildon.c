@@ -1,5 +1,5 @@
-/* Metageek WiSPY interface 
- * Mike Kershaw/Dragorn <dragorn@kismetwireless.net>
+/*
+ * Spectools hildonized interface
  *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -85,7 +85,7 @@ typedef struct _wg_aux {
 	GtkWidget *main_vbox, *nodev_vbox;
 
 	GtkWidget *planar, *spectral, *topo, *channel;
-	GtkWidget *mi_planar, *mi_spectral, *mi_topo;
+	GtkWidget *mi_planar, *mi_spectral, *mi_topo, *mi_close;
 
 	WispyChannelOpts *chanopts;
 
@@ -131,6 +131,8 @@ static void main_devopen(int slot, void *aux) {
 	auxptr->phydev = wdr_get_phy(auxptr->wdr, slot);
 
 	gtk_widget_hide(auxptr->nodev_vbox);
+
+	gtk_widget_set_sensitive(auxptr->mi_close, 1);
 
 	kick_display_items(aux);
 }
@@ -221,6 +223,37 @@ static gboolean main_nodev_menu_button_press(gpointer *aux,
 	return FALSE;
 }
 
+/* Wedge function to make the spectools components, unlinked from a
+ * device.  Used to init new, and close existing, windows */
+void create_spectools(wg_aux *auxptr) {
+	/* No device */
+	auxptr->phydev = NULL;
+
+	/* Make the inactive devices */
+	auxptr->chanopts = (WispyChannelOpts *) malloc(sizeof(WispyChannelOpts));
+	wispychannelopts_init(auxptr->chanopts);
+
+	auxptr->channel = wispy_channel_new();
+	wispy_widget_link_channel(auxptr->channel, auxptr->chanopts);
+	gtk_box_pack_end(GTK_BOX(auxptr->main_vbox), auxptr->channel, FALSE, FALSE, 0);
+
+	auxptr->planar = wispy_planar_new();
+	wispy_widget_link_channel(auxptr->planar, auxptr->chanopts);
+	gtk_box_pack_end(GTK_BOX(auxptr->main_vbox), auxptr->planar, TRUE, TRUE, 0);
+
+	auxptr->topo = wispy_topo_new();
+	wispy_widget_link_channel(auxptr->topo, auxptr->chanopts);
+	gtk_box_pack_end(GTK_BOX(auxptr->main_vbox), auxptr->topo, TRUE, TRUE, 0);
+
+	auxptr->spectral = wispy_spectral_new();
+	wispy_widget_link_channel(auxptr->spectral, auxptr->chanopts);
+	gtk_box_pack_end(GTK_BOX(auxptr->main_vbox), auxptr->spectral, TRUE, TRUE, 0);
+
+	wispy_channel_append_update(auxptr->channel, auxptr->planar);
+	wispy_channel_append_update(auxptr->channel, auxptr->topo);
+	wispy_channel_append_update(auxptr->channel, auxptr->spectral);
+}
+
 void create_window(wg_aux *auxptr) {
 	GtkWidget *temp, *hbox, *arrow, *closebutton, *closeicon;
 
@@ -263,32 +296,37 @@ void create_window(wg_aux *auxptr) {
 
 	gtk_widget_show(auxptr->nodev_vbox);
 
-	/* No device */
-	auxptr->phydev = NULL;
+	create_spectools(auxptr);
+}
 
-	/* Make the inactive devices */
-	auxptr->chanopts = (WispyChannelOpts *) malloc(sizeof(WispyChannelOpts));
-	wispychannelopts_init(auxptr->chanopts);
+void reinit_window(gpointer *aux) {
+	wg_aux *auxptr = (wg_aux *) aux;
 
-	auxptr->channel = wispy_channel_new();
-	wispy_widget_link_channel(auxptr->channel, auxptr->chanopts);
-	gtk_box_pack_end(GTK_BOX(auxptr->main_vbox), auxptr->channel, FALSE, FALSE, 0);
+	g_return_if_fail(aux != NULL);
 
-	auxptr->planar = wispy_planar_new();
-	wispy_widget_link_channel(auxptr->planar, auxptr->chanopts);
-	gtk_box_pack_end(GTK_BOX(auxptr->main_vbox), auxptr->planar, TRUE, TRUE, 0);
+	gtk_widget_destroy(auxptr->planar);
+	gtk_widget_destroy(auxptr->spectral);
+	gtk_widget_destroy(auxptr->topo);
+	gtk_widget_destroy(auxptr->channel);
 
-	auxptr->topo = wispy_topo_new();
-	wispy_widget_link_channel(auxptr->topo, auxptr->chanopts);
-	gtk_box_pack_end(GTK_BOX(auxptr->main_vbox), auxptr->topo, TRUE, TRUE, 0);
+	/* WDR handles closing off the phydev when nothing else
+	 * is using it, and we've destroyed everything using it */
 
-	auxptr->spectral = wispy_spectral_new();
-	wispy_widget_link_channel(auxptr->spectral, auxptr->chanopts);
-	gtk_box_pack_end(GTK_BOX(auxptr->main_vbox), auxptr->spectral, TRUE, TRUE, 0);
+	/* Show the nodev box again */
+	gtk_widget_show(auxptr->nodev_vbox);
 
-	wispy_channel_append_update(auxptr->channel, auxptr->planar);
-	wispy_channel_append_update(auxptr->channel, auxptr->topo);
-	wispy_channel_append_update(auxptr->channel, auxptr->spectral);
+	gtk_widget_set_sensitive(auxptr->mi_close, 0);
+
+	/* Recreate the spectools components */
+	create_spectools(auxptr);
+}
+
+void enable_host(gpointer *aux) {
+	system("/usr/libexec/usbcontrol host");
+}
+
+void enable_periph(gpointer *aux) {
+	system("/usr/libexec/usbcontrol peripheral");
 }
 
 /* Callback for hardware keys */
@@ -317,8 +355,10 @@ int main(int argc, char *argv[]) {
 	GtkWidget *vbox, *graph_vbox;
 	wg_aux *auxptr;
 
-	GtkWidget *main_menu, *mn_devices, *mn_view, *mi_devices, *mi_view;
-	GtkWidget *mi_open, *mi_network, *mi_planar, *mi_spectral, *mi_topo, *mi_quit;
+	GtkWidget *main_menu, *mn_usb, *mn_view, *mi_usb, *mi_view;
+	GtkWidget *mi_usb_host, *mi_usb_periph, 
+			  *mi_network, *mi_planar, *mi_spectral, *mi_topo, 
+			  *mi_close, *mi_sep, *mi_quit;
 
 	wispy_device_registry wdr;
 
@@ -342,26 +382,30 @@ int main(int argc, char *argv[]) {
 	g_set_application_name("Spectool");
 
 	main_menu = gtk_menu_new();
-	mn_devices = gtk_menu_new();
+	mn_usb = gtk_menu_new();
 	mn_view = gtk_menu_new();
 
-	mi_devices = gtk_menu_item_new_with_label("Devices");
-	mi_open = gtk_menu_item_new_with_label("Open...");
-	mi_network = gtk_menu_item_new_with_label("Network...");
+	mi_usb = gtk_menu_item_new_with_label("USB");
+	mi_usb_host = gtk_menu_item_new_with_label("Host mode");
+	mi_usb_periph = gtk_menu_item_new_with_label("Client mode");
 
 	mi_view = gtk_menu_item_new_with_label("View");
 	mi_spectral = gtk_check_menu_item_new_with_label("Spectral");
 	mi_topo = gtk_check_menu_item_new_with_label("Topo");
 	mi_planar = gtk_check_menu_item_new_with_label("Planar");
 
+	mi_close = gtk_menu_item_new_with_label("Close");
+	mi_sep = gtk_separator_menu_item_new();
 	mi_quit = gtk_menu_item_new_with_label("Quit");
 
-	gtk_menu_append(main_menu, mi_devices);
+	gtk_menu_append(main_menu, mi_usb);
 	gtk_menu_append(main_menu, mi_view);
+	gtk_menu_append(main_menu, mi_close);
+	gtk_menu_append(main_menu, mi_sep);
 	gtk_menu_append(main_menu, mi_quit);
 
-	gtk_menu_append(mn_devices, mi_open);
-	gtk_menu_append(mn_devices, mi_network);
+	gtk_menu_append(mn_usb, mi_usb_host);
+	gtk_menu_append(mn_usb, mi_usb_periph);
 
 	gtk_menu_append(mn_view, mi_spectral);
 	gtk_menu_append(mn_view, mi_topo);
@@ -378,19 +422,30 @@ int main(int argc, char *argv[]) {
 	g_signal_connect_swapped(G_OBJECT(mi_planar), "activate",
 			G_CALLBACK(kick_display_items), auxptr);
 
+	gtk_widget_set_sensitive(mi_close, 0);
+	g_signal_connect_swapped(G_OBJECT(mi_close), "activate",
+							 G_CALLBACK(reinit_window), auxptr);
+
+	g_signal_connect_swapped(G_OBJECT(mi_usb_host), "activate",
+							 G_CALLBACK(enable_host), NULL);
+	g_signal_connect_swapped(G_OBJECT(mi_usb_periph), "activate",
+							 G_CALLBACK(enable_periph), NULL);
+
 	g_signal_connect(G_OBJECT(mi_quit), "activate",
 			GTK_SIGNAL_FUNC(gtk_main_quit), NULL);
 
 	gtk_widget_show(main_menu);
 	gtk_widget_show(mn_view);
-	gtk_widget_show(mn_devices);
-	gtk_widget_show(mi_devices);
+	gtk_widget_show(mn_usb);
+	gtk_widget_show(mi_usb);
 	gtk_widget_show(mi_view);
-	gtk_widget_show(mi_open);
-	gtk_widget_show(mi_network);
+	gtk_widget_show(mi_usb_host);
+	gtk_widget_show(mi_usb_periph);
 	gtk_widget_show(mi_spectral);
 	gtk_widget_show(mi_planar);
 	gtk_widget_show(mi_topo);
+	gtk_widget_show(mi_close);
+	gtk_widget_show(mi_sep);
 	gtk_widget_show(mi_quit);
 
 	wdr_init(&wdr);
@@ -404,7 +459,7 @@ int main(int argc, char *argv[]) {
 	hildon_program_add_window(program, window);
 
 	hildon_window_set_menu(HILDON_WINDOW(window), GTK_MENU(main_menu));
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(mi_devices), mn_devices);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(mi_usb), mn_usb);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(mi_view), mn_view);
 
 	g_signal_connect(G_OBJECT (window), "delete_event",
@@ -424,6 +479,7 @@ int main(int argc, char *argv[]) {
 	auxptr->mi_spectral = mi_spectral;
 	auxptr->mi_planar = mi_planar;
 	auxptr->mi_topo = mi_topo;
+	auxptr->mi_close = mi_close;
 
 	gtk_widget_show_all(GTK_WIDGET(window));
 
