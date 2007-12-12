@@ -321,62 +321,60 @@ void reinit_window(gpointer *aux) {
 	create_spectools(auxptr);
 }
 
-void enable_host(gpointer *aux) {
-	system("/usr/libexec/usbcontrol host");
-}
-
-void enable_periph(gpointer *aux) {
-	system("/usr/libexec/usbcontrol peripheral");
-}
-
 void enable_host_cb(gpointer *aux) {
-	GtkWidget *dialog, *okbutton, *cancelbutton, *label;
+	GtkWidget *dialog, *label;
 
 	label = gtk_label_new("This will attempt to place the USB chipset of your "
 						  "Nokia into HOST mode.");
 	dialog = gtk_dialog_new_with_buttons ("USB", NULL,
-										  GTK_DIALOG_MODAL, NULL);
-	gtk_window_set_default_size (GTK_WINDOW (dialog), 350, 100);
-	okbutton = gtk_dialog_add_button (GTK_DIALOG (dialog), 
-									  GTK_STOCK_OK, GTK_RESPONSE_NONE);
-	cancelbutton = gtk_dialog_add_button (GTK_DIALOG (dialog), 
-									  GTK_STOCK_CANCEL, GTK_RESPONSE_NONE);
+										  GTK_DIALOG_MODAL, 
+										  GTK_STOCK_OK,
+										  GTK_RESPONSE_ACCEPT,
+										  GTK_STOCK_CANCEL,
+										  GTK_RESPONSE_CANCEL,
+										  NULL);
 
-	g_signal_connect_swapped(GTK_OBJECT(dialog), 
-							  "response", G_CALLBACK(gtk_widget_destroy), 
-							  GTK_OBJECT (dialog));
-	g_signal_connect_swapped(GTK_OBJECT(okbutton),
-							 "clicked", G_CALLBACK(enable_host));
+	gtk_window_set_default_size(GTK_WINDOW (dialog), 350, 100);
+	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
 
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
-	gtk_widget_grab_focus(okbutton);
 	gtk_container_add(GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), label);
+
 	gtk_widget_show_all(dialog);
+
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		system("/usr/libexec/usbcontrol host");
+	}
+
+	gtk_widget_destroy(dialog);
 }
 
 void enable_periph_cb(gpointer *aux) {
-	GtkWidget *dialog, *okbutton, *cancelbutton, *label;
+	GtkWidget *dialog, *label;
 
 	label = gtk_label_new("This will attempt to place the USB chipset of your "
-						  "Nokia into PERIPHERAL (normal) mode.");
+						  "Nokia into PERIPHERAL (standard) mode.");
 	dialog = gtk_dialog_new_with_buttons ("USB", NULL,
-										  GTK_DIALOG_MODAL, NULL);
-	gtk_window_set_default_size (GTK_WINDOW (dialog), 350, 100);
-	okbutton = gtk_dialog_add_button (GTK_DIALOG (dialog), 
-									  GTK_STOCK_OK, GTK_RESPONSE_NONE);
-	cancelbutton = gtk_dialog_add_button (GTK_DIALOG (dialog), 
-									  GTK_STOCK_CANCEL, GTK_RESPONSE_NONE);
+										  GTK_DIALOG_MODAL, 
+										  GTK_STOCK_OK,
+										  GTK_RESPONSE_ACCEPT,
+										  GTK_STOCK_CANCEL,
+										  GTK_RESPONSE_CANCEL,
+										  NULL);
 
-	g_signal_connect_swapped(GTK_OBJECT(dialog), 
-							  "response", G_CALLBACK(gtk_widget_destroy), 
-							  GTK_OBJECT (dialog));
-	g_signal_connect_swapped(GTK_OBJECT(okbutton),
-							 "clicked", G_CALLBACK(enable_periph));
+	gtk_window_set_default_size(GTK_WINDOW (dialog), 350, 100);
+	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
 
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
-	gtk_widget_grab_focus(okbutton);
 	gtk_container_add(GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), label);
+
 	gtk_widget_show_all(dialog);
+
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		system("/usr/libexec/usbcontrol periph");
+	}
+
+	gtk_widget_destroy(dialog);
 }
 
 /* Callback for hardware keys */

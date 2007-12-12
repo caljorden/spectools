@@ -689,7 +689,11 @@ static void wispy_planar_init(WispyPlanar *planar) {
 	wwidget->draw_mouse_move_func = wispy_planar_mouse_move;
 	wwidget->draw_mouse_click_func = wispy_planar_button_press;
 
+#ifdef HAVE_HILDON
+	wwidget->draw_timeout = 1500;
+#else
 	wwidget->draw_timeout = 500;
+#endif
 	wwidget->draw_func = wispy_planar_draw;
 	wwidget->update_func = wispy_planar_update;
 

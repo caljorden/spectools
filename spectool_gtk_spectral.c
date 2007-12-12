@@ -475,7 +475,11 @@ static void wispy_spectral_init(WispySpectral *spectral) {
 	wwidget->wdr_devbind_func = wispy_spectral_wdr_devbind;
 	wwidget->draw_mouse_move_func = NULL;
 	wwidget->draw_mouse_click_func = NULL;
+#ifdef HAVE_HILDON
+	wwidget->draw_timeout = 1500;
+#else
 	wwidget->draw_timeout = 500;
+#endif
 	wwidget->draw_func = wispy_spectral_draw;
 
 	wwidget->menu_func = NULL;
