@@ -674,6 +674,8 @@ pkggtk2_LIBS
 gtkconf
 pkghildon_CFLAGS
 pkghildon_LIBS
+pkgdbus_CFLAGS
+pkgdbus_LIBS
 TARGETS
 GTKLIBS
 HILDLIBS
@@ -694,7 +696,9 @@ PKG_CONFIG
 pkggtk2_CFLAGS
 pkggtk2_LIBS
 pkghildon_CFLAGS
-pkghildon_LIBS'
+pkghildon_LIBS
+pkgdbus_CFLAGS
+pkgdbus_LIBS'
 
 
 # Initialize some variables set by options.
@@ -1282,6 +1286,10 @@ Some influential environment variables:
               C compiler flags for pkghildon, overriding pkg-config
   pkghildon_LIBS
               linker flags for pkghildon, overriding pkg-config
+  pkgdbus_CFLAGS
+              C compiler flags for pkgdbus, overriding pkg-config
+  pkgdbus_LIBS
+              linker flags for pkgdbus, overriding pkg-config
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -5541,16 +5549,92 @@ echo "${ECHO_T}yes" >&6; }
 	pkghildon=yes
 fi
 	if test "$pkghildon" = "yes"; then
-		HILD_CONFIG="pkg-config hildon-1"
-		HILD="yes"
-	  	CFLAGS="$CFLAGS `$HILD_CONFIG --cflags`"
-	  	HILDLIBS="`$HILD_CONFIG --libs`"
-		TARGETS="$TARGETS spectool_hildon"
+
+pkg_failed=no
+{ echo "$as_me:$LINENO: checking for pkgdbus" >&5
+echo $ECHO_N "checking for pkgdbus... $ECHO_C" >&6; }
+
+if test -n "$PKG_CONFIG"; then
+    if test -n "$pkgdbus_CFLAGS"; then
+        pkg_cv_pkgdbus_CFLAGS="$pkgdbus_CFLAGS"
+    else
+        if test -n "$PKG_CONFIG" && \
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"dbus-1\"") >&5
+  ($PKG_CONFIG --exists --print-errors "dbus-1") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_pkgdbus_CFLAGS=`$PKG_CONFIG --cflags "dbus-1" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+    fi
+else
+	pkg_failed=untried
+fi
+if test -n "$PKG_CONFIG"; then
+    if test -n "$pkgdbus_LIBS"; then
+        pkg_cv_pkgdbus_LIBS="$pkgdbus_LIBS"
+    else
+        if test -n "$PKG_CONFIG" && \
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"dbus-1\"") >&5
+  ($PKG_CONFIG --exists --print-errors "dbus-1") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_pkgdbus_LIBS=`$PKG_CONFIG --libs "dbus-1" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+    fi
+else
+	pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        pkgdbus_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "dbus-1"`
+        else
+	        pkgdbus_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "dbus-1"`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$pkgdbus_PKG_ERRORS" >&5
+
+	{ echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+                pkgdbus=no
+elif test $pkg_failed = untried; then
+	pkgdbus=no
+else
+	pkgdbus_CFLAGS=$pkg_cv_pkgdbus_CFLAGS
+	pkgdbus_LIBS=$pkg_cv_pkgdbus_LIBS
+        { echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6; }
+	pkgdbus=yes
+fi
+		if test "$pkgdbus" = "yes"; then
+			HILD_CONFIG="pkg-config hildon-1 dbus-1"
+			HILD="yes"
+	  		CFLAGS="$CFLAGS `$HILD_CONFIG --cflags`"
+	  		HILDLIBS="`$HILD_CONFIG --libs`"
+			TARGETS="$TARGETS spectool_hildon"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_HILDON 1
 _ACEOF
 
+		else
+			{ echo "$as_me:$LINENO: WARNING: Hildon found but dbus not" >&5
+echo "$as_me: WARNING: Hildon found but dbus not" >&2;}
+		fi
 	fi
 fi
 
@@ -6308,6 +6392,8 @@ pkggtk2_LIBS!$pkggtk2_LIBS$ac_delim
 gtkconf!$gtkconf$ac_delim
 pkghildon_CFLAGS!$pkghildon_CFLAGS$ac_delim
 pkghildon_LIBS!$pkghildon_LIBS$ac_delim
+pkgdbus_CFLAGS!$pkgdbus_CFLAGS$ac_delim
+pkgdbus_LIBS!$pkgdbus_LIBS$ac_delim
 TARGETS!$TARGETS$ac_delim
 GTKLIBS!$GTKLIBS$ac_delim
 HILDLIBS!$HILDLIBS$ac_delim
@@ -6316,7 +6402,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 67; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 69; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
