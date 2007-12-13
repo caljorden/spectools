@@ -24,7 +24,9 @@
 #include <string.h>
 #include <locale.h>
 
+#include <libosso.h>
 #include <hildon/hildon-program.h>
+#include <hildon/hildon-help.h>
 #include <gtk/gtkmain.h>
 #include <gdk/gdkkeysyms.h>
 
@@ -37,8 +39,8 @@
 #include "spectool_gtk_topo.h"
 #include "spectool_gtk_channel.h"
 
-#define GETTEXT_PACKAGE	"spectool_gtk"
-#define LOCALEDIR		"/usr/share/locale/spectool_gtk"
+#define GETTEXT_PACKAGE	"spectool"
+#define LOCALEDIR		"/usr/share/locale/spectool"
 
 /* One of the few globals */
 int fullscreen;
@@ -48,25 +50,6 @@ void Wispy_Alert_Dialog(char *text) {
 
 	label = gtk_label_new(text);
 	dialog = gtk_dialog_new_with_buttons ("SpecTool", NULL,
-										  GTK_DIALOG_MODAL, NULL);
-	gtk_window_set_default_size (GTK_WINDOW (dialog), 300, 100);
-	okbutton = gtk_dialog_add_button (GTK_DIALOG (dialog), 
-									  GTK_STOCK_OK, GTK_RESPONSE_NONE);
-	g_signal_connect_swapped (GTK_OBJECT (dialog), 
-							  "response", G_CALLBACK (gtk_widget_destroy), 
-							  GTK_OBJECT (dialog));
-	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
-	gtk_widget_grab_focus(okbutton);
-	gtk_container_add(GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), label);
-	gtk_widget_show_all(dialog);
-}
-
-void Wispy_Help_Dialog(char *title, char *text) {
-	GtkWidget *dialog, *scroll, *okbutton, *label;
-
-	label = gtk_label_new(NULL);
-	gtk_label_set_markup(GTK_LABEL(label), text);
-	dialog = gtk_dialog_new_with_buttons (title, NULL,
 										  GTK_DIALOG_MODAL, NULL);
 	gtk_window_set_default_size (GTK_WINDOW (dialog), 300, 100);
 	okbutton = gtk_dialog_add_button (GTK_DIALOG (dialog), 
@@ -93,6 +76,30 @@ typedef struct _wg_aux {
 	int wdr_slot;
 	GList *wdr_menu;
 } wg_aux;
+
+/* Application UI data struct */
+typedef struct {
+	HildonProgram *program;
+	HildonWindow *window;
+	osso_context_t *osso_context;
+} AppData;
+
+AppData appdata; /* global appdata */
+
+void help_activated(GtkWidget *win, gchar *help_id)
+{
+	osso_return_t retval;
+
+	if (!help_id)
+		return;
+
+	retval = 
+		hildon_help_show(appdata.osso_context, help_id, 0);
+}
+
+void Wispy_Help_Dialog(char *title, char *text) {
+	help_activated(NULL, "help_spectool_intro");
+}
 
 static void kick_display_items(gpointer *aux) {
 	wg_aux *auxptr = (wg_aux *) aux;
@@ -325,13 +332,16 @@ void enable_host_cb(gpointer *aux) {
 	GtkWidget *dialog, *label;
 
 	label = gtk_label_new("This will attempt to place the USB chipset of your "
-						  "Nokia into HOST mode.");
+						  "Nokia into HOST mode.  If you are unsure, view the "
+						  "help first.");
 	dialog = gtk_dialog_new_with_buttons ("USB", NULL,
 										  GTK_DIALOG_MODAL, 
-										  GTK_STOCK_OK,
-										  GTK_RESPONSE_ACCEPT,
+										  GTK_STOCK_HELP,
+										  GTK_RESPONSE_HELP,
 										  GTK_STOCK_CANCEL,
 										  GTK_RESPONSE_CANCEL,
+										  GTK_STOCK_OK,
+										  GTK_RESPONSE_ACCEPT,
 										  NULL);
 
 	gtk_window_set_default_size(GTK_WINDOW (dialog), 350, 100);
@@ -342,8 +352,15 @@ void enable_host_cb(gpointer *aux) {
 
 	gtk_widget_show_all(dialog);
 
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-		system("/usr/libexec/usbcontrol host");
+	switch (gtk_dialog_run(GTK_DIALOG(dialog))) {
+		case GTK_RESPONSE_ACCEPT:
+			system("/usr/libexec/usbcontrol host");
+			break;
+		case GTK_RESPONSE_HELP:
+			help_activated(NULL, "help_spectool_usb");
+			break;
+		default:
+			break;
 	}
 
 	gtk_widget_destroy(dialog);
@@ -353,13 +370,16 @@ void enable_periph_cb(gpointer *aux) {
 	GtkWidget *dialog, *label;
 
 	label = gtk_label_new("This will attempt to place the USB chipset of your "
-						  "Nokia into PERIPHERAL (standard) mode.");
+						  "Nokia into PERIPHERAL (standard) mode.  If you "
+						  "are unsure, view the help first.");
 	dialog = gtk_dialog_new_with_buttons ("USB", NULL,
 										  GTK_DIALOG_MODAL, 
-										  GTK_STOCK_OK,
-										  GTK_RESPONSE_ACCEPT,
+										  GTK_STOCK_HELP,
+										  GTK_RESPONSE_HELP,
 										  GTK_STOCK_CANCEL,
 										  GTK_RESPONSE_CANCEL,
+										  GTK_STOCK_OK,
+										  GTK_RESPONSE_ACCEPT,
 										  NULL);
 
 	gtk_window_set_default_size(GTK_WINDOW (dialog), 350, 100);
@@ -370,8 +390,15 @@ void enable_periph_cb(gpointer *aux) {
 
 	gtk_widget_show_all(dialog);
 
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-		system("/usr/libexec/usbcontrol periph");
+	switch (gtk_dialog_run(GTK_DIALOG(dialog))) {
+		case GTK_RESPONSE_ACCEPT:
+			system("/usr/libexec/usbcontrol periph");
+			break;
+		case GTK_RESPONSE_HELP:
+			help_activated(NULL, "help_spectool_usb");
+			break;
+		default:
+			break;
 	}
 
 	gtk_widget_destroy(dialog);
@@ -406,7 +433,7 @@ int main(int argc, char *argv[]) {
 	GtkWidget *main_menu, *mn_usb, *mn_view, *mi_usb, *mi_view;
 	GtkWidget *mi_usb_host, *mi_usb_periph, 
 			  *mi_network, *mi_planar, *mi_spectral, *mi_topo, 
-			  *mi_close, *mi_sep, *mi_quit;
+			  *mi_close, *mi_sep, *mi_help, *mi_quit;
 
 	wispy_device_registry wdr;
 
@@ -422,6 +449,17 @@ int main(int argc, char *argv[]) {
 	fullscreen = 0;
 
 	gtk_init(&argc, &argv);
+
+	appdata.osso_context = osso_initialize(
+				   "net.kismetwireless.spectool", /* app name */
+				   "2007-10-R1",  /* app version */
+				   TRUE, NULL);
+
+	/* Check that initialization was ok */
+	if (appdata.osso_context == NULL) {
+		printf("Failed to init osso context\n");
+		return OSSO_ERROR;
+	}
 
 	auxptr = (wg_aux *) malloc(sizeof(wg_aux));
 	printf("debug - auxptr created as %p\n", auxptr);
@@ -444,12 +482,14 @@ int main(int argc, char *argv[]) {
 
 	mi_close = gtk_menu_item_new_with_label("Close");
 	mi_sep = gtk_separator_menu_item_new();
+	mi_help = gtk_menu_item_new_with_label("Help...");
 	mi_quit = gtk_menu_item_new_with_label("Quit");
 
 	gtk_menu_append(main_menu, mi_usb);
 	gtk_menu_append(main_menu, mi_view);
 	gtk_menu_append(main_menu, mi_close);
 	gtk_menu_append(main_menu, mi_sep);
+	gtk_menu_append(main_menu, mi_help);
 	gtk_menu_append(main_menu, mi_quit);
 
 	gtk_menu_append(mn_usb, mi_usb_host);
@@ -478,6 +518,10 @@ int main(int argc, char *argv[]) {
 							 G_CALLBACK(enable_host_cb), NULL);
 	g_signal_connect_swapped(G_OBJECT(mi_usb_periph), "activate",
 							 G_CALLBACK(enable_periph_cb), NULL);
+
+	g_signal_connect(G_OBJECT(mi_help), "activate",
+					 G_CALLBACK(help_activated),
+					 "help_spectool_intro");
 
 	g_signal_connect(G_OBJECT(mi_quit), "activate",
 			GTK_SIGNAL_FUNC(gtk_main_quit), NULL);
