@@ -407,7 +407,11 @@ static void wispy_topo_init(WispyTopo *topo) {
 	wwidget->draw_mouse_move_func = NULL;
 	wwidget->draw_mouse_click_func = NULL;
 
+#ifndef HAVE_HILDON
 	wwidget->draw_timeout = 2000;
+#else
+	wwidget->draw_timeout = 4000;
+#endif
 	wwidget->draw_func = wispy_topo_draw;
 
 	wwidget->menu_func = wispy_topo_context_menu;
