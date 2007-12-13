@@ -5621,7 +5621,7 @@ echo "${ECHO_T}yes" >&6; }
 	pkgdbus=yes
 fi
 		if test "$pkgdbus" = "yes"; then
-			HILD_CONFIG="pkg-config hildon-1 dbus-1"
+			HILD_CONFIG="pkg-config hildon-1 hildon-help dbus-1"
 			HILD="yes"
 	  		CFLAGS="$CFLAGS `$HILD_CONFIG --cflags`"
 	  		HILDLIBS="`$HILD_CONFIG --libs`"

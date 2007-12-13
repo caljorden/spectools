@@ -218,7 +218,7 @@ if test "$GTK_CONFIG"x != "x"; then
 	if test "$pkghildon" = "yes"; then
 		PKG_CHECK_MODULES(pkgdbus, [dbus-1], pkgdbus=yes, pkgdbus=no)
 		if test "$pkgdbus" = "yes"; then
-			HILD_CONFIG="pkg-config hildon-1 dbus-1"
+			HILD_CONFIG="pkg-config hildon-1 hildon-help dbus-1"
 			HILD="yes"
 	  		CFLAGS="$CFLAGS `$HILD_CONFIG --cflags`"
 	  		HILDLIBS="`$HILD_CONFIG --libs`"
