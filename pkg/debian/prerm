@@ -1,0 +1,10 @@
+#!/bin/sh -e
+
+if [ "$1" = "purge" ]; then
+	gconftool-2 --recurve-unset "/apps/spectool"
+fi
+
+rm -f /usr/share/applications/hildon/maemo-mapper.desktop
+
+exit 0
+

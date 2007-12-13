@@ -1,9 +1,0 @@
-[Desktop Entry]
-Encoding=UTF-8
-Version=2007-10-R1
-Type=Application
-Name=Spectool
-Exec=/usr/bin/spectool
-X-Osso-Service=org.maemo.spectool
-Icon=spectool_hildon
-MimeType=application/x-spectool;
