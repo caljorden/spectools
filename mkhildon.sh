@@ -1,5 +1,5 @@
 rm -r build-pkg
-cp -r pkg build-pkg 
+cp -r pkg-hildon build-pkg 
 mkdir -p build-pkg/usr/bin
 mkdir -p build-pkg/usr/libexec
 strip spectool_hildon usbcontrol

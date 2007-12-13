@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=net.kismetwireless.spectool
+Exec=/usr/bin/spectool

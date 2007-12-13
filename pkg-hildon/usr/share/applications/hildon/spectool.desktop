@@ -1,0 +1,13 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Name=Spectool
+Exec=/usr/bin/spectool
+Icon=spectool
+StartupWMClass=spectool
+X-Window-Icon=spectool
+X-HildonDesk-ShowInToolbar=true
+X-Osso-Service=net.kismetwireless.spectool
+X-Osso-Type=application/x-executable
+Terminal=false
