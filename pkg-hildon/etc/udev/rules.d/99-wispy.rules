@@ -1,0 +1,4 @@
+# Two vid/pid pairs for Wispy1 USB dongle
+ATTRS{idVendor}=="1781", ATTRS{idProduct}=="083e", MODE="0660", OWNER="user"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="0bad", MODE="0660", OWNER="user"
+ATTRS{idVendor}=="1781", ATTRS{idProduct}=="083f", MODE="0660", OWNER="user"
