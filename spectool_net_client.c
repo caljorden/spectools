@@ -10,6 +10,9 @@
  * GNU General Public License for more details.
  */
 
+#include <sys/types.h>
+#include <sys/uio.h>
+
 #include "config.h"
 #include "spectool_net_client.h"
 
