@@ -17,6 +17,7 @@
 #include "spectool_container.h"
 #include "wispy_hw_gen1.h"
 #include "wispy_hw_24x.h"
+#include "wispy_hw_dbx.h"
 
 int wispy_get_state(wispy_phy *phydev) {
 	return phydev->state;
@@ -253,6 +254,10 @@ int wispy_device_scan(wispy_device_list *list) {
 	}
 
 	if (wispy24x_usb_device_scan(list) < 0) {
+		return -1;
+	}
+
+	if (wispydbx_usb_device_scan(list) < 0) {
 		return -1;
 	}
 

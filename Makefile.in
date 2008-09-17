@@ -20,26 +20,26 @@ CPPFLAGS = @CPPFLAGS@
 
 GTK_CONFIG=@GTK_CONFIG@
 
-RAWOBJS = spectool_container.o wispy_hw_gen1.o wispy_hw_24x.o \
+RAWOBJS = spectool_container.o wispy_hw_gen1.o wispy_hw_24x.o wispy_hw_dbx.o \
 	spectool_net_client.o spectool_raw.o
 RAWBIN = spectool_raw
 
-CURSOBJS = spectool_container.o wispy_hw_gen1.o wispy_hw_24x.o \
+CURSOBJS = spectool_container.o wispy_hw_gen1.o wispy_hw_24x.o wispy_hw_dbx.o \
 	spectool_net_client.o spectool_curses.o
 CURSBIN = spectool_curses
 
-NETOBJS = spectool_container.o wispy_hw_gen1.o wispy_hw_24x.o \
+NETOBJS = spectool_container.o wispy_hw_gen1.o wispy_hw_24x.o wispy_hw_dbx.o \
 	spectool_net_server.o
 NETBIN = spectool_net
 
-GTKOBJS = spectool_container.o wispy_hw_gen1.o wispy_hw_24x.o \
+GTKOBJS = spectool_container.o wispy_hw_gen1.o wispy_hw_24x.o wispy_hw_dbx.o \
 	spectool_net_client.o \
 	spectool_gtk_hw_registry.o spectool_gtk_widget.o spectool_gtk_channel.o \
 	spectool_gtk_planar.o spectool_gtk_spectral.o spectool_gtk_topo.o \
 	spectool_gtk.o
 GTKBIN = spectool_gtk
 
-HILDOBJS = spectool_container.o wispy_hw_gen1.o wispy_hw_24x.o \
+HILDOBJS = spectool_container.o wispy_hw_gen1.o wispy_hw_24x.o wispy_hw_dbx.o \
 	spectool_net_client.o \
 	spectool_gtk_hw_registry.o spectool_gtk_widget.o spectool_gtk_channel.o \
 	spectool_gtk_planar.o spectool_gtk_spectral.o spectool_gtk_topo.o \

@@ -94,8 +94,9 @@ typedef struct _wispy_dev_spec {
 	char device_name[WISPY_PHY_NAME_MAX];
 
 	/* Version of the physical source device.
-	 * 0x01 WiSPY generation 1 USB dongle
-	 * 0x02 WiSPY generation 2 USB dongle
+	 * 0x01 WiSPY generation 1 USB device
+	 * 0x02 WiSPY generation 2 USB device
+	 * 0x03 WiSPY generation 3 USB device
 	 */
 	uint8_t device_version;
 
@@ -237,9 +238,19 @@ static char *chan_text_24[] = {
 	"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"
 };
 
+static int chan_freqs_5[] = {
+	5180000, 5200000, 5220000, 5240000, 5260000, 5280000, 5300000, 5320000,
+	5745000, 5765000, 5785000, 5805000, 5825000
+};
+
+static char *chan_text_5[] = {
+	"36", "40", "44", "48", "52", "56", "60", "64", "149", "153", "157", "161", "165"
+};
+
 /* Allocate all our channels in a big nasty array */
 static struct wispy_channels channel_list[] = {
 	{ "802.11b/g", 2400000, 2483000, 14, chan_freqs_24, 22000, chan_text_24 },
+	{ "802.11a", 5160000, 5832000, 13, chan_freqs_5, 20000, chan_text_5 },
 	{ NULL, 0, 0, 0, NULL, 0, NULL }
 };
 
