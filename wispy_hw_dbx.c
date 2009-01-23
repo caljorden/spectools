@@ -461,12 +461,12 @@ void *wispydbx_usb_servicethread(void *aux) {
 
 			if ((len = usb_interrupt_read(wispy, 0x82, buf, 
 								   sizeof(wispydbx_report), TIMEOUT)) <= 0) {
-				if (errno == EAGAIN) {
+				if (errno == EAGAIN || errno == ENOENT) {
 					// printf("debug - eagain on usb_interrupt_read\n");
 					continue;
 				}
 
-				// printf("debug - failed - %s\n", strerror(errno));
+				printf("debug - failed - %s\n", strerror(errno));
 
 				snprintf(auxptr->phydev->errstr, WISPY_ERROR_MAX,
 						 "wispydbx_usb poller failed to read USB data: %s",
@@ -508,10 +508,12 @@ int wispydbx_usb_getpollfd(wispy_phy *phydev) {
 	wispydbx_usb_aux *auxptr = (wispydbx_usb_aux *) phydev->auxptr;
 
 	if (auxptr->usb_thread_alive == 0) {
+		// fprintf(stderr, "debug - thread alive = 0\n");
 		wispydbx_usb_close(phydev);
 		return -1;
 	}
 
+	// fprintf(stderr, "debug - auxptr sockpair 0 %d\n", auxptr->sockpair[0]);
 	return auxptr->sockpair[0];
 }
 
@@ -536,27 +538,27 @@ int wispydbx_usb_open(wispy_phy *phydev) {
 		return -1;
 	}
 
-	/* We'll fail later if this really failed for this platform */
-	usb_set_configuration(auxptr->devhdl, auxptr->dev->config->bConfigurationValue);
-
-#ifndef SYS_DARWIN
 	/* Claim the device on non-OSX systems */
 	if (usb_claim_interface(auxptr->devhdl, 0) < 0) {
 		snprintf(phydev->errstr, WISPY_ERROR_MAX,
 				 "could not claim interface: %s", usb_strerror());
 #ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
+
 		if (usb_detach_kernel_driver_np(auxptr->devhdl, 0) < 0) {
 			fprintf(stderr, "Could not detach kernel driver %s\n", usb_strerror());
 			snprintf(phydev->errstr, WISPY_ERROR_MAX,
 					 "Could not detach device from kernel driver: %s",
 					 usb_strerror());
-#endif
-#ifdef SYS_LINUX
+
+#elif defined(SYS_LINUX)
+
 		if (wispydbx_usb_detach_hack(auxptr->devhdl, 0, phydev->errstr) < 0) {
 			return -1;
 		}
 
-		usb_set_configuration(auxptr->devhdl, auxptr->dev->config->bConfigurationValue);
+#else
+		return -1;
+#endif
 
 		if (usb_claim_interface(auxptr->devhdl, 0) < 0) {
 			snprintf(phydev->errstr, WISPY_ERROR_MAX,
@@ -564,19 +566,13 @@ int wispydbx_usb_open(wispy_phy *phydev) {
 					 "can't claim interface: %s", strerror(errno));
 			return -1;
 		}
-#else
-		return -1;
-#endif
 #ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
 		}
 #endif
 	}
-#endif
 
-#ifdef SYS_DARWIN
-	usb_set_configuration(auxptr->devhdl, 
-						  auxptr->dev->config->bConfigurationValue);
-#endif
+	/* We'll fail later if this really failed for this platform */
+	usb_set_configuration(auxptr->devhdl, auxptr->dev->config->bConfigurationValue);
 
 	auxptr->usb_thread_alive = 1;
 
@@ -831,7 +827,7 @@ int wispydbx_usb_setposition(wispy_phy *phydev, int start_khz, int res_hz) {
 		phydev->state = WISPY_STATE_ERROR;
 		return -1;
 	}
-	// printf("debug - finished wrting usb control\n");
+	printf("debug - finished wrting usb control\n");
 
 	/* If we successfully configured the hardware, update the sweep capabilities and
 	 * the sweep buffer and reset the device */

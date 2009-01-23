@@ -277,6 +277,10 @@ int main(int argc, char *argv[]) {
 					printf("%s\n", wispy_get_error(di));
 					exit(1);
 				}
+
+				printf("Unable to poll wispy device %s, waiting\n", 
+					   wispy_phy_getname(di));
+				continue;
 			}
 
 			if (FD_ISSET(wispy_phy_getpollfd(di), &rfds) == 0) {
