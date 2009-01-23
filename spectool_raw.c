@@ -278,8 +278,6 @@ int main(int argc, char *argv[]) {
 					exit(1);
 				}
 
-				printf("Unable to poll wispy device %s, waiting\n", 
-					   wispy_phy_getname(di));
 				continue;
 			}
 

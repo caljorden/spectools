@@ -65,13 +65,14 @@
 #define METAGEEK_WISPYDBx_PID		0x5000
 
 /* Default config */
-#define WISPYDBx_USB_DEF_STARTKHZ		5160000
-// #define WISPYDBx_USB_DEF_RESHZ			374268
-// #define WISPYDBx_USB_DEF_FILTERHZ		375000
-#define WISPYDBx_USB_DEF_RESHZ			1497070
-#define WISPYDBx_USB_DEF_FILTERHZ		600000
+// #define WISPYDBx_USB_DEF_STARTKHZ		5160000
+// #define WISPYDBx_USB_DEF_RESHZ			1497070
+// #define WISPYDBx_USB_DEF_FILTERHZ		600000
+#define WISPYDBx_USB_DEF_STARTKHZ		2400000
+#define WISPYDBx_USB_DEF_RESHZ			239924
+#define WISPYDBx_USB_DEF_FILTERHZ		239924
 #define WISPYDBx_USB_DEF_SAMPLESPOINT	8
-#define WISPYDBx_USB_NUM_SAMPLES		451
+#define WISPYDBx_USB_NUM_SAMPLES		350
 
 #define WISPYDBx_USB_OFFSET_MDBM		-134000
 #define WISPYDBx_USB_RES_MDBM			500
@@ -428,7 +429,7 @@ void *wispydbx_usb_servicethread(void *aux) {
 	sigfillset(&signal_set);
 	pthread_sigmask(SIG_BLOCK, &signal_set, NULL);
 
-	// printf("debug - servicethread started\n");
+	// fprintf(stderr, "debug - servicethread started\n");
 
 	while (1) {
 		/* wait until we're able to write out to the IPC socket, go into a blocking
@@ -455,18 +456,21 @@ void *wispydbx_usb_servicethread(void *aux) {
 		}
 
 		/* Get new data only if we haven't requeued */
-		if (error == 0) {
+		if (error == 0 && auxptr->phydev->state == WISPY_STATE_RUNNING) {
 			int len = 0;
 			memset(buf, 0, sizeof(wispydbx_report));
 
+			// fprintf(stderr, "debug - running, poll\n");
+
 			if ((len = usb_interrupt_read(wispy, 0x82, buf, 
-								   sizeof(wispydbx_report), TIMEOUT)) <= 0) {
-				if (errno == EAGAIN || errno == ENOENT) {
-					// printf("debug - eagain on usb_interrupt_read\n");
+								   sizeof(wispydbx_report), TIMEOUT)) < 0) {
+				if (errno == EAGAIN) {
+					// fprintf(stderr, "debug - eagain on usb_interrupt_read\n");
 					continue;
 				}
 
-				printf("debug - failed - %s\n", strerror(errno));
+				// fprintf(stderr, "debug - failed - %s\n", strerror(errno));
+				// fprintf(stderr, "debug - %s\n", usb_strerror());
 
 				snprintf(auxptr->phydev->errstr, WISPY_ERROR_MAX,
 						 "wispydbx_usb poller failed to read USB data: %s",
@@ -538,40 +542,39 @@ int wispydbx_usb_open(wispy_phy *phydev) {
 		return -1;
 	}
 
-	/* Claim the device on non-OSX systems */
-	if (usb_claim_interface(auxptr->devhdl, 0) < 0) {
+	/*
+	fprintf(stderr, "debug - detatch\n");
+	usb_detach_kernel_driver_np(auxptr->devhdl, 0);
+	usb_detach_kernel_driver_np(auxptr->devhdl, 1);
+	fprintf(stderr, "debug - claim\n");
+	usb_claim_interface(auxptr->devhdl, 1);
+	fprintf(stderr, "debug - config %d\n", auxptr->dev->config->bConfigurationValue);
+	usb_set_configuration(auxptr->devhdl, auxptr->dev->config->bConfigurationValue);
+	*/
+
+#ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
+	// fprintf(stderr, "debug - detatch kernel driver np\n");
+	if (usb_detach_kernel_driver_np(auxptr->devhdl, 0) < 0 ||
+		usb_detach_kernel_driver_np(auxptr->devhdl, 1)) {
+		// fprintf(stderr, "Could not detach kernel driver %s\n", usb_strerror());
+		snprintf(phydev->errstr, WISPY_ERROR_MAX,
+				 "Could not detach device from kernel driver: %s",
+				 usb_strerror());
+	}
+#elif defined(SYS_LINUX)
+	// fprintf(stderr, "debug - detatch hack\n");
+	if (wispydbx_usb_detach_hack(auxptr->devhdl, 0, phydev->errstr) < 0) {
+		return -1;
+	}
+#endif
+
+	// fprintf(stderr, "debug - claiming interface\n");
+	if (usb_claim_interface(auxptr->devhdl, 1) < 0) {
 		snprintf(phydev->errstr, WISPY_ERROR_MAX,
 				 "could not claim interface: %s", usb_strerror());
-#ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
-
-		if (usb_detach_kernel_driver_np(auxptr->devhdl, 0) < 0) {
-			fprintf(stderr, "Could not detach kernel driver %s\n", usb_strerror());
-			snprintf(phydev->errstr, WISPY_ERROR_MAX,
-					 "Could not detach device from kernel driver: %s",
-					 usb_strerror());
-
-#elif defined(SYS_LINUX)
-
-		if (wispydbx_usb_detach_hack(auxptr->devhdl, 0, phydev->errstr) < 0) {
-			return -1;
-		}
-
-#else
-		return -1;
-#endif
-
-		if (usb_claim_interface(auxptr->devhdl, 0) < 0) {
-			snprintf(phydev->errstr, WISPY_ERROR_MAX,
-					 "wispydbx_usb capture process detached device but still "
-					 "can't claim interface: %s", strerror(errno));
-			return -1;
-		}
-#ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
-		}
-#endif
 	}
 
-	/* We'll fail later if this really failed for this platform */
+	// fprintf(stderr, "debug - set_configuration\n");
 	usb_set_configuration(auxptr->devhdl, auxptr->dev->config->bConfigurationValue);
 
 	auxptr->usb_thread_alive = 1;
@@ -605,20 +608,23 @@ int wispydbx_usb_open(wispy_phy *phydev) {
 
 	wispy = auxptr->devhdl;
 
-	// printf("debug - writing usb start control msg\n");
+	// fprintf(stderr, "debug - writing usb start control msg\n");
 	if (usb_control_msg(wispy, 
 						USB_ENDPOINT_OUT + USB_TYPE_CLASS + USB_RECIP_INTERFACE,
 						HID_SET_REPORT, 
 						0x02 + (0x03 << 8),
 						0, 
 						(uint8_t *) &startcmd, (int) sizeof(wispydbx_startsweep), 
-						TIMEOUT) == 0) {
+						0) <= 0) {
+		// fprintf(stderr, "debug - controlmsg start failed\n");
 		snprintf(phydev->errstr, WISPY_ERROR_MAX,
 				 "wispydbx_usb open failed to send start command: %s",
 				 strerror(errno));
 		phydev->state = WISPY_STATE_ERROR;
 		return -1;
 	}
+
+	// fprintf(stderr, "debug - finished writing usb control msg\n");
 
 	return 1;
 }
@@ -813,14 +819,14 @@ int wispydbx_usb_setposition(wispy_phy *phydev, int start_khz, int res_hz) {
 
 	wispy = auxptr->devhdl;
 
-	// printf("debug - writing usb control msg\n");
+	printf("debug - writing usb control msg %d\n", 0x02 + (0x03 << 8));
 	if (usb_control_msg(wispy, 
 						USB_ENDPOINT_OUT + USB_TYPE_CLASS + USB_RECIP_INTERFACE,
 						HID_SET_REPORT, 
 						0x02 + (0x03 << 8),
 						0, 
 						(uint8_t *) &rfset, (int) sizeof(wispydbx_rfsettings), 
-						TIMEOUT) == 0) {
+						0) == 0) {
 		snprintf(phydev->errstr, WISPY_ERROR_MAX,
 				 "wispydbx_usb setposition failed to set sweep feature set: %s",
 				 strerror(errno));

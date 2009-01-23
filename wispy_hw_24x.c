@@ -537,47 +537,30 @@ int wispy24x_usb_open(wispy_phy *phydev) {
 		return -1;
 	}
 
-	/* We'll fail later if this really failed for this platform */
-	usb_set_configuration(auxptr->devhdl, auxptr->dev->config->bConfigurationValue);
-
-#ifndef SYS_DARWIN
-	/* Claim the device on non-OSX systems */
-	if (usb_claim_interface(auxptr->devhdl, 0) < 0) {
+#ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
+	// fprintf(stderr, "debug - detatch kernel driver np\n");
+	if (usb_detach_kernel_driver_np(auxptr->devhdl, 0) < 0 ||
+		usb_detach_kernel_driver_np(auxptr->devhdl, 1)) {
+		// fprintf(stderr, "Could not detach kernel driver %s\n", usb_strerror());
 		snprintf(phydev->errstr, WISPY_ERROR_MAX,
-				 "could not claim interface: %s", usb_strerror());
-#ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
-		if (usb_detach_kernel_driver_np(auxptr->devhdl, 0) < 0) {
-			fprintf(stderr, "Could not detach kernel driver %s\n", usb_strerror());
-			snprintf(phydev->errstr, WISPY_ERROR_MAX,
-					 "Could not detach device from kernel driver: %s",
-					 usb_strerror());
-#endif
-#ifdef SYS_LINUX
-		if (wispy24x_usb_detach_hack(auxptr->devhdl, 0, phydev->errstr) < 0) {
-			return -1;
-		}
-
-		usb_set_configuration(auxptr->devhdl, auxptr->dev->config->bConfigurationValue);
-
-		if (usb_claim_interface(auxptr->devhdl, 0) < 0) {
-			snprintf(phydev->errstr, WISPY_ERROR_MAX,
-					 "wispy24x_usb capture process detached device but still "
-					 "can't claim interface: %s", strerror(errno));
-			return -1;
-		}
-#else
+				 "Could not detach device from kernel driver: %s",
+				 usb_strerror());
+	}
+#elif defined(SYS_LINUX)
+	// fprintf(stderr, "debug - detatch hack\n");
+	if (wispydbx_usb_detach_hack(auxptr->devhdl, 0, phydev->errstr) < 0) {
 		return -1;
-#endif
-#ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
-		}
-#endif
 	}
 #endif
 
-#ifdef SYS_DARWIN
-	usb_set_configuration(auxptr->devhdl, 
-						  auxptr->dev->config->bConfigurationValue);
-#endif
+	// fprintf(stderr, "debug - claiming interface\n");
+	if (usb_claim_interface(auxptr->devhdl, 1) < 0) {
+		snprintf(phydev->errstr, WISPY_ERROR_MAX,
+				 "could not claim interface: %s", usb_strerror());
+	}
+
+	// fprintf(stderr, "debug - set_configuration\n");
+	usb_set_configuration(auxptr->devhdl, auxptr->dev->config->bConfigurationValue);
 
 	auxptr->usb_thread_alive = 1;
 
