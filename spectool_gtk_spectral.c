@@ -332,7 +332,8 @@ static void wispy_spectral_wdr_sweep(int slot, int mode,
 									 void *aux) {
 	WispySpectral *spectral;
 	WispyWidget *wwidget;
-	int x;
+	int x, tout;
+	wispy_phy *pd;
 
 	g_return_if_fail(aux != NULL);
 	g_return_if_fail(IS_WISPY_SPECTRAL(aux));
@@ -340,6 +341,26 @@ static void wispy_spectral_wdr_sweep(int slot, int mode,
 
 	spectral = WISPY_SPECTRAL(aux);
 	wwidget = WISPY_WIDGET(aux);
+
+	tout = wwidget->draw_timeout;
+
+	/* Update the timer */
+	if (sweep != NULL) {
+		pd = (wispy_phy *) sweep->phydev;
+#ifdef HAVE_HILDON
+		tout = 500 * pd->draw_agg_suggestion;
+#else
+		tout = 150 * pd->draw_agg_suggestion;
+#endif
+	}
+
+	if (tout != wwidget->draw_timeout) {
+		wwidget->draw_timeout = tout;
+		g_source_remove(wwidget->timeout_ref);
+		wwidget->timeout_ref = 
+			g_timeout_add(wwidget->draw_timeout, 
+						  (GSourceFunc) wispy_widget_timeout, wwidget);
+	}
 
 	if ((mode & WISPY_POLL_CONFIGURED)) {
 		/* Allocate the cache of lines to draw */
@@ -458,7 +479,7 @@ static void wispy_spectral_init(WispySpectral *spectral) {
 	wwidget->sweep_keep_avg = 0;
 	wwidget->sweep_keep_peak = 0;
 
-	wwidget->sweep_num_aggregate = 12;
+	wwidget->sweep_num_aggregate = 3;
 
 	wwidget->hlines = 8;
 	wwidget->base_db_offset = -30;

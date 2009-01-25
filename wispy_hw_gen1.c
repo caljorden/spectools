@@ -363,6 +363,8 @@ int wispy1_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 	auxptr->sweepbuf->amp_res_mdbm = WISPY1_USB_RES_MDBM;
 	auxptr->sweepbuf->rssi_max = WISPY1_USB_RSSI_MAX;
 
+	auxptr->sweepbuf->phydev = phydev;
+
 	/* init to -1 since the first pass at slot 0 increments */
 	auxptr->num_sweeps = -1;
 	/* Default to no calibration */
@@ -377,6 +379,8 @@ int wispy1_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 	phydev->setcalib_func = &wispy1_usb_setcalibration;
 	phydev->getsweep_func = &wispy1_usb_getsweep;
 	phydev->setposition_func = NULL;
+
+	phydev->draw_agg_suggestion = 5;
 
 	return 0;
 }

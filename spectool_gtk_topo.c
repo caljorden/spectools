@@ -209,7 +209,8 @@ static void wispy_topo_wdr_sweep(int slot, int mode,
 									 void *aux) {
 	WispyTopo *topo;
 	WispyWidget *wwidget;
-	int x, sc;
+	int x, sc, tout;
+	wispy_phy *pd;
 
 	g_return_if_fail(aux != NULL);
 	g_return_if_fail(IS_WISPY_TOPO(aux));
@@ -217,6 +218,26 @@ static void wispy_topo_wdr_sweep(int slot, int mode,
 
 	topo = WISPY_TOPO(aux);
 	wwidget = WISPY_WIDGET(aux);
+
+	tout = wwidget->draw_timeout;
+
+	/* Update the timer */
+	if (sweep != NULL) {
+		pd = (wispy_phy *) sweep->phydev;
+#ifdef HAVE_HILDON
+		tout = 500 * pd->draw_agg_suggestion;
+#else
+		tout = 200 * pd->draw_agg_suggestion;
+#endif
+	}
+
+	if (tout != wwidget->draw_timeout) {
+		wwidget->draw_timeout = tout;
+		g_source_remove(wwidget->timeout_ref);
+		wwidget->timeout_ref = 
+			g_timeout_add(wwidget->draw_timeout, 
+						  (GSourceFunc) wispy_widget_timeout, wwidget);
+	}
 
 	if ((mode & WISPY_POLL_ERROR)) {
 		if (topo->sample_counts) {
@@ -389,7 +410,7 @@ static void wispy_topo_init(WispyTopo *topo) {
 	wwidget->sweep_keep_peak = 0;
 
 	/* Aggregate a big chunk of sweeps for each peak so we do less processing */
-	wwidget->sweep_num_aggregate = 30;
+	wwidget->sweep_num_aggregate = 3;
 
 	wwidget->hlines = 8;
 	wwidget->base_db_offset = -30;

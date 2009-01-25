@@ -245,6 +245,8 @@ static void wispy_planar_wdr_sweep(int slot, int mode,
 								   wispy_sample_sweep *sweep, void *aux) {
 	WispyPlanar *planar;
 	WispyWidget *wwidget;
+	wispy_phy *pd;
+	int tout = 0;
 
 	g_return_if_fail(aux != NULL);
 	g_return_if_fail(IS_WISPY_PLANAR(aux));
@@ -252,6 +254,26 @@ static void wispy_planar_wdr_sweep(int slot, int mode,
 
 	planar = WISPY_PLANAR(aux);
 	wwidget = WISPY_WIDGET(aux);
+
+	tout = wwidget->draw_timeout;
+
+	/* Update the timer */
+	if (sweep != NULL) {
+		pd = (wispy_phy *) sweep->phydev;
+#ifdef HAVE_HILDON
+		tout = 300 * pd->draw_agg_suggestion;
+#else
+		tout = 100 * pd->draw_agg_suggestion;
+#endif
+	}
+
+	if (tout != wwidget->draw_timeout) {
+		wwidget->draw_timeout = tout;
+		g_source_remove(wwidget->timeout_ref);
+		wwidget->timeout_ref = 
+			g_timeout_add(wwidget->draw_timeout, 
+						  (GSourceFunc) wispy_widget_timeout, wwidget);
+	}
 }
 
 static gint wispy_planar_button_press(GtkWidget *widget, 

@@ -413,6 +413,8 @@ int wispy24x_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 	phydev->getsweep_func = &wispy24x_usb_getsweep;
 	phydev->setposition_func = &wispy24x_usb_setposition;
 
+	phydev->draw_agg_suggestion = 1;
+
 	return 0;
 }
 
@@ -866,6 +868,7 @@ int wispy24x_usb_setposition(wispy_phy *phydev, int start_khz, int res_hz) {
 
 	auxptr->sweepbuf =
 		(wispy_sample_sweep *) malloc(WISPY_SWEEP_SIZE(WISPY24x_USB_NUM_SAMPLES));
+	auxptr->sweepbuf->phydev = phydev;
 	auxptr->sweepbuf->start_khz = 
 		phydev->device_spec->supported_ranges[0].start_khz;
 	auxptr->sweepbuf->end_khz = 

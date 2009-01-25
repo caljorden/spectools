@@ -325,26 +325,22 @@ static nb_aux *build_nb_page(GtkWidget *notebook, wg_aux *auxptr) {
 	wispychannelopts_init(nbaux->chanopts);
 
 	nbaux->channel = wispy_channel_new();
-	printf("debug - channel %p\n", nbaux->channel);
 	wispy_widget_link_channel(nbaux->channel, nbaux->chanopts);
 	gtk_box_pack_end(GTK_BOX(nbaux->nbvbox), nbaux->channel, FALSE, FALSE, 0);
 
 	nbaux->planar = wispy_planar_new();
-	printf("debug - planar %p\n", nbaux->planar);
 	wispy_widget_link_channel(nbaux->planar, nbaux->chanopts);
 	nbaux->p_con = wispy_widget_buildcontroller(GTK_WIDGET(nbaux->planar));
 	gtk_box_pack_end(GTK_BOX(nbaux->nbvbox), nbaux->planar, TRUE, TRUE, 0);
 	gtk_box_pack_end(GTK_BOX(nbaux->nbvbox), nbaux->p_con->evbox, FALSE, FALSE, 2);
 
 	nbaux->topo = wispy_topo_new();
-	printf("debug - topo %p\n", nbaux->topo);
 	wispy_widget_link_channel(nbaux->topo, nbaux->chanopts);
 	nbaux->t_con = wispy_widget_buildcontroller(GTK_WIDGET(nbaux->topo));
 	gtk_box_pack_end(GTK_BOX(nbaux->nbvbox), nbaux->topo, TRUE, TRUE, 0);
 	gtk_box_pack_end(GTK_BOX(nbaux->nbvbox), nbaux->t_con->evbox, FALSE, FALSE, 2);
 
 	nbaux->spectral = wispy_spectral_new();
-	printf("debug - spect %p\n", nbaux->spectral);
 	wispy_widget_link_channel(nbaux->spectral, nbaux->chanopts);
 	nbaux->s_con = wispy_widget_buildcontroller(GTK_WIDGET(nbaux->spectral));
 	gtk_box_pack_end(GTK_BOX(nbaux->nbvbox), nbaux->spectral, TRUE, TRUE, 0);

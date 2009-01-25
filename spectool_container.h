@@ -57,6 +57,9 @@ typedef struct _wispy_sample_sweep {
 	struct timeval tm_start;
 	struct timeval tm_end;
 
+	/* Phy reference */
+	void *phydev;
+
 	/* Actual sample data.  This is num_samples of uint8_t RSSI */
 	uint8_t sample_data[0];
 } wispy_sample_sweep;
@@ -148,6 +151,9 @@ typedef struct _wispy_phy {
 
 	/* Linked list elements incase we need them in our implementation */
 	struct _wispy_phy *next;
+
+	/* Suggested delay for drawing */
+	int draw_agg_suggestion;
 } wispy_phy;
 
 #define WISPY_PHY_SIZE		(sizeof(wispy_phy))
