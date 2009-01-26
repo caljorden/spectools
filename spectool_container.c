@@ -85,9 +85,10 @@ int wispy_phy_getflags(wispy_phy *phydev) {
 	return phydev->device_spec->device_flags;
 }
 
-int wispy_phy_setposition(wispy_phy *phydev, int start_khz, int res_hz) {
+int wispy_phy_setposition(wispy_phy *phydev, int in_profile, 
+						  int start_khz, int res_hz) {
 	if (phydev->setposition_func != NULL)
-		return (*(phydev->setposition_func))(phydev, start_khz, res_hz);
+		return (*(phydev->setposition_func))(phydev, in_profile, start_khz, res_hz);
 
 	snprintf(phydev->errstr, WISPY_ERROR_MAX, "Device does not support setting "
 			 "scan position or resolution");

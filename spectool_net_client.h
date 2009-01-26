@@ -169,7 +169,8 @@ int spectool_net_getpollfd(wispy_phy *phydev);
 int spectool_net_open(wispy_phy *phydev);
 int spectool_net_close(wispy_phy *phydev);
 wispy_sample_sweep *spectool_net_getsweep(wispy_phy *phydev);
-int spectool_net_setposition(wispy_phy *phydev, int start_khz, int res_hz);
+int spectool_net_setposition(wispy_phy *phydev, int profilenum, int start_khz, 
+							 int res_hz);
 wispy_sample_sweep *spectool_net_getsweep(wispy_phy *phydev);
 
 #endif

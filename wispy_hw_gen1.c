@@ -336,9 +336,7 @@ int wispy1_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 	phydev->device_spec->supported_ranges[0].rssi_max = WISPY1_USB_RSSI_MAX;
 
 	/* Copy it into our default range data */
-	memcpy(&(phydev->device_spec->default_range), 
-		   &(phydev->device_spec->supported_ranges[0]),
-		   WISPY_SWEEP_SIZE(0));
+	phydev->device_spec->default_range = &(phydev->device_spec->supported_ranges[0]);
 
 	/* Set up the aux state */
 	auxptr = malloc(sizeof(wispy1_usb_aux));

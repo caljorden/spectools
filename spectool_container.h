@@ -33,6 +33,9 @@
  * can handle.
  */
 typedef struct _wispy_sample_sweep {
+	/* Name of sweep (if used as a range marker */
+	char *name;
+
 	/* Starting frequency of the sweep, in KHz */
 	uint32_t start_khz;
 	/* Ending frequency of the sweep, in KHz */
@@ -52,6 +55,11 @@ typedef struct _wispy_sample_sweep {
 	/* This could be derived from start, end, and resolution, but we include
 	 * it here to save on math */
 	unsigned int num_samples;
+	/* Filter resolution in hz, hw config */
+	unsigned int filter_bw_hz;
+
+	/* Samples per point (hw aggregation) */
+	unsigned int samples_per_point;
 
 	/* Timestamp for when the sweep begins and ends */
 	struct timeval tm_start;
@@ -106,7 +114,7 @@ typedef struct _wispy_dev_spec {
 	/* Device flags */
 	uint8_t device_flags;
 
-	wispy_sample_sweep default_range;
+	wispy_sample_sweep *default_range;
 
 	/* Number of sweep ranges this device supports. 
 	 * Gen1 supports 1 range.
@@ -144,7 +152,7 @@ typedef struct _wispy_phy {
 	int (*poll_func)(struct _wispy_phy *);
 	int (*pollfd_func)(struct _wispy_phy *);
 	void (*setcalib_func)(struct _wispy_phy *, int);
-	int (*setposition_func)(struct _wispy_phy *, int, int);
+	int (*setposition_func)(struct _wispy_phy *, int, int, int);
 	wispy_sample_sweep *(*getsweep_func)(struct _wispy_phy *);
 
 	char errstr[WISPY_ERROR_MAX];
@@ -166,7 +174,8 @@ int wispy_phy_poll(wispy_phy *phydev);
 int wispy_phy_getpollfd(wispy_phy *phydev);
 wispy_sample_sweep *wispy_phy_getsweep(wispy_phy *phydev);
 void wispy_phy_setcalibration(wispy_phy *phydev, int enable);
-int wispy_phy_setposition(wispy_phy *phydev, int start_khz, int res_hz);
+int wispy_phy_setposition(wispy_phy *phydev, int in_profile, 
+						  int start_khz, int res_hz);
 char *wispy_phy_getname(wispy_phy *phydev);
 void wispy_phy_setname(wispy_phy *phydev, char *name);
 int wispy_phy_getdevid(wispy_phy *phydev);

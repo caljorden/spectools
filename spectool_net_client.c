@@ -526,17 +526,6 @@ wispy_phy *spectool_netcli_enabledev(spectool_server *sr, unsigned int dev_id,
 
 	phyret->device_spec->num_sweep_ranges = 1;
 
-	phyret->device_spec->default_range.num_samples = sni->def_num_samples;
-	phyret->device_spec->default_range.amp_offset_mdbm = sni->amp_offset_mdbm;
-	phyret->device_spec->default_range.amp_res_mdbm = sni->amp_res_mdbm;
-	phyret->device_spec->default_range.rssi_max = sni->rssi_max;
-
-	phyret->device_spec->default_range.start_khz = sni->def_start_khz;
-	phyret->device_spec->default_range.end_khz =
-			((sni->def_res_hz / 1000) * sni->def_num_samples) +
-			sni->def_start_khz;
-	phyret->device_spec->default_range.res_hz = sni->def_res_hz;
-
 	phyret->device_spec->supported_ranges =
 		(wispy_sample_sweep *) malloc(WISPY_SWEEP_SIZE(0));
 
@@ -550,6 +539,8 @@ wispy_phy *spectool_netcli_enabledev(spectool_server *sr, unsigned int dev_id,
 			((sni->res_hz / 1000) * sni->num_samples) +
 			sni->start_khz;
 	phyret->device_spec->supported_ranges[0].res_hz = sni->res_hz;
+
+	phyret->device_spec->default_range = phyret->device_spec->supported_ranges;
 
 	phyret->open_func = &spectool_net_open;
 	phyret->close_func = &spectool_net_close;
@@ -670,7 +661,8 @@ wispy_sample_sweep *spectool_net_getsweep(wispy_phy *phydev) {
 	return ((wispy_net_dev_aux *) phydev->auxptr)->sweep;
 }
 
-int spectool_net_setposition(wispy_phy *phydev, int start_khz, int res_hz) {
+int spectool_net_setposition(wispy_phy *phydev, int in_profile, 
+							 int start_khz, int res_hz) {
 	/* todo - fill this in */
 	return 1;
 }
