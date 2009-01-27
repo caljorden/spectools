@@ -83,7 +83,7 @@ typedef struct _wispy_sweep_cache {
 	wispy_sample_sweep *avg;
 	wispy_sample_sweep *peak;
 	wispy_sample_sweep *latest;
-	int num_alloc, pos;
+	int num_alloc, pos, looped;
 	int calc_peak, calc_avg;
 	uint32_t device_id;
 } wispy_sweep_cache;

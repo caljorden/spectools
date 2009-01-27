@@ -134,7 +134,7 @@ void wispy_topo_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 			if (cpos > topo->colormap_len) cpos = topo->colormap_len - 1;
 
 			cairo_pattern_add_color_stop_rgb(pattern,
-					(float) (samp) / (topo->scw - 1),
+					(float) (samp) / (topo->scw),
 					WISPY_TOPO_COLOR(topo->colormap, cpos, 0),
 					WISPY_TOPO_COLOR(topo->colormap, cpos, 1),
 					WISPY_TOPO_COLOR(topo->colormap, cpos, 2));
@@ -209,7 +209,7 @@ static void wispy_topo_wdr_sweep(int slot, int mode,
 									 void *aux) {
 	WispyTopo *topo;
 	WispyWidget *wwidget;
-	int x, sc, tout;
+	int s, x, sc, tout;
 	wispy_phy *pd;
 
 	g_return_if_fail(aux != NULL);
@@ -264,28 +264,45 @@ static void wispy_topo_wdr_sweep(int slot, int mode,
 		topo->sweep_peak_max = 1;
 
 	} else if ((mode & WISPY_POLL_SWEEPCOMPLETE)) {
-		/* Copy the aggregate sweep (ie our peak data) over... */
-		for (x = 0; x < topo->scw && x < sweep->num_samples; x++) {
-			int sdb = WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
-										 sweep->sample_data[x]);
-			int ndb = abs(sdb); 
-			if (ndb < 0) {
-				ndb = 0;
+		topo->sweep_count_num = 0;
+		topo->sweep_peak_max = 1;
+
+		memset(topo->sample_counts, 0,
+			   sizeof(unsigned int) * topo->sch * topo->scw);
+
+		int max = wwidget->sweepcache->pos;
+		if (wwidget->sweepcache->looped)
+			max = wwidget->sweepcache->num_alloc;
+
+		for (s = 0; s < max; s++) {
+
+			/* Copy the aggregate sweep (ie our peak data) over... */
+			for (x = 0; x < topo->scw && x < 
+				 wwidget->sweepcache->sweeplist[s]->num_samples; x++) {
+				int sdb = WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, 
+											 wwidget->amp_res_mdbm, 
+								wwidget->sweepcache->sweeplist[s]->sample_data[x]);
+
+				int ndb = abs(sdb); 
+				if (ndb < 0) {
+					ndb = 0;
+				}
+
+				if (ndb > topo->sch) {
+					ndb = 0;
+				}
+
+				/* Increment that position */
+				sc = ++(topo->sample_counts[(x * topo->sch) + ndb]);
+
+				/* Record the max peak count for easy math later */
+				if (sc > topo->sweep_peak_max)
+					topo->sweep_peak_max = sc;
+
 			}
 
-			if (ndb > topo->sch) {
-				ndb = 0;
-			}
-
-			/* Increment that position */
-			sc = ++(topo->sample_counts[(x * topo->sch) + ndb]);
-
-			/* Record the max peak count for easy math later */
-			if (sc > topo->sweep_peak_max)
-				topo->sweep_peak_max = sc;
-
+			topo->sweep_count_num++;
 		}
-		topo->sweep_count_num++;
 	}
 }
 
@@ -400,15 +417,13 @@ static void wispy_topo_init(WispyTopo *topo) {
 
 	wwidget = WISPY_WIDGET(topo);
 
-	/* Currently we must set this to 1 even though we don't care, or
-	 * other drawing components get a little confused */
-	wwidget->sweep_num_samples = 1;
+	wwidget->sweep_num_samples = 60;
 
 	wwidget->sweep_keep_avg = 0;
 	wwidget->sweep_keep_peak = 0;
 
 	/* Aggregate a big chunk of sweeps for each peak so we do less processing */
-	wwidget->sweep_num_aggregate = 3;
+	wwidget->sweep_num_aggregate = 1;
 
 	wwidget->hlines = 8;
 	wwidget->base_db_offset = 0;

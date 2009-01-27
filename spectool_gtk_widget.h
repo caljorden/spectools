@@ -153,6 +153,9 @@ struct _WispyWidget {
 	void (* update_func)(GtkWidget *);
 
 	WispyChannelOpts *chanopts;
+
+	/* Have we gotten a sweep? */
+	int dirty;
 };
 
 struct _WispyWidgetClass {

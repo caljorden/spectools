@@ -88,6 +88,8 @@ static void wispy_widget_wdr_sweep(int slot, int mode,
 
 	wwidget = WISPY_WIDGET(aux);
 
+	wwidget->dirty = 1;
+
 	/* Generic sweep handler to add it to our cache, all things get this */
 	if ((mode & WISPY_POLL_ERROR)) {
 		wwidget->phydev = NULL;
@@ -426,6 +428,8 @@ static void wispy_widget_init(WispyWidget *widget) {
 
 	widget->offscreen = NULL;
 	widget->old_width = widget->old_height = 0;
+
+	widget->dirty = 0;
 }
 
 static void wispy_widget_size_allocate(GtkWidget *widget,
@@ -825,7 +829,10 @@ void wispy_widget_update(GtkWidget *widget) {
 
 gint wispy_widget_timeout(gpointer *data) {
 	/* Kick the graphics update out here during a timered update */
-	wispy_widget_graphics_update(WISPY_WIDGET(data));
+	if (WISPY_WIDGET(data)->dirty)
+		wispy_widget_graphics_update(WISPY_WIDGET(data));
+
+	WISPY_WIDGET(data)->dirty = 0;
 
 	/* do a GTK level update */
 	wispy_widget_update(GTK_WIDGET(data));

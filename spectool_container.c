@@ -112,11 +112,13 @@ wispy_sweep_cache *wispy_cache_alloc(int nsweeps, int calc_peak, int calc_avg) {
 	c->peak = NULL;
 	c->latest = NULL;
 
-	for (x = 0; x < nsweeps; x++)
+	for (x = 0; x < nsweeps; x++) {
 		c->sweeplist[x] = NULL;
+	}
 
 	c->num_alloc = nsweeps;
 	c->pos = -1;
+	c->looped = 0;
 
 	c->calc_peak = calc_peak;
 	c->calc_avg = calc_avg;
@@ -142,6 +144,7 @@ void wispy_cache_clear(wispy_sweep_cache *c) {
 	c->peak = NULL;
 
 	c->pos = 0;
+	c->looped = 0;
 }
 
 void wispy_cache_append(wispy_sweep_cache *c, wispy_sample_sweep *s) {
@@ -154,13 +157,16 @@ void wispy_cache_append(wispy_sweep_cache *c, wispy_sample_sweep *s) {
 	if (c->avg != NULL && c->avg->num_samples != s->num_samples) 
 		return;
 
-	if (c->pos == (c->num_alloc - 1))
+	if (c->pos == (c->num_alloc - 1)) {
+		c->looped = 1;
 		c->pos = 0;
-	else
+	} else {
 		c->pos++;
+	}
 
-	if (c->sweeplist[c->pos] != NULL)
+	if (c->sweeplist[c->pos] != NULL) {
 		free(c->sweeplist[c->pos]);
+	}
 
 	c->sweeplist[c->pos] = 
 		(wispy_sample_sweep *) malloc(WISPY_SWEEP_SIZE(s->num_samples));
