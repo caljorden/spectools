@@ -249,7 +249,7 @@ static void wispy_topo_wdr_sweep(int slot, int mode,
 			free(topo->sample_counts);
 		}
 
-		topo->sch = (abs(wwidget->min_db_draw) - abs(wwidget->base_db_offset));
+		topo->sch = (abs(wwidget->min_db_draw) + wwidget->base_db_offset);
 		topo->scw = 
 			wwidget->phydev->device_spec->supported_ranges[0].num_samples;
 
@@ -268,14 +268,13 @@ static void wispy_topo_wdr_sweep(int slot, int mode,
 		for (x = 0; x < topo->scw && x < sweep->num_samples; x++) {
 			int sdb = WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
 										 sweep->sample_data[x]);
-			int ndb = abs(sdb) - abs(wwidget->base_db_offset);
+			int ndb = abs(sdb);
+			/*- abs(wwidget->base_db_offset); */
 			if (ndb < 0) {
-				printf("debug - db < 0, %d min %d base %d\n", sweep->sample_data[x], wwidget->min_db_draw, wwidget->base_db_offset);
 				ndb = 0;
 			}
 
 			if (ndb > topo->sch) {
-				printf("debug - db > sch, %d min %d base %d sch %d\n", sweep->sample_data[x], wwidget->min_db_draw, wwidget->base_db_offset, topo->sch);
 				ndb = 0;
 			}
 
