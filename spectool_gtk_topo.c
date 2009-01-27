@@ -110,10 +110,10 @@ void wispy_topo_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 	cairo_save(cr);
 
 	/* Figure out the height based on the dbm range */
-	sh = (double) wwidget->g_len_y / topo->sch;
+	sh = (double) wwidget->g_len_y / abs(wwidget->min_db_draw);
 
 	/* Plot along all the normalized DB ranges  */
-	for (db = 0; db < topo->sch; db++) {
+	for (db = 0; db < abs(wwidget->min_db_draw); db++) {
 		/* Make a pattern to draw our levels to, scaled to the graph and db
 		 * position so we don't matrix it */
 		pattern =
@@ -249,7 +249,7 @@ static void wispy_topo_wdr_sweep(int slot, int mode,
 			free(topo->sample_counts);
 		}
 
-		topo->sch = (abs(wwidget->min_db_draw) + wwidget->base_db_offset);
+		topo->sch = abs(wwidget->min_db_draw);
 		topo->scw = 
 			wwidget->phydev->device_spec->supported_ranges[0].num_samples;
 
@@ -268,7 +268,7 @@ static void wispy_topo_wdr_sweep(int slot, int mode,
 		for (x = 0; x < topo->scw && x < sweep->num_samples; x++) {
 			int sdb = WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
 										 sweep->sample_data[x]);
-			int ndb = abs(sdb) + wwidget->base_db_offset; 
+			int ndb = abs(sdb); 
 			if (ndb < 0) {
 				ndb = 0;
 			}
@@ -411,7 +411,7 @@ static void wispy_topo_init(WispyTopo *topo) {
 	wwidget->sweep_num_aggregate = 3;
 
 	wwidget->hlines = 8;
-	wwidget->base_db_offset = -30;
+	wwidget->base_db_offset = 0;
 
 	wwidget->graph_title = strdup("<b>Topo View</b>");
 	wwidget->graph_title_bg = strdup("#CC00CC");

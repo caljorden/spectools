@@ -111,16 +111,16 @@ static void wispy_widget_wdr_sweep(int slot, int mode,
 		}
 
 		wwidget->amp_offset_mdbm = 
-			wwidget->phydev->device_spec->supported_ranges[0].amp_offset_mdbm;
+			wispy_phy_getcurprofile(wwidget->phydev)->amp_offset_mdbm;
 		wwidget->amp_res_mdbm = 
-			wwidget->phydev->device_spec->supported_ranges[0].amp_res_mdbm;
+			wispy_phy_getcurprofile(wwidget->phydev)->amp_res_mdbm;
 
 		wwidget->base_db_offset =
 			WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
-							   wwidget->phydev->device_spec->supported_ranges[0].rssi_max);
+							   wispy_phy_getcurprofile(wwidget->phydev)->rssi_max);
 		wwidget->min_db_draw = 
 			WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm, 0);
-	
+
 	} else if (wwidget->sweepcache != NULL && sweep != NULL) {
 		wispy_cache_append(wwidget->sweepcache, sweep);
 		wwidget->min_db_draw = 
