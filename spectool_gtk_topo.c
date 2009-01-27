@@ -268,8 +268,7 @@ static void wispy_topo_wdr_sweep(int slot, int mode,
 		for (x = 0; x < topo->scw && x < sweep->num_samples; x++) {
 			int sdb = WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
 										 sweep->sample_data[x]);
-			int ndb = abs(sdb);
-			/*- abs(wwidget->base_db_offset); */
+			int ndb = abs(sdb) + wwidget->base_db_offset; 
 			if (ndb < 0) {
 				ndb = 0;
 			}
