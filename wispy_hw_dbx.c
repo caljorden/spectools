@@ -945,23 +945,23 @@ int wispydbx_usb_setposition(wispy_phy *phydev, int in_profile,
 		free(auxptr->sweepbuf);
 
 	auxptr->sweepbuf =
-		(wispy_sample_sweep *) malloc(WISPY_SWEEP_SIZE(phydev->device_spec->supported_ranges[0].num_samples));
+		(wispy_sample_sweep *) malloc(WISPY_SWEEP_SIZE(phydev->device_spec->supported_ranges[in_profile].num_samples));
 	auxptr->sweepbuf->phydev = phydev;
 	auxptr->sweepbuf->start_khz = 
-		phydev->device_spec->supported_ranges[0].start_khz;
+		phydev->device_spec->supported_ranges[in_profile].start_khz;
 	auxptr->sweepbuf->end_khz = 
-		phydev->device_spec->supported_ranges[0].end_khz;
+		phydev->device_spec->supported_ranges[in_profile].end_khz;
 	auxptr->sweepbuf->res_hz = 
-		phydev->device_spec->supported_ranges[0].res_hz;
+		phydev->device_spec->supported_ranges[in_profile].res_hz;
 	auxptr->sweepbuf->num_samples = 
-		phydev->device_spec->supported_ranges[0].num_samples;
+		phydev->device_spec->supported_ranges[in_profile].num_samples;
 
 	auxptr->sweepbuf->amp_offset_mdbm =
-		phydev->device_spec->supported_ranges[0].amp_offset_mdbm;
+		phydev->device_spec->supported_ranges[in_profile].amp_offset_mdbm;
 	auxptr->sweepbuf->amp_res_mdbm =
-		phydev->device_spec->supported_ranges[0].amp_res_mdbm;
+		phydev->device_spec->supported_ranges[in_profile].amp_res_mdbm;
 	auxptr->sweepbuf->rssi_max =
-		phydev->device_spec->supported_ranges[0].rssi_max;
+		phydev->device_spec->supported_ranges[in_profile].rssi_max;
 
 	auxptr->sweepbuf_initialized = 0;
 	auxptr->num_sweeps = -1;

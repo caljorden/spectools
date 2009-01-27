@@ -103,7 +103,7 @@ typedef struct _wdr_poll_rec {
 void wdr_init(wispy_device_registry *wdr);
 void wdr_free(wispy_device_registry *wdr);
 
-int wdr_open_add(wispy_device_registry *wdr, wispy_device_rec *devrec,
+int wdr_open_add(wispy_device_registry *wdr, wispy_device_rec *devrec, int pos,
 				 char *errstr);
 
 int wdr_open_phy(wispy_device_registry *wdr, wispy_phy *phydev, char *errstr);

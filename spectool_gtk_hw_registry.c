@@ -61,7 +61,7 @@ void wdr_free(wispy_device_registry *wdr) {
 	}
 }
 
-int wdr_open_add(wispy_device_registry *wdr, wispy_device_rec *devrec,
+int wdr_open_add(wispy_device_registry *wdr, wispy_device_rec *devrec, int pos,
 				 char *errstr) {
 	int x;
 	wispy_phy *phydev;
@@ -103,7 +103,7 @@ int wdr_open_add(wispy_device_registry *wdr, wispy_device_rec *devrec,
 	wispy_phy_setcalibration(phydev, 1);
 
 	/* Set the position to 0 for now */
-	wispy_phy_setposition(phydev, 0, 0, 0);
+	wispy_phy_setposition(phydev, pos, 0, 0);
 
 	regdev = (wdr_reg_dev *) malloc(sizeof(wdr_reg_dev));
 	regdev->phydev = phydev;
@@ -355,8 +355,6 @@ void wdr_del_ref(wispy_device_registry *wdr, int slot) {
 
 	if (wdr->devices[slot]->refcount > 0)
 		return;
-
-	printf("debug - wdr_del_ref removing device\n");
 
 	wispy_phy_close(wdr->devices[slot]->phydev);
 
@@ -624,12 +622,12 @@ void wdr_devpicker_onrowactivated(GtkTreeView *treeview, GtkTreePath *path,
 
 	if (gtk_tree_model_get_iter(model, &iter, path)) {
 		void *phyptr;
-		int r;
+		int r, p;
 
-		gtk_tree_model_get(model, &iter, 1, &phyptr, -1);
+		gtk_tree_model_get(model, &iter, 1, &phyptr, 2, &p, -1);
 
 		/* Open it and add it to the registry */
-		r = wdr_open_add(dpaux->wdr, phyptr, err);
+		r = wdr_open_add(dpaux->wdr, phyptr, p, err);
 
 		/* Error alert */
 		if (r < 0) {
@@ -653,12 +651,13 @@ void wdr_devpicker_destroy(GtkWidget *widget, gpointer *aux) {
 }
 
 void wdr_devpicker_populate(wdr_gtk_devpicker_aux *dpaux) {
-	int ndevs, x;
+	int ndevs, x, s;
 	GtkTreeIter iter;
 	GtkListStore *model;
 	GtkTreeSelection *selection;
+	char name[64];
 
-	model = gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_POINTER);
+	model = gtk_list_store_new(3, G_TYPE_STRING, G_TYPE_POINTER, G_TYPE_INT);
 	gtk_tree_view_set_model(GTK_TREE_VIEW(dpaux->treeview), GTK_TREE_MODEL(model));
 
 	/* So that when we replace it in the tree view it gets released */
@@ -681,24 +680,48 @@ void wdr_devpicker_populate(wdr_gtk_devpicker_aux *dpaux) {
 		gtk_list_store_set(GTK_LIST_STORE(dpaux->treemodellist), &iter, 
 						   0, "No WiSPY Devices", 
 						   1, NULL,
+						   2, 0,
 						   -1);
 		gtk_widget_set_sensitive(dpaux->okbutton, 0);
 		gtk_widget_set_sensitive(dpaux->scrolled_win, 0);
 	} else {
 		for (x = 0; x < dpaux->devlist.num_devs; x++) {
-			gtk_list_store_append(GTK_LIST_STORE(dpaux->treemodellist), &iter);
-			gtk_list_store_set(GTK_LIST_STORE(dpaux->treemodellist), &iter, 
-							   0, dpaux->devlist.list[x].name, 
-							   1, &(dpaux->devlist.list[x]),
-							   -1);
+			if (dpaux->devlist.list[x].num_sweep_ranges == 0) {
+				gtk_list_store_append(GTK_LIST_STORE(dpaux->treemodellist), &iter);
 
-			/* Handle making sure the first item is always selected by
-			 * unselecting them all, then selecting one */
-			if (x == 0) {
-				selection = 
-					gtk_tree_view_get_selection(GTK_TREE_VIEW(dpaux->treeview));
-				gtk_tree_selection_unselect_all(selection);
-				gtk_tree_selection_select_iter(selection, &iter);
+				gtk_list_store_set(GTK_LIST_STORE(dpaux->treemodellist), &iter, 
+								   0, dpaux->devlist.list[x].name, 
+								   1, &(dpaux->devlist.list[x]),
+								   2, 0,
+								   -1);
+				/* Handle making sure the first item is always selected by
+				 * unselecting them all, then selecting one */
+				if (x == 0) {
+					selection = 
+						gtk_tree_view_get_selection(GTK_TREE_VIEW(dpaux->treeview));
+					gtk_tree_selection_unselect_all(selection);
+					gtk_tree_selection_select_iter(selection, &iter);
+				}
+			} else {
+				for (s = 0; s < dpaux->devlist.list[x].num_sweep_ranges; s++) {
+					gtk_list_store_append(GTK_LIST_STORE(dpaux->treemodellist), &iter);
+
+					snprintf(name, 64, "%s - %s", dpaux->devlist.list[x].name,
+							 dpaux->devlist.list[x].supported_ranges[s].name);
+
+					gtk_list_store_set(GTK_LIST_STORE(dpaux->treemodellist), &iter, 
+									   0, name, 
+									   1, &(dpaux->devlist.list[x]),
+									   2, s,
+									   -1);
+
+					if (x == 0 && s == 0) {
+						selection = 
+							gtk_tree_view_get_selection(GTK_TREE_VIEW(dpaux->treeview));
+						gtk_tree_selection_unselect_all(selection);
+						gtk_tree_selection_select_iter(selection, &iter);
+					}
+				}
 			}
 		}
 		gtk_widget_set_sensitive(dpaux->okbutton, 1);
@@ -724,10 +747,11 @@ void wdr_devpicker_button(GtkWidget *widget, gpointer *aux) {
 		if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
 			void *phyptr;
 			int r;
-			gtk_tree_model_get(model, &iter, 1, &phyptr, -1);
+			int p;
+			gtk_tree_model_get(model, &iter, 1, &phyptr, 2, &p, -1);
 
 			/* Open it and add it to the registry */
-			r = wdr_open_add(dpaux->wdr, phyptr, err);
+			r = wdr_open_add(dpaux->wdr, phyptr, p, err);
 
 			if (r < 0) {
 				Wispy_Alert_Dialog(err);
