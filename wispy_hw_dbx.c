@@ -262,7 +262,7 @@ void wispydbx_add_supportedranges(int *num_ranges, wispy_sample_sweep **ranges) 
 	(*ranges)[1].samples_per_point = WISPYDBx_USB_SAMPLESPOINT_24_SLOW;
 	(*ranges)[1].filter_bw_hz = WISPYDBx_USB_FILTERHZ_24_SLOW;
 
-	(*ranges)[2].name = strdup("5.8GHz");
+	(*ranges)[2].name = strdup("5GHz");
 	(*ranges)[2].num_samples = WISPYDBx_USB_NUM_SAMPLES_58;
 
 	(*ranges)[2].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
