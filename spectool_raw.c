@@ -51,6 +51,8 @@ void Usage(void) {
 	printf("wispy_raw [ options ]\n"
 		   " -n / --net  tcp://host:port  Connect to network server instead of\n"
 		   " -b / --broadcast             Listen for (and connect to) broadcast servers\n"
+		   " -l / --list				  List devices and ranges only\n"
+		   " -r / --range [device:]range  Configure a device for a specific range\n"
 		   "                              local USB devices\n");
 	return;
 }
@@ -67,6 +69,8 @@ int main(int argc, char *argv[]) {
 	static struct option long_options[] = {
 		{ "net", required_argument, 0, 'n' },
 		{ "broadcast", no_argument, 0, 'b' },
+		{ "list", no_argument, 0, 'l' },
+		{ "range", required_argument, 0, 'r' },
 		{ "help", no_argument, 0, 'h' },
 		{ 0, 0, 0, 0 }
 	};
@@ -78,8 +82,18 @@ int main(int argc, char *argv[]) {
 	int bcastlisten = 0;
 	int bcastsock;
 
+	int list_only = 0;
+
+	ndev = wispy_device_scan(&list);
+
+	int *rangeset = NULL;
+	if (ndev > 0) {
+		rangeset = (int *) malloc(sizeof(int) * ndev);
+		memset(rangeset, 0, sizeof(int) * ndev);
+	}
+
 	while (1) {
-		int o = getopt_long(argc, argv, "n:bh",
+		int o = getopt_long(argc, argv, "n:bhr:l",
 							long_options, &option_index);
 
 		if (o < 0)
@@ -94,10 +108,63 @@ int main(int argc, char *argv[]) {
 			neturl = strdup(optarg);
 			printf("debug - wispy_raw neturl %s\n", neturl);
 			continue;
+		} else if (o == 'l') {
+			list_only = 1;
+		} else if (o == 'r' && ndev > 0) {
+			if (sscanf(optarg, "%d:%d", &x, &r) != 2) {
+				if (sscanf(optarg, "%d", &r) != 1) {
+					fprintf(stderr, "Invalid range, expected device#:range# "
+							"or range#\n");
+					exit(-1);
+				} else {
+					rangeset[0] = r;
+				}
+			} else {
+				if (x < 0 || x >= ndev) {
+					fprintf(stderr, "Invalid range, no device %d\n", x);
+					exit(-1);
+				} else {
+					rangeset[x] = r;
+				}
+			}
 		}
 	}
 
 	signal(SIGINT, sighandle);
+
+	if (list_only) {
+		if (ndev <= 0) {
+			printf("No wispy devices found, bailing\n");
+			exit(1);
+		}
+
+		printf("Found %d devices...\n", ndev);
+
+		for (x = 0; x < ndev; x++) {
+			printf("Device %d: %s id %u\n", 
+				   x, list.list[x].name, list.list[x].device_id);
+
+			for (r = 0; r < list.list[x].num_sweep_ranges; r++) {
+				wispy_sample_sweep *ran = 
+					&(list.list[x].supported_ranges[r]);
+
+				printf("  Range %d: \"%s\" %d%s-%d%s @ %0.2f%s, %d samples\n", r, 
+					   ran->name,
+					   ran->start_khz > 1000 ? 
+					   ran->start_khz / 1000 : ran->start_khz,
+					   ran->start_khz > 1000 ? "MHz" : "KHz",
+					   ran->end_khz > 1000 ? ran->end_khz / 1000 : ran->end_khz,
+					   ran->end_khz > 1000 ? "MHz" : "KHz",
+					   (ran->res_hz / 1000) > 1000 ? 
+					   		((float) ran->res_hz / 1000) / 1000 : ran->res_hz / 1000,
+					   (ran->res_hz / 1000) > 1000 ? "MHz" : "KHz",
+					   ran->num_samples);
+			}
+
+		}
+
+		exit(0);
+	}
 
 	if (bcastlisten) {
 		printf("Initializing broadcast listen...\n");
@@ -124,7 +191,6 @@ int main(int argc, char *argv[]) {
 
 		printf("Connected to server, waiting for device list...\n");
 	} else if (neturl == NULL) {
-		ndev = wispy_device_scan(&list);
 		if (ndev <= 0) {
 			printf("No wispy devices found, bailing\n");
 			exit(1);
@@ -155,6 +221,9 @@ int main(int argc, char *argv[]) {
 			}
 
 			wispy_phy_setcalibration(pi, 1);
+
+			/* configure the default sweep block */
+			wispy_phy_setposition(pi, rangeset[x], 0, 0);
 		}
 
 		wispy_device_scan_free(&list); 
@@ -231,7 +300,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-		if (spectool_netcli_getwritefd(&sr) >= 0 &&
+		if (neturl != NULL && spectool_netcli_getwritefd(&sr) >= 0 &&
 			FD_ISSET(spectool_netcli_getwritefd(&sr), &wfds)) {
 			if (spectool_netcli_writepoll(&sr, errstr) < 0) {
 				printf("Error write-polling network server %s\n", errstr);
@@ -240,7 +309,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		ret = SPECTOOL_NETCLI_POLL_ADDITIONAL;
-		while (spectool_netcli_getpollfd(&sr) >= 0 &&
+		while (neturl != NULL && spectool_netcli_getpollfd(&sr) >= 0 &&
 			   FD_ISSET(spectool_netcli_getpollfd(&sr), &rfds) &&
 			   (ret & SPECTOOL_NETCLI_POLL_ADDITIONAL)) {
 
@@ -289,27 +358,29 @@ int main(int argc, char *argv[]) {
 				r = wispy_phy_poll(di);
 
 				if ((r & WISPY_POLL_CONFIGURED)) {
-					printf("Configured device %u (%s): %d ranges\n", 
+					printf("Configured device %u (%s)\n", 
 						   wispy_phy_getdevid(di), 
 						   wispy_phy_getname(di),
 						   di->device_spec->num_sweep_ranges);
-					for (r = 0; r < di->device_spec->num_sweep_ranges; r++) {
-						wispy_sample_sweep *ran = 
-							&(di->device_spec->supported_ranges[r]);
 
-						/* Don't do this, kids. */
-						printf("    %d: %d%s-%d%s @ %d%s, %d samples\n", r, 
-							   ran->start_khz > 1000 ? 
-							   ran->start_khz / 1000 : ran->start_khz,
-							   ran->start_khz > 1000 ? "MHz" : "KHz",
-							   ran->end_khz > 1000 ? ran->end_khz / 1000 : ran->end_khz,
-							   ran->end_khz > 1000 ? "MHz" : "KHz",
-							   (ran->res_hz / 1000) > 1000 ? (ran->res_hz / 1000) / 1000 : ran->res_hz / 1000,
-							   (ran->res_hz / 1000) > 1000 ? "MHz" : "KHz",
-							   di->device_spec->supported_ranges[r].num_samples);
-						printf("    %d: Offset %d res %u\n",
-							   r, ran->amp_offset_mdbm, ran->amp_res_mdbm);
+					wispy_sample_sweep *ran = 
+						wispy_phy_getcurprofile(di);
+
+					if (ran == NULL) {
+						printf("Error - no current profile?\n");
+						continue;
 					}
+
+					printf("    %d%s-%d%s @ %0.2f%s, %d samples\n", 
+						   ran->start_khz > 1000 ? 
+						   ran->start_khz / 1000 : ran->start_khz,
+						   ran->start_khz > 1000 ? "MHz" : "KHz",
+						   ran->end_khz > 1000 ? ran->end_khz / 1000 : ran->end_khz,
+						   ran->end_khz > 1000 ? "MHz" : "KHz",
+						   (ran->res_hz / 1000) > 1000 ? 
+						   	((float) ran->res_hz / 1000) / 1000 : ran->res_hz / 1000,
+						   (ran->res_hz / 1000) > 1000 ? "MHz" : "KHz",
+						   ran->num_samples);
 
 					continue;
 				} else if ((r & WISPY_POLL_ERROR)) {

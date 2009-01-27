@@ -280,8 +280,34 @@ int wispy24x_usb_device_scan(wispy_device_list *list) {
 				snprintf(list->list[list->num_devs].name, WISPY_PHY_NAME_MAX,
 						 "Wi-Spy 24x USB %u", bus->dirname, dev->filename,
 						 list->list[list->num_devs].device_id);
+
 				list->list[list->num_devs].init_func = wispy24x_usb_init;
 				list->list[list->num_devs].hw_rec = auxpair;
+
+				list->list[list->num_devs].num_sweep_ranges = 1;
+				list->list[list->num_devs].supported_ranges =
+					(wispy_sample_sweep *) malloc(sizeof(wispy_sample_sweep));
+
+				list->list[list->num_devs].supported_ranges[0].name = 
+					strdup("2.4GHz ISM");
+
+				list->list[list->num_devs].supported_ranges[0].num_samples = 
+					WISPY24x_USB_NUM_SAMPLES;
+
+				list->list[list->num_devs].supported_ranges[0].amp_offset_mdbm = 
+					WISPY24x_USB_OFFSET_MDBM;
+				list->list[list->num_devs].supported_ranges[0].amp_res_mdbm = 
+					WISPY24x_USB_RES_MDBM;
+				list->list[list->num_devs].supported_ranges[0].rssi_max = 
+					WISPY24x_USB_RSSI_MAX;
+
+				list->list[list->num_devs].supported_ranges[0].start_khz = 
+					WISPY24x_USB_DEF_H_MINKHZ;
+				list->list[list->num_devs].supported_ranges[0].end_khz = 
+					WISPY24x_USB_DEF_H_MINKHZ + ((WISPY24x_USB_DEF_STEPS *
+												  WISPY24x_USB_DEF_H_RESHZ) / 1000);
+				list->list[list->num_devs].supported_ranges[0].res_hz = 
+					WISPY24x_USB_DEF_H_RESHZ;
 
 				list->num_devs++;
 
@@ -387,6 +413,8 @@ int wispy24x_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 		WISPY24x_USB_DEF_H_MINKHZ + ((WISPY24x_USB_DEF_STEPS *
 									  WISPY24x_USB_DEF_H_RESHZ) / 1000);
 	phydev->device_spec->default_range->res_hz = WISPY24x_USB_DEF_H_RESHZ;
+
+	phydev->device_spec->cur_profile = 0;
 
 	/* Set up the aux state */
 	auxptr = malloc(sizeof(wispy24x_usb_aux));
@@ -571,9 +599,10 @@ int wispy24x_usb_open(wispy_phy *phydev) {
 	/* Update the state */
 	phydev->state = WISPY_STATE_CONFIGURING;
 
-	/* Push the default config down to the device */
+	/*
 	if (wispy24x_usb_setposition(phydev, 0, 0, 0) < 0)
 		return -1;
+	*/
 
 	return 1;
 }

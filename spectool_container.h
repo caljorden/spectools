@@ -123,6 +123,8 @@ typedef struct _wispy_dev_spec {
 
 	/* Supported sweep ranges */
 	wispy_sample_sweep *supported_ranges;
+
+	int cur_profile;
 } wispy_dev_spec;
 
 /* Device flags */
@@ -180,6 +182,7 @@ char *wispy_phy_getname(wispy_phy *phydev);
 void wispy_phy_setname(wispy_phy *phydev, char *name);
 int wispy_phy_getdevid(wispy_phy *phydev);
 int wispy_phy_get_flags(wispy_phy *phydev);
+wispy_sample_sweep *wispy_phy_getcurprofile(wispy_phy *phydev);
 
 /* Running states */
 #define WISPY_STATE_CLOSED			0
@@ -210,6 +213,10 @@ typedef struct _wispy_device_rec {
 	int (*init_func)(struct _wispy_phy *, struct _wispy_device_rec *);
 	/* Hardware record pointing to the aux handling */
 	void *hw_rec;
+
+	/* Supported sweep ranges identified from hw type */
+	unsigned int num_sweep_ranges;
+	wispy_sample_sweep *supported_ranges;
 } wispy_device_rec;
 
 typedef struct _wispy_device_list {

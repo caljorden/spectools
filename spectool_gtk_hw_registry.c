@@ -102,6 +102,9 @@ int wdr_open_add(wispy_device_registry *wdr, wispy_device_rec *devrec,
 	/* We always want to calibrate it, imho */
 	wispy_phy_setcalibration(phydev, 1);
 
+	/* Set the position to 0 for now */
+	wispy_phy_setposition(phydev, 0, 0, 0);
+
 	regdev = (wdr_reg_dev *) malloc(sizeof(wdr_reg_dev));
 	regdev->phydev = phydev;
 	regdev->sweep_cb_l = NULL;

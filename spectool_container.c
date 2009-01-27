@@ -284,3 +284,14 @@ int wispy_device_init(wispy_phy *phydev, wispy_device_rec *rec) {
 	return (*(rec->init_func))(phydev, rec);
 }
 
+wispy_sample_sweep *wispy_phy_getcurprofile(wispy_phy *phydev) {
+	if (phydev == NULL)
+		return NULL;
+
+	if (phydev->device_spec->cur_profile < 0 || 
+		phydev->device_spec->cur_profile > phydev->device_spec->num_sweep_ranges)
+		return NULL;
+
+	return &(phydev->device_spec->supported_ranges[phydev->device_spec->cur_profile]);
+}
+

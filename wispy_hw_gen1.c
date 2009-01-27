@@ -235,6 +235,27 @@ int wispy1_usb_device_scan(wispy_device_list *list) {
 				list->list[list->num_devs].init_func = wispy1_usb_init;
 				list->list[list->num_devs].hw_rec = auxpair;
 
+				list->list[list->num_devs].num_sweep_ranges = 1;
+
+				list->list[list->num_devs].supported_ranges = 
+					(wispy_sample_sweep *) malloc(WISPY_SWEEP_SIZE(0));
+
+				/* 2400 to 2484 MHz at 1MHz res */
+				list->list[list->num_devs].supported_ranges[0].name =
+					strdup("2.4GHz ISM");
+				list->list[list->num_devs].supported_ranges[0].start_khz = 2400000;
+				list->list[list->num_devs].supported_ranges[0].end_khz = 2484000;
+				list->list[list->num_devs].supported_ranges[0].res_hz = 1000 * 1000;
+				list->list[list->num_devs].supported_ranges[0].num_samples = 
+					WISPY1_USB_NUM_SAMPLES;
+
+				list->list[list->num_devs].supported_ranges[0].amp_offset_mdbm = 
+					WISPY1_USB_OFFSET_MDBM;
+				list->list[list->num_devs].supported_ranges[0].amp_res_mdbm = 
+					WISPY1_USB_RES_MDBM;
+				list->list[list->num_devs].supported_ranges[0].rssi_max = 
+					WISPY1_USB_RSSI_MAX;
+
 				list->num_devs++;
 
 				num_found++;
@@ -337,6 +358,8 @@ int wispy1_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 
 	/* Copy it into our default range data */
 	phydev->device_spec->default_range = &(phydev->device_spec->supported_ranges[0]);
+
+	phydev->device_spec->cur_profile = 0;
 
 	/* Set up the aux state */
 	auxptr = malloc(sizeof(wispy1_usb_aux));

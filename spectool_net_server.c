@@ -737,7 +737,9 @@ void Usage() {
 	printf("spectool_net [-b <secs>] [-p <port>] [-a <bind address>]\n"
 		   " --broadcast/-b  <secs>	    Send broadcast announce\n"
 		   " --port/-p <port>           Use alternate port\n"
-		   " --bindaddr/-a <address>    Bind to specific address\n");
+		   " --bindaddr/-a <address>    Bind to specific address\n"
+		   " -l / --list				  List devices and ranges only\n"
+		   " -r / --range [device:]range  Configure a device for a specific range\n");
 }
 
 void sigcatch(int sig) {
@@ -762,6 +764,8 @@ int main(int argc, char *argv[]) {
 		{ "bindaddr", required_argument, 0, 'a' },
 		{ "broadcast", required_argument, 0, 'b' },
 		{ "help", no_argument, 0, 'h' },
+		{ "list", no_argument, 0, 'l' },
+		{ "range", required_argument, 0, 'r' },
 		{ 0, 0, 0, 0 }
 	};
 	int option_index;
@@ -772,8 +776,18 @@ int main(int argc, char *argv[]) {
 	int broadcast = 0, bcast_sock = -1;
 	time_t last_bcast = 0;
 
+	int list_only = 0;
+
+	ndev = wispy_device_scan(&list);
+
+	int *rangeset = NULL;
+	if (ndev > 0) {
+		rangeset = (int *) malloc(sizeof(int) * ndev);
+		memset(rangeset, 0, sizeof(int) * ndev);
+	}
+
 	while (1) {
-		int o = getopt_long(argc, argv, "p:a:b:h",
+		int o = getopt_long(argc, argv, "p:a:b:lr:h",
 							long_options, &option_index);
 
 		if (o < 0)
@@ -797,10 +811,61 @@ int main(int argc, char *argv[]) {
 				Usage();
 				exit(-1);
 			}
+		} else if (o == 'l') {
+			list_only = 1;
+		} else if (o == 'r' && ndev > 0) {
+			if (sscanf(optarg, "%d:%d", &x, &r) != 2) {
+				if (sscanf(optarg, "%d", &r) != 1) {
+					fprintf(stderr, "Invalid range, expected device#:range# "
+							"or range#\n");
+					exit(-1);
+				} else {
+					rangeset[0] = r;
+				}
+			} else {
+				if (x < 0 || x >= ndev) {
+					fprintf(stderr, "Invalid range, no device %d\n", x);
+					exit(-1);
+				} else {
+					rangeset[x] = r;
+				}
+			}
 		}
 	}
 
-	ndev = wispy_device_scan(&list);
+	if (list_only) {
+		if (ndev <= 0) {
+			printf("No wispy devices found, bailing\n");
+			exit(1);
+		}
+
+		printf("Found %d devices...\n", ndev);
+
+		for (x = 0; x < ndev; x++) {
+			printf("Device %d: %s id %u\n", 
+				   x, list.list[x].name, list.list[x].device_id);
+
+			for (r = 0; r < list.list[x].num_sweep_ranges; r++) {
+				wispy_sample_sweep *ran = 
+					&(list.list[x].supported_ranges[r]);
+
+				printf("  Range %d: \"%s\" %d%s-%d%s @ %0.2f%s, %d samples\n", r, 
+					   ran->name,
+					   ran->start_khz > 1000 ? 
+					   ran->start_khz / 1000 : ran->start_khz,
+					   ran->start_khz > 1000 ? "MHz" : "KHz",
+					   ran->end_khz > 1000 ? ran->end_khz / 1000 : ran->end_khz,
+					   ran->end_khz > 1000 ? "MHz" : "KHz",
+					   (ran->res_hz / 1000) > 1000 ? 
+					   		((float) ran->res_hz / 1000) / 1000 : ran->res_hz / 1000,
+					   (ran->res_hz / 1000) > 1000 ? "MHz" : "KHz",
+					   ran->num_samples);
+			}
+
+		}
+
+		exit(0);
+	}
 
 	if (ndev <= 0) {
 		printf("No wispy devices found, bailing\n");
@@ -835,6 +900,9 @@ int main(int argc, char *argv[]) {
 		}
 
 		wispy_phy_setcalibration(&(devs[x].phydev), 1);
+
+		/* configure the default sweep block */
+		wispy_phy_setposition(&(devs[x].phydev), rangeset[x], 0, 0);
 	}
 	wispy_device_scan_free(&list);
 

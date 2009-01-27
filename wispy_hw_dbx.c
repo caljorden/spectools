@@ -227,6 +227,57 @@ void wispydbx_usb_setcalibration(wispy_phy *, int);
 int wispydbx_usb_setposition(wispy_phy *, int, int, int);
 wispy_sample_sweep *wispydbx_usb_getsweep(wispy_phy *);
 
+void wispydbx_add_supportedranges(int *num_ranges, wispy_sample_sweep **ranges) {
+	*ranges = (wispy_sample_sweep *) malloc(sizeof(wispy_sample_sweep) * 3);
+
+	*num_ranges = 3;
+
+	(*ranges)[0].name = strdup("2.4GHz ISM");
+	(*ranges)[0].num_samples = WISPYDBx_USB_NUM_SAMPLES_24;
+
+	(*ranges)[0].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
+	(*ranges)[0].amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
+	(*ranges)[0].rssi_max = WISPYDBx_USB_RSSI_MAX;
+
+	(*ranges)[0].start_khz = WISPYDBx_USB_DEF_STARTKHZ_24;
+	(*ranges)[0].end_khz = 
+		WISPYDBx_USB_DEF_STARTKHZ_24 + ((WISPYDBx_USB_NUM_SAMPLES_24 *
+										 WISPYDBx_USB_DEF_RESHZ_24) / 1000);
+	(*ranges)[0].res_hz = WISPYDBx_USB_DEF_RESHZ_24;
+	(*ranges)[0].samples_per_point = WISPYDBx_USB_DEF_SAMPLESPOINT_24;
+	(*ranges)[0].filter_bw_hz = WISPYDBx_USB_DEF_FILTERHZ_24;
+
+	(*ranges)[1].name = strdup("2.4GHz ISM High-Detail");
+	(*ranges)[1].num_samples = WISPYDBx_USB_NUM_SAMPLES_24_SLOW;
+
+	(*ranges)[1].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
+	(*ranges)[1].amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
+	(*ranges)[1].rssi_max = WISPYDBx_USB_RSSI_MAX;
+
+	(*ranges)[1].start_khz = WISPYDBx_USB_DEF_STARTKHZ_24;
+	(*ranges)[1].end_khz = 
+		WISPYDBx_USB_DEF_STARTKHZ_24 + ((WISPYDBx_USB_NUM_SAMPLES_24_SLOW *
+										 WISPYDBx_USB_RESHZ_24_SLOW) / 1000);
+	(*ranges)[1].res_hz = WISPYDBx_USB_RESHZ_24_SLOW;
+	(*ranges)[1].samples_per_point = WISPYDBx_USB_SAMPLESPOINT_24_SLOW;
+	(*ranges)[1].filter_bw_hz = WISPYDBx_USB_FILTERHZ_24_SLOW;
+
+	(*ranges)[2].name = strdup("5.8GHz");
+	(*ranges)[2].num_samples = WISPYDBx_USB_NUM_SAMPLES_58;
+
+	(*ranges)[2].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
+	(*ranges)[2].amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
+	(*ranges)[2].rssi_max = WISPYDBx_USB_RSSI_MAX;
+
+	(*ranges)[2].start_khz = WISPYDBx_USB_STARTKHZ_58;
+	(*ranges)[2].end_khz = 
+		WISPYDBx_USB_STARTKHZ_58 + ((WISPYDBx_USB_NUM_SAMPLES_58 *
+									 WISPYDBx_USB_RESHZ_58) / 1000);
+	(*ranges)[2].res_hz = WISPYDBx_USB_RESHZ_58;
+	(*ranges)[2].samples_per_point = WISPYDBx_USB_SAMPLESPOINT_58;
+	(*ranges)[2].filter_bw_hz = WISPYDBx_USB_FILTERHZ_58;
+}
+
 uint32_t wispydbx_adler_checksum(const char *buf1, int len) {
 	int i;
 	uint32_t s1, s2;
@@ -284,6 +335,10 @@ int wispydbx_usb_device_scan(wispy_device_list *list) {
 						 list->list[list->num_devs].device_id);
 				list->list[list->num_devs].init_func = wispydbx_usb_init;
 				list->list[list->num_devs].hw_rec = auxpair;
+
+				wispydbx_add_supportedranges(
+							&(list->list[list->num_devs].num_sweep_ranges),
+	   						&(list->list[list->num_devs].supported_ranges));
 
 				list->num_devs++;
 
@@ -376,60 +431,13 @@ int wispydbx_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 
 	phydev->device_spec->num_sweep_ranges = 3;
 
+	wispydbx_add_supportedranges(&phydev->device_spec->num_sweep_ranges,
+								 &phydev->device_spec->supported_ranges);
+
+	phydev->device_spec->cur_profile = 0;
+
 	phydev->device_spec->default_range = phydev->device_spec->supported_ranges;
 
-	phydev->device_spec->default_range->name = strdup("2.4GHz Normal");
-	phydev->device_spec->default_range->num_samples = WISPYDBx_USB_NUM_SAMPLES_24;
-
-	phydev->device_spec->default_range->amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
-	phydev->device_spec->default_range->amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
-	phydev->device_spec->default_range->rssi_max = WISPYDBx_USB_RSSI_MAX;
-
-	phydev->device_spec->default_range->start_khz = WISPYDBx_USB_DEF_STARTKHZ_24;
-	phydev->device_spec->default_range->end_khz = 
-		WISPYDBx_USB_DEF_STARTKHZ_24 + ((WISPYDBx_USB_NUM_SAMPLES_24 *
-										 WISPYDBx_USB_DEF_RESHZ_24) / 1000);
-	phydev->device_spec->default_range->res_hz = WISPYDBx_USB_DEF_RESHZ_24;
-	phydev->device_spec->default_range->samples_per_point = 
-		WISPYDBx_USB_DEF_SAMPLESPOINT_24;
-	phydev->device_spec->default_range->filter_bw_hz =
-		WISPYDBx_USB_DEF_FILTERHZ_24;
-
-	phydev->device_spec->supported_ranges[1].name = strdup("2.4GHz High-Detail");
-	phydev->device_spec->supported_ranges[1].num_samples = 
-		WISPYDBx_USB_NUM_SAMPLES_24_SLOW;
-
-	phydev->device_spec->supported_ranges[1].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
-	phydev->device_spec->supported_ranges[1].amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
-	phydev->device_spec->supported_ranges[1].rssi_max = WISPYDBx_USB_RSSI_MAX;
-
-	phydev->device_spec->supported_ranges[1].start_khz = WISPYDBx_USB_DEF_STARTKHZ_24;
-	phydev->device_spec->supported_ranges[1].end_khz = 
-		WISPYDBx_USB_DEF_STARTKHZ_24 + ((WISPYDBx_USB_NUM_SAMPLES_24_SLOW *
-										 WISPYDBx_USB_RESHZ_24_SLOW) / 1000);
-	phydev->device_spec->supported_ranges[1].res_hz = WISPYDBx_USB_RESHZ_24_SLOW;
-	phydev->device_spec->supported_ranges[1].samples_per_point = 
-		WISPYDBx_USB_SAMPLESPOINT_24_SLOW;
-	phydev->device_spec->supported_ranges[1].filter_bw_hz =
-		WISPYDBx_USB_FILTERHZ_24_SLOW;
-
-	phydev->device_spec->supported_ranges[2].name = strdup("5.8GHz");
-	phydev->device_spec->supported_ranges[2].num_samples = 
-		WISPYDBx_USB_NUM_SAMPLES_58;
-
-	phydev->device_spec->supported_ranges[2].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
-	phydev->device_spec->supported_ranges[2].amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
-	phydev->device_spec->supported_ranges[2].rssi_max = WISPYDBx_USB_RSSI_MAX;
-
-	phydev->device_spec->supported_ranges[2].start_khz = WISPYDBx_USB_STARTKHZ_58;
-	phydev->device_spec->supported_ranges[2].end_khz = 
-		WISPYDBx_USB_STARTKHZ_58 + ((WISPYDBx_USB_NUM_SAMPLES_58 *
-									 WISPYDBx_USB_RESHZ_58) / 1000);
-	phydev->device_spec->supported_ranges[2].res_hz = WISPYDBx_USB_RESHZ_58;
-	phydev->device_spec->supported_ranges[2].samples_per_point = 
-		WISPYDBx_USB_SAMPLESPOINT_58;
-	phydev->device_spec->supported_ranges[2].filter_bw_hz =
-		WISPYDBx_USB_FILTERHZ_58;
 
 	/* Set up the aux state */
 	auxptr = malloc(sizeof(wispydbx_usb_aux));
@@ -645,11 +653,12 @@ int wispydbx_usb_open(wispy_phy *phydev) {
 	/* Update the state */
 	phydev->state = WISPY_STATE_CONFIGURING;
 
-	/* Push the config down to the device */
+	/*
 	if (wispydbx_usb_setposition(phydev, 0, 0, 0) < 0) {
 		// fprintf(stderr, "debug - setposition failed\n");
 		return -1;
 	}
+	*/
 
 	/* Initialize the hw sweep features */
 	startcmd.report_id = 0x53;
@@ -845,6 +854,8 @@ int wispydbx_usb_setposition(wispy_phy *phydev, int in_profile,
 		fprintf(stderr, "profile out of range\n");
 		return -1;
 	}
+
+	phydev->device_spec->cur_profile = in_profile;
 
 	start_khz = phydev->device_spec->supported_ranges[in_profile].start_khz;
 	res_hz = phydev->device_spec->supported_ranges[in_profile].res_hz;
