@@ -345,7 +345,7 @@ static void wispy_spectral_wdr_sweep(int slot, int mode,
 	tout = wwidget->draw_timeout;
 
 	/* Update the timer */
-	if (sweep != NULL) {
+	if (sweep != NULL && sweep->phydev != NULL) {
 		pd = (wispy_phy *) sweep->phydev;
 #ifdef HAVE_HILDON
 		tout = 500 * pd->draw_agg_suggestion;

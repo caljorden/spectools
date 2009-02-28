@@ -392,8 +392,7 @@ int main(int argc, char *argv[]) {
 					sb = wispy_phy_getsweep(di);
 					if (sb == NULL)
 						continue;
-					printf("%s sweep off %d res %u: ", wispy_phy_getname(di),
-						   sb->amp_offset_mdbm, sb->amp_res_mdbm);
+					printf("%s: ", wispy_phy_getname(di));
 					for (r = 0; r < sb->num_samples; r++) {
 						printf("%d ", 
 							WISPY_RSSI_CONVERT(sb->amp_offset_mdbm, sb->amp_res_mdbm,

@@ -1196,6 +1196,9 @@ void wdr_netmanager_spawn(wispy_device_registry *wdr,
 
 	int x, ndevs;
 
+	char url[1024];
+	char err[WISPY_ERROR_MAX];
+
 	wdr_gtk_netmanager_aux *nmaux = 
 		(wdr_gtk_netmanager_aux *) malloc(sizeof(wdr_gtk_netmanager_aux));
 
@@ -1294,6 +1297,12 @@ void wdr_netmanager_spawn(wispy_device_registry *wdr,
 	nmaux->timer_ref = g_timeout_add(2000,
 									 (GSourceFunc) wdr_netmanager_populate,
 									 nmaux);
+
+	snprintf(url, 1024, "tcp://localhost:%d", WISPY_NET_DEFAULT_PORT);
+
+	if (wdr_open_net(wdr, url, err) >= 0) {
+		wdr_netmanager_populate(wdr->netmanager);
+	}
 }
 
 void wdr_netentry_destroy(GtkWidget *widget, gpointer *aux) {
@@ -1363,7 +1372,7 @@ void wdr_netentry_spawn(wispy_device_registry *wdr) {
 	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 2);
 
 	npaux->hostentry = gtk_entry_new();
-	gtk_entry_set_text(GTK_ENTRY(npaux->hostentry), "host");
+	gtk_entry_set_text(GTK_ENTRY(npaux->hostentry), "localhost");
 	gtk_entry_set_editable(GTK_ENTRY(npaux->hostentry), 1);
 	gtk_widget_show(npaux->hostentry);
 	gtk_box_pack_start(GTK_BOX(vbox), npaux->hostentry, FALSE, TRUE, 2);

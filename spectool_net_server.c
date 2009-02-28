@@ -191,24 +191,23 @@ int wts_send_devblock(wispy_tcpserv *wts, wispy_tcpcli *tci, char *errstr) {
 		dev->device_name_len = strlen(wispy_phy_getname(&(d->phydev)));
 		snprintf(dev->device_name, 256, "%s", wispy_phy_getname(&(d->phydev)));
 
-		dev->amp_offset_mdbm = 
-			htonl(d->phydev.device_spec->default_range->amp_offset_mdbm * -1);
-		dev->amp_res_mdbm =
-			htonl(d->phydev.device_spec->default_range->amp_res_mdbm);
-		dev->rssi_max = 
-			htons(d->phydev.device_spec->default_range->rssi_max);
+		ran = wispy_phy_getcurprofile(&(d->phydev));
 
-		dev->def_start_khz =
-			htonl(d->phydev.device_spec->default_range->start_khz);
-		dev->def_res_hz =
-			htonl(d->phydev.device_spec->default_range->res_hz);
-		dev->def_num_samples =
-			htons(d->phydev.device_spec->default_range->num_samples);
+		dev->amp_offset_mdbm = htonl(ran->amp_offset_mdbm * -1);
+		dev->amp_res_mdbm = htonl(ran->amp_res_mdbm);
+		dev->rssi_max = htons(ran->rssi_max);
 
+		dev->def_start_khz = htonl(ran->start_khz);
+		dev->def_res_hz = htonl(ran->res_hz);
+		dev->def_num_samples = htons(ran->num_samples);
+
+		/*
 		if (d->phydev.device_spec->num_sweep_ranges == 0) {
+		*/
 			dev->start_khz = dev->def_start_khz;
 			dev->res_hz = dev->def_res_hz;
 			dev->num_samples = dev->def_num_samples;
+		/*
 		} else {
 			dev->start_khz =
 				htonl(d->phydev.device_spec->supported_ranges[0].start_khz);
@@ -217,6 +216,7 @@ int wts_send_devblock(wispy_tcpserv *wts, wispy_tcpcli *tci, char *errstr) {
 			dev->num_samples =
 				htons(d->phydev.device_spec->supported_ranges[0].num_samples);
 		}
+		*/
 	}
 
 	/* Set the last device sentinel -- nothing needs to be set except the 
