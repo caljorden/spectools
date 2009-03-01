@@ -418,6 +418,8 @@ int spectool_netcli_block_sweep(spectool_server *sr, wispy_fr_header *header,
 
 		auxsweep->min_rssi_seen = sni->phydev->min_rssi_seen;
 
+		auxsweep->phydev = sni->phydev;
+
 		/* Flag that we got a new frame */
 		((wispy_net_dev_aux *) (sni->phydev->auxptr))->new_sweep = 1;
 		((wispy_net_dev_aux *) (sni->phydev->auxptr))->sweep = auxsweep;
@@ -541,6 +543,8 @@ wispy_phy *spectool_netcli_enabledev(spectool_server *sr, unsigned int dev_id,
 	phyret->device_spec->supported_ranges[0].res_hz = sni->res_hz;
 
 	phyret->device_spec->default_range = phyret->device_spec->supported_ranges;
+
+	phyret->device_spec->cur_profile = 0;
 
 	phyret->open_func = &spectool_net_open;
 	phyret->close_func = &spectool_net_close;

@@ -70,6 +70,9 @@ int wispy_phy_poll(wispy_phy *phydev) {
 }
 
 int wispy_phy_getpollfd(wispy_phy *phydev) {
+	if (phydev == NULL)
+		return -1;
+
 	if (phydev->pollfd_func == NULL)
 		return -1;
 
