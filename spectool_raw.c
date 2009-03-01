@@ -48,7 +48,7 @@ void sighandle(int sig) {
 }
 
 void Usage(void) {
-	printf("wispy_raw [ options ]\n"
+	printf("spectool_raw [ options ]\n"
 		   " -n / --net  tcp://host:port  Connect to network server instead of\n"
 		   " -b / --broadcast             Listen for (and connect to) broadcast servers\n"
 		   " -l / --list				  List devices and ranges only\n"

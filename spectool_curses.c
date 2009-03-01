@@ -29,7 +29,7 @@ void sighandle(int sig) {
 }
 
 void Usage(void) {
-	printf("wispy_raw [ options ]\n"
+	printf("spectool_curses [ options ]\n"
 		   " -n / --net  tcp://host:port  Connect to network server instead of\n");
 	return;
 }
@@ -74,7 +74,6 @@ int main(int argc, char *argv[]) {
 			return;
 		} else if (o == 'n') {
 			neturl = strdup(optarg);
-			printf("debug - wispy_raw neturl %s\n", neturl);
 			continue;
 		}
 	}
