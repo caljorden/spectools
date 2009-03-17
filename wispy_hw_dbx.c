@@ -780,6 +780,10 @@ int wispydbx_usb_poll(wispy_phy *phydev) {
 		return WISPY_POLL_NONE;
 	}
 
+	// If we don't have a sweepbuf we're not configured, barf
+	if (auxptr->sweepbuf == NULL)
+		return WISPY_POLL_NONE;
+
 	report = (wispydbx_report *) lbuf;
 
 	/* Extract the slot index */
@@ -904,38 +908,6 @@ int wispydbx_usb_setposition(wispy_phy *phydev, int in_profile,
 		return -1;
 	}
 	// printf("debug - finished wrting usb control\n");
-
-	/* If we successfully configured the hardware, update the sweep capabilities and
-	 * the sweep buffer and reset the device */
-
-#if 0
-	phydev->device_spec->num_sweep_ranges = 1;
-	if (phydev->device_spec->supported_ranges)
-		free(phydev->device_spec->supported_ranges);
-	phydev->device_spec->supported_ranges = 
-		(wispy_sample_sweep *) malloc(WISPY_SWEEP_SIZE(0));
-
-	/* Set the universal values */
-	phydev->device_spec->supported_ranges[0].num_samples = WISPYDBx_USB_NUM_SAMPLES;
-
-	phydev->device_spec->supported_ranges[0].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
-	phydev->device_spec->supported_ranges[0].amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
-	phydev->device_spec->supported_ranges[0].rssi_max = WISPYDBx_USB_RSSI_MAX;
-
-	/* Set the sweep records based on default or new data */
-	if (use_default == 1) {
-		phydev->device_spec->supported_ranges[0].start_khz = WISPYDBx_USB_DEF_STARTKHZ;
-		phydev->device_spec->supported_ranges[0].end_khz = 
-			WISPYDBx_USB_DEF_STARTKHZ + ((WISPYDBx_USB_NUM_SAMPLES *
-										  WISPYDBx_USB_DEF_RESHZ) / 1000);
-		phydev->device_spec->supported_ranges[0].res_hz = WISPYDBx_USB_DEF_RESHZ;
-	} else {
-		phydev->device_spec->supported_ranges[0].start_khz = start_khz;
-		phydev->device_spec->supported_ranges[0].end_khz = 
-			start_khz + ((WISPYDBx_USB_NUM_SAMPLES * res_hz) / 1000);
-		phydev->device_spec->supported_ranges[0].res_hz = res_hz;
-	}
-#endif
 
 	/* We're not configured, so we need to push a new configure block out next time
 	 * we sweep */
