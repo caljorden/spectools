@@ -683,8 +683,9 @@ int wispy24x_usb_poll(wispy_phy *phydev) {
 	}
 
 	// If we don't have a sweepbuf we're not configured, barf
-	if (auxptr->sweepbuf == NULL)
+	if (auxptr->sweepbuf == NULL) {
 		return WISPY_POLL_NONE;
+	}
 
 	report = (wispy24x_report *) lbuf;
 

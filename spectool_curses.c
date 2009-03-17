@@ -53,8 +53,15 @@ int main(int argc, char *argv[]) {
 	int min_db_draw = 0, start_db = 0;
 	int nuse = 0, mod, avg, avgc, pos, group;
 
+	int range = 0;
+	int device = -1;
+	int list_only = 0;
+
 	static struct option long_options[] = {
 		{ "net", required_argument, 0, 'n' },
+		{ "list", no_argument, 0, 'l' },
+		{ "device", required_argument, 0, 'd' },
+		{ "range", required_argument, 0, 'r' },
 		{ "help", no_argument, 0, 'h' },
 		{ 0, 0, 0, 0 }
 	};
@@ -62,8 +69,10 @@ int main(int argc, char *argv[]) {
 
 	char *neturl = NULL;
 
+	ndev = wispy_device_scan(&list);
+
 	while (1) {
-		int o = getopt_long(argc, argv, "n:h",
+		int o = getopt_long(argc, argv, "n:ld:r:h",
 							long_options, &option_index);
 
 		if (o < 0)
@@ -75,9 +84,65 @@ int main(int argc, char *argv[]) {
 		} else if (o == 'n') {
 			neturl = strdup(optarg);
 			continue;
+		} else if (o == 'r') {
+			if (sscanf(optarg, "%d", &range) != 1) {
+				printf("Expected number for range, see listing for supported ranges\n");
+				Usage();
+				return;
+			}
+			continue;
+		} else if (o == 'd') {
+			if (sscanf(optarg, "%d", &device) != 1) {
+				printf("Expected number for device, see listing for detected devices\n");
+				Usage();
+				return;
+			}
+
+			if (device < 0 || device >= ndev) {
+				printf("Device number invalid, see listing for detected devices\n");
+				Usage();
+				return;
+			}
+
+			continue;
+		} else if (o == 'l') {
+			list_only = 1;
 		}
 	}
 
+	if (list_only) {
+		if (ndev <= 0) {
+			printf("No wispy devices found, bailing\n");
+			exit(1);
+		}
+
+		printf("Found %d devices...\n", ndev);
+
+		for (x = 0; x < ndev; x++) {
+			printf("Device %d: %s id %u\n", 
+				   x, list.list[x].name, list.list[x].device_id);
+
+			for (r = 0; r < list.list[x].num_sweep_ranges; r++) {
+				wispy_sample_sweep *ran = 
+					&(list.list[x].supported_ranges[r]);
+
+				printf("  Range %d: \"%s\" %d%s-%d%s @ %0.2f%s, %d samples\n", r, 
+					   ran->name,
+					   ran->start_khz > 1000 ? 
+					   ran->start_khz / 1000 : ran->start_khz,
+					   ran->start_khz > 1000 ? "MHz" : "KHz",
+					   ran->end_khz > 1000 ? ran->end_khz / 1000 : ran->end_khz,
+					   ran->end_khz > 1000 ? "MHz" : "KHz",
+					   (ran->res_hz / 1000) > 1000 ? 
+					   		((float) ran->res_hz / 1000) / 1000 : ran->res_hz / 1000,
+					   (ran->res_hz / 1000) > 1000 ? "MHz" : "KHz",
+					   ran->num_samples);
+			}
+
+		}
+
+		exit(0);
+	}
 	signal(SIGINT, sighandle);
 
 	if (neturl != NULL) {
@@ -95,7 +160,6 @@ int main(int argc, char *argv[]) {
 
 		printf("Connected to server, waiting for device list...\n");
 	} else if (neturl == NULL) {
-		ndev = wispy_device_scan(&list);
 		if (ndev <= 0) {
 			printf("No wispy devices found, bailing\n");
 			exit(1);
@@ -103,44 +167,41 @@ int main(int argc, char *argv[]) {
 
 		printf("Found %d wispy devices...\n", ndev);
 
-		if (ndev > 1) {
-			printf("spectool-curses can only display one device: \n");
-			for (x = 0; x < ndev; x++) {
-				printf(" %d - %s id %u\n", x, list.list[x].name, list.list[x].device_id);
-			}
-		
-			x = -1;
-			while (x == -1) {
-				printf("Device #> ");
-				fflush(stdout);
-				if (fscanf(stdin, "%d", &x) != 1) 
-					x = -1;
+		if (ndev > 1 && device == -1) {
+			printf("spectool-curses can only display one device, specify one with "
+				   "spectool-curses -d\n");
+			exit(1);
+		} else if (device == -1) {
+			device = 0;
+		}
 
-				if (x < 0 || x >= ndev)
-					x = -1;
-			}
-		} else {
-			x = 0;
+		if (range < 0 || range >= list.list[device].num_sweep_ranges) {
+			printf("Invalid range for device %d, see listing for supported ranges\n",
+				   device);
+			exit(1);
 		}
 
 		dev = (wispy_phy *) malloc(WISPY_PHY_SIZE);
 		dev->next = NULL;
 
-		if (wispy_device_init(dev, &(list.list[x])) < 0) {
+		if (wispy_device_init(dev, &(list.list[device])) < 0) {
 			printf("Error initializing WiSPY device %s id %u\n",
-				   list.list[x].name, list.list[x].device_id);
+				   list.list[device].name, list.list[device].device_id);
 			printf("%s\n", wispy_get_error(dev));
 			exit(1);
 		}
 
 		if (wispy_phy_open(dev) < 0) {
 			printf("Error opening WiSPY device %s id %u\n",
-				   list.list[x].name, list.list[x].device_id);
+				   list.list[device].name, list.list[device].device_id);
 			printf("%s\n", wispy_get_error(dev));
 			exit(1);
 		}
 
 		wispy_phy_setcalibration(dev, 1);
+
+		/* Configure the range */
+		wispy_phy_setposition(dev, range, 0, 0);
 
 		wispy_device_scan_free(&list); 
 	}
@@ -374,7 +435,6 @@ int main(int argc, char *argv[]) {
 
 				wcolor_set(window, 2, NULL);
 				mvwaddstr(window, y + 1, x + 1, " ");
-				wcolor_set(window, 0, NULL);
 			}
 		}
 
@@ -425,52 +485,10 @@ int main(int argc, char *argv[]) {
 
 				wcolor_set(window, 3, NULL);
 				mvwaddstr(window, y + 1, x + 1, "m");
-				wcolor_set(window, 0, NULL);
 			}
 		}
 
-		/*
-		r = 0;
-		for (x = 0; x < (COLS - 7); x++) {
-			int py;
-
-			avg = 0;
-			nuse = 0;
-
-			for (pos = -1 * (mod / 2); pos < (mod / 2); pos++) {
-				if (r + pos >= sweepcache->latest->num_samples || r + pos < 0)
-					continue;
-
-				avg += sweepcache->latest->sample_data[r + pos];
-				nuse++;
-			}
-
-			r += mod;
-
-			if (nuse == 0)
-				continue;
-
-			avg = WISPY_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm, (avg / nuse));
-
-			py = (float) (LINES - 4) *
-				(float) ((float) (abs(avg) + base_db_offset) /
-						 (float) (abs(min_db_draw) + base_db_offset));
-
-			for (y = 0; y < (LINES - 4); y++) {
-				char e;
-
-				if (py > y)
-					continue;
-
-				wcolor_set(window, 4, NULL);
-				mvwaddstr(window, y + 1, x + 1, "*");
-				wcolor_set(window, 0, NULL);
-
-				break;
-			}
-		}
-	*/
-
+		wcolor_set(window, 0, NULL);
 		box(window, 0, 0);
 
 		wrefresh(window);
