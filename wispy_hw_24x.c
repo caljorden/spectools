@@ -682,6 +682,10 @@ int wispy24x_usb_poll(wispy_phy *phydev) {
 		return WISPY_POLL_ERROR;
 	}
 
+	// If we don't have a sweepbuf we're not configured, barf
+	if (auxptr->sweepbuf == NULL)
+		return WISPY_POLL_NONE;
+
 	report = (wispy24x_report *) lbuf;
 
 	/* Derive the base slot from the khz start of this sample, based on
