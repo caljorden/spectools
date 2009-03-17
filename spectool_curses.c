@@ -30,7 +30,10 @@ void sighandle(int sig) {
 
 void Usage(void) {
 	printf("spectool_curses [ options ]\n"
-		   " -n / --net  tcp://host:port  Connect to network server instead of\n");
+		   " -n / --net  tcp://host:port  Connect to network server\n"
+		   " -l / --list                  List detected devices\n"
+		   " -r / --range #               Use device range #\n"
+		   " -d / --device #              Use device #\n");
 	return;
 }
 
