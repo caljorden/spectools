@@ -94,6 +94,8 @@ typedef struct _wispy1_usb_aux {
 	struct usb_device *dev;
 	struct usb_dev_handle *devhdl;
 
+	time_t last_read;
+
 	/* have we pushed a configure event from sweeps */
 	int configured;
 
@@ -230,8 +232,7 @@ int wispy1_usb_device_scan(wispy_device_list *list) {
 				list->list[list->num_devs].device_id = 
 					wispy1_adler_checksum(combopath, 128);
 				snprintf(list->list[list->num_devs].name, WISPY_PHY_NAME_MAX,
-						 "Wi-Spy v1 USB %u", bus->dirname, dev->filename,
-						 list->list[list->num_devs].device_id);
+						 "Wi-Spy v1 USB %u", list->list[list->num_devs].device_id);
 				list->list[list->num_devs].init_func = wispy1_usb_init;
 				list->list[list->num_devs].hw_rec = auxpair;
 
@@ -575,6 +576,7 @@ int wispy1_usb_open(wispy_phy *phydev) {
 #endif
 
 	auxptr->usb_thread_alive = 1;
+	auxptr->last_read = time(0);
 
 	if (pthread_create(&(auxptr->usb_thread), NULL, 
 					   wispy1_usb_servicethread, auxptr) < 0) {
@@ -655,7 +657,7 @@ void wispy1_usb_setcalibration(wispy_phy *phydev, int in_calib) {
 int wispy1_usb_poll(wispy_phy *phydev) {
 	wispy1_usb_aux *auxptr = (wispy1_usb_aux *) phydev->auxptr;
 	unsigned char lbuf[8];
-	int x, pos, calfreqs;
+	int x, pos, calfreqs, ret;
 	long amptotal;
 	int adjusted_rssi;
 
@@ -672,7 +674,7 @@ int wispy1_usb_poll(wispy_phy *phydev) {
 		return WISPY_POLL_ERROR;
 	}
 
-	if (recv(auxptr->sockpair[0], lbuf, 8, 0) < 0) {
+	if ((ret = recv(auxptr->sockpair[0], lbuf, 8, 0)) < 0) {
 		if (auxptr->usb_thread_alive != 0)
 			snprintf(phydev->errstr, WISPY_ERROR_MAX,
 					 "wispy1_usb IPC receiver failed to read signal data: %s",
@@ -680,6 +682,17 @@ int wispy1_usb_poll(wispy_phy *phydev) {
 		phydev->state = WISPY_STATE_ERROR;
 		return WISPY_POLL_ERROR;
 	}
+
+	if (time(0) - auxptr->last_read > 3) {
+		snprintf(phydev->errstr, WISPY_ERROR_MAX,
+				 "wispy1_usb didn't see any data for more than 3 seconds, "
+				 "something has gone wrong (was the device removed?)");
+		phydev->state = WISPY_STATE_ERROR;
+		return WISPY_POLL_ERROR;
+	}
+
+	if (ret > 0)
+		auxptr->last_read = time(0);
 
 	/* Initialize the sweep buffer when we get to it 
 	 * If we haven't gotten around to a 0 state to initialize the buffer, we throw

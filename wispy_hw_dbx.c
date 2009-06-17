@@ -64,6 +64,9 @@
 #define METAGEEK_WISPYDBx_VID		0x1dd5
 #define METAGEEK_WISPYDBx_PID		0x5000
 
+#define METAGEEK_WISPY24I_VID		0x1dd5
+#define METAGEEK_WISPY24I_PID		0x2400
+
 /* Default config */
 #define WISPYDBx_USB_STARTKHZ_58		5160000
 #define WISPYDBx_USB_RESHZ_58			748536
@@ -115,6 +118,8 @@ typedef struct _wispydbx_usb_aux {
 	struct usb_device *dev;
 	struct usb_dev_handle *devhdl;
 
+	time_t last_read;
+
 	/* have we pushed a configure event from sweeps */
 	int configured;
 
@@ -136,6 +141,9 @@ typedef struct _wispydbx_usb_aux {
 	int sweepbase;
 
 	wispy_phy *phydev;
+
+	// Model - 0 = dbx, 1 = 24i
+	int model;
 
 	uint8_t cmd_seq : 2;
 } wispydbx_usb_aux;
@@ -228,10 +236,10 @@ void wispydbx_usb_setcalibration(wispy_phy *, int);
 int wispydbx_usb_setposition(wispy_phy *, int, int, int);
 wispy_sample_sweep *wispydbx_usb_getsweep(wispy_phy *);
 
-void wispydbx_add_supportedranges(int *num_ranges, wispy_sample_sweep **ranges) {
-	*ranges = (wispy_sample_sweep *) malloc(sizeof(wispy_sample_sweep) * 3);
+void wispy24i_add_supportedranges(int *num_ranges, wispy_sample_sweep **ranges) {
+	*ranges = (wispy_sample_sweep *) malloc(sizeof(wispy_sample_sweep) * 1);
 
-	*num_ranges = 3;
+	*num_ranges = 1;
 
 	(*ranges)[0].name = strdup("2.4GHz ISM");
 	(*ranges)[0].num_samples = WISPYDBx_USB_NUM_SAMPLES_24;
@@ -248,35 +256,42 @@ void wispydbx_add_supportedranges(int *num_ranges, wispy_sample_sweep **ranges) 
 	(*ranges)[0].samples_per_point = WISPYDBx_USB_DEF_SAMPLESPOINT_24;
 	(*ranges)[0].filter_bw_hz = WISPYDBx_USB_DEF_FILTERHZ_24;
 
-	(*ranges)[1].name = strdup("2.4GHz ISM High-Detail");
-	(*ranges)[1].num_samples = WISPYDBx_USB_NUM_SAMPLES_24_SLOW;
+}
+
+void wispydbx_add_supportedranges(int *num_ranges, wispy_sample_sweep **ranges) {
+	*ranges = (wispy_sample_sweep *) malloc(sizeof(wispy_sample_sweep) * 2);
+
+	*num_ranges = 2;
+
+	(*ranges)[0].name = strdup("2.4GHz ISM");
+	(*ranges)[0].num_samples = WISPYDBx_USB_NUM_SAMPLES_24;
+
+	(*ranges)[0].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
+	(*ranges)[0].amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
+	(*ranges)[0].rssi_max = WISPYDBx_USB_RSSI_MAX;
+
+	(*ranges)[0].start_khz = WISPYDBx_USB_DEF_STARTKHZ_24;
+	(*ranges)[0].end_khz = 
+		WISPYDBx_USB_DEF_STARTKHZ_24 + ((WISPYDBx_USB_NUM_SAMPLES_24 *
+										 WISPYDBx_USB_DEF_RESHZ_24) / 1000);
+	(*ranges)[0].res_hz = WISPYDBx_USB_DEF_RESHZ_24;
+	(*ranges)[0].samples_per_point = WISPYDBx_USB_DEF_SAMPLESPOINT_24;
+	(*ranges)[0].filter_bw_hz = WISPYDBx_USB_DEF_FILTERHZ_24;
+
+	(*ranges)[1].name = strdup("5GHz");
+	(*ranges)[1].num_samples = WISPYDBx_USB_NUM_SAMPLES_58;
 
 	(*ranges)[1].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
 	(*ranges)[1].amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
 	(*ranges)[1].rssi_max = WISPYDBx_USB_RSSI_MAX;
 
-	(*ranges)[1].start_khz = WISPYDBx_USB_DEF_STARTKHZ_24;
+	(*ranges)[1].start_khz = WISPYDBx_USB_STARTKHZ_58;
 	(*ranges)[1].end_khz = 
-		WISPYDBx_USB_DEF_STARTKHZ_24 + ((WISPYDBx_USB_NUM_SAMPLES_24_SLOW *
-										 WISPYDBx_USB_RESHZ_24_SLOW) / 1000);
-	(*ranges)[1].res_hz = WISPYDBx_USB_RESHZ_24_SLOW;
-	(*ranges)[1].samples_per_point = WISPYDBx_USB_SAMPLESPOINT_24_SLOW;
-	(*ranges)[1].filter_bw_hz = WISPYDBx_USB_FILTERHZ_24_SLOW;
-
-	(*ranges)[2].name = strdup("5GHz");
-	(*ranges)[2].num_samples = WISPYDBx_USB_NUM_SAMPLES_58;
-
-	(*ranges)[2].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
-	(*ranges)[2].amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
-	(*ranges)[2].rssi_max = WISPYDBx_USB_RSSI_MAX;
-
-	(*ranges)[2].start_khz = WISPYDBx_USB_STARTKHZ_58;
-	(*ranges)[2].end_khz = 
 		WISPYDBx_USB_STARTKHZ_58 + ((WISPYDBx_USB_NUM_SAMPLES_58 *
 									 WISPYDBx_USB_RESHZ_58) / 1000);
-	(*ranges)[2].res_hz = WISPYDBx_USB_RESHZ_58;
-	(*ranges)[2].samples_per_point = WISPYDBx_USB_SAMPLESPOINT_58;
-	(*ranges)[2].filter_bw_hz = WISPYDBx_USB_FILTERHZ_58;
+	(*ranges)[1].res_hz = WISPYDBx_USB_RESHZ_58;
+	(*ranges)[1].samples_per_point = WISPYDBx_USB_SAMPLESPOINT_58;
+	(*ranges)[1].filter_bw_hz = WISPYDBx_USB_FILTERHZ_58;
 }
 
 uint32_t wispydbx_adler_checksum(const char *buf1, int len) {
@@ -306,6 +321,7 @@ int wispydbx_usb_device_scan(wispy_device_list *list) {
 	int num_found = 0;
 	wispydbx_usb_pair *auxpair;
 	char combopath[128];
+	int model = 0;
 
 	/* Libusb init */
 	usb_init();
@@ -315,7 +331,9 @@ int wispydbx_usb_device_scan(wispy_device_list *list) {
 	for (bus = usb_busses; bus; bus = bus->next) {
 		for (dev = bus->devices; dev; dev = dev->next) {
 			if (((dev->descriptor.idVendor == METAGEEK_WISPYDBx_VID) &&
-				 (dev->descriptor.idProduct == METAGEEK_WISPYDBx_PID))) {
+				 (dev->descriptor.idProduct == METAGEEK_WISPYDBx_PID)) ||
+				((dev->descriptor.idVendor == METAGEEK_WISPY24I_VID) &&
+				 (dev->descriptor.idProduct == METAGEEK_WISPY24I_PID))) {
 
 				/* If we're full up, break */
 				if (list->num_devs == list->max_devs - 1)
@@ -328,18 +346,27 @@ int wispydbx_usb_device_scan(wispy_device_list *list) {
 
 				snprintf(combopath, 128, "%s%s", auxpair->bus, auxpair->dev);
 
+				if (dev->descriptor.idProduct == METAGEEK_WISPY24I_PID)
+					model = 1;
+
+				snprintf(list->list[list->num_devs].name, WISPY_PHY_NAME_MAX,
+						 "Wi-Spy %s USB %u", model == 0 ? "DBx" : "24i", 
+						 list->list[list->num_devs].device_id);
+
 				/* Fill in the list elements */
 				list->list[list->num_devs].device_id = 5;
 					// wispydbx_adler_checksum(combopath, 128);
-				snprintf(list->list[list->num_devs].name, WISPY_PHY_NAME_MAX,
-						 "Wi-Spy DBx USB %u", bus->dirname, dev->filename,
-						 list->list[list->num_devs].device_id);
 				list->list[list->num_devs].init_func = wispydbx_usb_init;
 				list->list[list->num_devs].hw_rec = auxpair;
 
-				wispydbx_add_supportedranges(
-							&(list->list[list->num_devs].num_sweep_ranges),
-	   						&(list->list[list->num_devs].supported_ranges));
+				if (model == 0)
+					wispydbx_add_supportedranges(
+							 &(list->list[list->num_devs].num_sweep_ranges),
+							 &(list->list[list->num_devs].supported_ranges));
+				else
+					wispy24i_add_supportedranges(
+							 &(list->list[list->num_devs].num_sweep_ranges),
+							 &(list->list[list->num_devs].supported_ranges));
 
 				list->num_devs++;
 
@@ -370,6 +397,8 @@ int wispydbx_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 	char combopath[128];
 	uint32_t cid = 0;
 
+	int model = 0;
+
 	wispydbx_usb_aux *auxptr = NULL;
 
 	usb_init();
@@ -391,7 +420,9 @@ int wispydbx_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 				continue;
 
 			if (((dev->descriptor.idVendor == METAGEEK_WISPYDBx_VID) &&
-				 (dev->descriptor.idProduct == METAGEEK_WISPYDBx_PID))) {
+				 (dev->descriptor.idProduct == METAGEEK_WISPYDBx_PID)) ||
+				((dev->descriptor.idVendor == METAGEEK_WISPY24I_VID) &&
+				 (dev->descriptor.idProduct == METAGEEK_WISPY24I_PID))) {
 				usb_dev_chosen = dev;
 				break;
 			} else {
@@ -410,14 +441,17 @@ int wispydbx_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 		return -1;
 	}
 
-	/* Build the device record with 3 sweep capabilities */
+	if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPY24I_PID)
+		model = 1;
+
+	/* Build the device record with appropriate sweep capabilities */
 	phydev->device_spec = (wispy_dev_spec *) malloc(sizeof(wispy_dev_spec));
 
 	phydev->device_spec->device_id = cid;
 
 	/* Default the name to the buspath */
 	snprintf(phydev->device_spec->device_name, WISPY_PHY_NAME_MAX,
-			 "Wi-Spy DBx USB %u", cid);
+			 "Wi-Spy %s USB %u", model == 0 ? "DBx" : "24i", cid);
 
 	/* State */
 	phydev->state = WISPY_STATE_CLOSED;
@@ -427,13 +461,14 @@ int wispydbx_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 	phydev->device_spec->device_version = 0x03;
 	phydev->device_spec->device_flags = WISPY_DEV_FL_VAR_SWEEP;
 
-	phydev->device_spec->supported_ranges = 
-		(wispy_sample_sweep *) malloc(sizeof(wispy_sample_sweep) * 3);
+	if (model == 0) {
+		wispydbx_add_supportedranges(&phydev->device_spec->num_sweep_ranges,
+									 &phydev->device_spec->supported_ranges);
+	} else {
+		wispy24i_add_supportedranges(&phydev->device_spec->num_sweep_ranges,
+									 &phydev->device_spec->supported_ranges);
+	}
 
-	phydev->device_spec->num_sweep_ranges = 3;
-
-	wispydbx_add_supportedranges(&phydev->device_spec->num_sweep_ranges,
-								 &phydev->device_spec->supported_ranges);
 
 	phydev->device_spec->cur_profile = 0;
 
@@ -531,7 +566,7 @@ void *wispydbx_usb_servicethread(void *aux) {
 			// fprintf(stderr, "debug - running, poll\n");
 
 			if ((len = usb_interrupt_read(wispy, 0x82, buf, 
-								   sizeof(wispydbx_report), TIMEOUT)) < 0) {
+								   sizeof(wispydbx_report), TIMEOUT)) <= 0) {
 				if (errno == EAGAIN) {
 					// fprintf(stderr, "debug - eagain on usb_interrupt_read\n");
 					continue;
@@ -637,6 +672,7 @@ int wispydbx_usb_open(wispy_phy *phydev) {
 	// fprintf(stderr, "debug - done claiming\n");
 
 	auxptr->usb_thread_alive = 1;
+	auxptr->last_read = time(0);
 
 	// printf("debug - creating thread\n");
 
@@ -772,6 +808,17 @@ int wispydbx_usb_poll(wispy_phy *phydev) {
 		phydev->state = WISPY_STATE_ERROR;
 		return WISPY_POLL_ERROR;
 	}
+
+	if (time(0) - auxptr->last_read > 3) {
+		snprintf(phydev->errstr, WISPY_ERROR_MAX,
+				 "wispy1_usb didn't see any data for more than 3 seconds, "
+				 "something has gone wrong (was the device removed?)");
+		phydev->state = WISPY_STATE_ERROR;
+		return WISPY_POLL_ERROR;
+	}
+
+	if (ret > 0)
+		auxptr->last_read = time(0);
 
 	// printf("debug usb poll recv len %d\n", ret);
 	//

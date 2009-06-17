@@ -126,6 +126,8 @@ typedef struct _wispy24x_usb_aux {
 	struct usb_device *dev;
 	struct usb_dev_handle *devhdl;
 
+	time_t last_read;
+
 	/* have we pushed a configure event from sweeps */
 	int configured;
 
@@ -278,8 +280,7 @@ int wispy24x_usb_device_scan(wispy_device_list *list) {
 				list->list[list->num_devs].device_id = 
 					wispy24x_adler_checksum(combopath, 128);
 				snprintf(list->list[list->num_devs].name, WISPY_PHY_NAME_MAX,
-						 "Wi-Spy 24x USB %u", bus->dirname, dev->filename,
-						 list->list[list->num_devs].device_id);
+						 "Wi-Spy 24x USB %u", list->list[list->num_devs].device_id);
 
 				list->list[list->num_devs].init_func = wispy24x_usb_init;
 				list->list[list->num_devs].hw_rec = auxpair;
@@ -498,7 +499,7 @@ void *wispy24x_usb_servicethread(void *aux) {
 		if (error == 0) {
 			memset(buf, 0, 64);
 
-			if (usb_interrupt_read(wispy, 0x81, buf, 64, TIMEOUT) == 0) {
+			if (usb_interrupt_read(wispy, 0x81, buf, 64, TIMEOUT) <= 0) {
 				if (errno == EAGAIN)
 					continue;
 
@@ -587,6 +588,8 @@ int wispy24x_usb_open(wispy_phy *phydev) {
 
 	auxptr->usb_thread_alive = 1;
 
+	auxptr->last_read = time(0);
+
 	if (pthread_create(&(auxptr->usb_thread), NULL, 
 					   wispy24x_usb_servicethread, auxptr) < 0) {
 		snprintf(phydev->errstr, WISPY_ERROR_MAX,
@@ -656,8 +659,7 @@ void wispy24x_usb_setcalibration(wispy_phy *phydev, int in_calib) {
 int wispy24x_usb_poll(wispy_phy *phydev) {
 	wispy24x_usb_aux *auxptr = (wispy24x_usb_aux *) phydev->auxptr;
 	char lbuf[64];
-	int x;
-	int base, res;
+	int base, res, ret, x;
 	wispy24x_report *report;
 
 	/* Push a configure event before anything else */
@@ -673,7 +675,7 @@ int wispy24x_usb_poll(wispy_phy *phydev) {
 		return WISPY_POLL_ERROR;
 	}
 
-	if (recv(auxptr->sockpair[0], lbuf, 64, 0) < 0) {
+	if ((ret = recv(auxptr->sockpair[0], lbuf, 64, 0)) < 0) {
 		if (auxptr->usb_thread_alive != 0)
 			snprintf(phydev->errstr, WISPY_ERROR_MAX,
 					 "wispy24x_usb IPC receiver failed to read signal data: %s",
@@ -682,8 +684,24 @@ int wispy24x_usb_poll(wispy_phy *phydev) {
 		return WISPY_POLL_ERROR;
 	}
 
+	if (time(0) - auxptr->last_read > 3) {
+		snprintf(phydev->errstr, WISPY_ERROR_MAX,
+				 "wispy1_usb didn't see any data for more than 3 seconds, "
+				 "something has gone wrong (was the device removed?)");
+		phydev->state = WISPY_STATE_ERROR;
+		return WISPY_POLL_ERROR;
+	}
+
+	if (ret > 0)
+		auxptr->last_read = time(0);
+
 	// If we don't have a sweepbuf we're not configured, barf
 	if (auxptr->sweepbuf == NULL) {
+		return WISPY_POLL_NONE;
+	}
+
+	if (ret < sizeof(wispy24x_report)) {
+		printf("Short report\n");
 		return WISPY_POLL_NONE;
 	}
 
@@ -865,6 +883,7 @@ int wispy24x_usb_setposition(wispy_phy *phydev, int in_profile,
 		free(phydev->device_spec->supported_ranges);
 	phydev->device_spec->supported_ranges = 
 		(wispy_sample_sweep *) malloc(WISPY_SWEEP_SIZE(0));
+	memset (phydev->device_spec->supported_ranges, 0, WISPY_SWEEP_SIZE(0));
 
 	/* Set the universal values */
 	phydev->device_spec->supported_ranges[0].num_samples = WISPY24x_USB_NUM_SAMPLES;
@@ -874,7 +893,6 @@ int wispy24x_usb_setposition(wispy_phy *phydev, int in_profile,
 	phydev->device_spec->supported_ranges[0].rssi_max = WISPY24x_USB_RSSI_MAX;
 
 	/* Set the sweep records based on default or new data */
-	/*
 	if (start_khz == 0) {
 		phydev->device_spec->supported_ranges[0].start_khz = WISPY24x_USB_DEF_H_MINKHZ;
 		phydev->device_spec->supported_ranges[0].end_khz = 
@@ -887,7 +905,6 @@ int wispy24x_usb_setposition(wispy_phy *phydev, int in_profile,
 			start_khz + ((WISPY24x_USB_NUM_SAMPLES * res_hz) / 1000);
 		phydev->device_spec->supported_ranges[0].res_hz = res_hz;
 	}
-	*/
 
 	/* We're not configured, so we need to push a new configure block out next time
 	 * we sweep */
