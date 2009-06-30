@@ -272,10 +272,19 @@ static char *chan_text_5[] = {
 	"149", "153", "157", "161", "165"
 };
 
+static int chan_freqs_900[] = {
+	905000, 910000, 915000, 920000, 925000
+};
+
+static char *chan_text_900[] = {
+	"905", "910", "915", "920", "925"
+};
+
 /* Allocate all our channels in a big nasty array */
 static struct wispy_channels channel_list[] = {
 	{ "802.11b/g", 2400000, 2483000, 14, chan_freqs_24, 22000, chan_text_24 },
 	{ "802.11a", 5160000, 5832000, 24, chan_freqs_5, 20000, chan_text_5 },
+	{ "900 ISM", 902000, 927000, 5, chan_freqs_900, 5000, chan_text_900 },
 	{ NULL, 0, 0, 0, NULL, 0, NULL }
 };
 
