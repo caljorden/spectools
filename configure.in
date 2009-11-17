@@ -124,9 +124,9 @@ AC_CHECK_LIB([m], [pow], AC_DEFINE(HAVE_LIBM, 1, LibM)
 			 AC_MSG_ERROR(*** Math lib (libM) required.  Linking -lm failed.))
 
 dnl Look for LibUSB and validate its function
-AC_CHECK_HEADER([usb.h], ,AC_MSG_ERROR(*** LibUSB required.))
+AC_CHECK_HEADER([usb.h], ,AC_MSG_ERROR(*** LibUSB 0.1.x required - Libusb 1.x.x not currently supported, please install libusb-0.1.x or the compatibility layers.))
 AC_CHECK_LIB([usb], [usb_init], AC_DEFINE(HAVE_LIBUSB, 1, LibUSB) LIBS="$LIBS -lusb",
-			 AC_MSG_ERROR(*** LibUSB required.  Linking -lusb failed.))
+			 AC_MSG_ERROR(*** LibUSB 0.1.x required - libusb 1.x.x not currently supported, please install libusb-0.1.x or the compatability layers.  Linking -lusb failed.))
 
 dnl Look for curses/libcurses
 termcontrol="none";
