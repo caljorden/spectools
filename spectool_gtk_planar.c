@@ -418,11 +418,14 @@ void wispy_planar_update(GtkWidget *widget) {
 			snprintf(freqt, 6, "%4d", freq);
 
 			snprintf(avgt, 6, "%d", 
-					 wwidget->sweepcache->avg->sample_data[mkr->samp_num]);
+					 WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
+										wwidget->sweepcache->avg->sample_data[mkr->samp_num]));
 			snprintf(maxt, 6, "%d",
-					 wwidget->sweepcache->peak->sample_data[mkr->samp_num]);
+					 WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
+										wwidget->sweepcache->peak->sample_data[mkr->samp_num]));
 			snprintf(curt, 6, "%d",
-					 wwidget->sweepcache->latest->sample_data[mkr->samp_num]);
+					 WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
+										wwidget->sweepcache->latest->sample_data[mkr->samp_num]));
 
 			gtk_list_store_set(GTK_LIST_STORE(model), &iter,
 							   0, mkr->pixbuf,
@@ -838,7 +841,7 @@ static void wispy_planar_init(WispyPlanar *planar) {
 	gtk_widget_show(planar->mkr_delbutton);
 	gtk_widget_set_sensitive(planar->mkr_newbutton, 0);
 	gtk_widget_set_sensitive(planar->mkr_delbutton, 0);
-	gtk_widget_show(bhb);
+	gtk_widget_hide(bhb);
 
 	planar->mkr_treelist = gtk_list_store_new(6, GDK_TYPE_PIXBUF, G_TYPE_STRING, 
 											  G_TYPE_STRING, G_TYPE_STRING, 
