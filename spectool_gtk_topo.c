@@ -120,7 +120,7 @@ void wispy_topo_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 			cairo_pattern_create_linear(wwidget->g_start_x,
 										wwidget->g_start_y + (sh * db),
 										wwidget->g_end_x,
-										wwidget->g_start_y + (sh * db));
+										wwidget->g_start_y + (sh * db) + 1);
 
 		/* Plot each sample count across that db */
 		for (samp = 0; samp < topo->scw; samp++) {
@@ -133,6 +133,8 @@ void wispy_topo_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 			if (cpos < 0) cpos = 0;
 			if (cpos > topo->colormap_len) cpos = topo->colormap_len - 1;
 
+			// printf("debug - pos %f color %d\n", (float) (samp) / (topo->scw), cpos);
+
 			cairo_pattern_add_color_stop_rgb(pattern,
 					(float) (samp) / (topo->scw),
 					WISPY_TOPO_COLOR(topo->colormap, cpos, 0),
@@ -141,9 +143,18 @@ void wispy_topo_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 		}
 
 		cairo_set_source(cr, pattern);
-		cairo_rectangle(cr, wwidget->g_start_x + 0.5, 
+		cairo_rectangle(cr, 
+						wwidget->g_start_x + 0.5, 
 						wwidget->g_start_y + (sh * db) + 0.5,
-						wwidget->g_len_x, sh + 1);
+						(float) wwidget->g_len_x, (float) sh + 1);
+
+		/*
+		printf("debug - rectangle %f, %f .. %f, %f\n",
+						wwidget->g_start_x + 0.5, 
+						wwidget->g_start_y + (sh * db) + 0.5,
+						(float) wwidget->g_len_x, (float) sh + 1);
+						*/
+
 		cairo_fill(cr);
 
 		cairo_pattern_destroy(pattern);
@@ -250,8 +261,12 @@ static void wispy_topo_wdr_sweep(int slot, int mode,
 		}
 
 		topo->sch = abs(wwidget->min_db_draw);
+		/*
 		topo->scw = 
 			wwidget->phydev->device_spec->supported_ranges[0].num_samples;
+		*/
+		topo->scw =
+			wispy_phy_getcurprofile(wwidget->phydev)->num_samples;
 
 		topo->sample_counts = (unsigned int *)
 			malloc(sizeof(unsigned int) * topo->sch * topo->scw);
