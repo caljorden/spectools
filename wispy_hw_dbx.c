@@ -681,15 +681,11 @@ int wispydbx_usb_getpollfd(wispy_phy *phydev) {
 	return auxptr->sockpair[0];
 }
 
-extern int usb_debug;
-
 int wispydbx_usb_open(wispy_phy *phydev) {
 	int pid_status;
 	struct usb_dev_handle *wispy;
 	wispydbx_usb_aux *auxptr = (wispydbx_usb_aux *) phydev->auxptr;
 	wispydbx_startsweep startcmd;
-
-	usb_debug = 1024;
 
 	/* Make the client/server socketpair */
 	if (socketpair(PF_UNIX, SOCK_DGRAM, 0, auxptr->sockpair) < 0) {
