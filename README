@@ -1,6 +1,6 @@
 Spectrum Tools 
 --------------
-(c) 2007-09 Michael Kershaw/Dragorn <dragorn@kismetwireless.net>
+(c) 2007-10 Michael Kershaw/Dragorn <dragorn@kismetwireless.net>
 Licensed under GPL
 
 Wi-Spy and Metageek are (c)/(tm)/(foo) MetaGeek LLC
@@ -37,7 +37,7 @@ device specs, and support for open source!
 
   Requirements:
     * A Wi-Spy analyzer
-    * LibUSB
+    * LibUSB (0.1.12 or 1.0 with the compatibility layer)
     * GTK 2.0 with Cairo support
 
 * Spectool Raw
@@ -47,7 +47,7 @@ device specs, and support for open source!
 
   Requirements:
     * A Wi-Spy analyzer
-    * LibUSB
+    * LibUSB (0.1.12 or 1.0 with the compatibility layer)
  
 * Spectool Net
 
@@ -65,6 +65,9 @@ COMPILING:
   configuration output if a component is not detected.
 
   To build the tools, simply run 'make' (or 'gmake', depending on platform).
+
+  LibUSB 0.12 is required.  LibUSB 1.0 may be used, but the compatibility
+  layer must be installed.
 
 INSTALLING UDEV RULES:
   Udev is the dynamic device system for Linux.  The file "99-wispy.rules" contains
