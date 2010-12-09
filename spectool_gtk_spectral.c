@@ -226,7 +226,7 @@ void wispy_spectral_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 							  abs(wwidget->base_db_offset)));
 
 				if (cpos < 0)
-					cpos == 0;
+					cpos = 0;
 				else if (cpos >= spectral->colormap_len)
 					cpos = spectral->colormap_len - 1;
 
