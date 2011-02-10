@@ -70,8 +70,14 @@
 #define METAGEEK_WISPY24I_VID		0x1dd5
 #define METAGEEK_WISPY24I_PID		0x2400
 
+#define METAGEEK_WISPY24x_V2_VID	0x1dd5
+#define METAGEEK_WISPY24x_V2_PID	0x2410
+
 #define METAGEEK_WISPY900x_VID		0x1dd5
 #define METAGEEK_WISPY900x_PID		0x0900
+
+#define METAGEEK_WISPY950x_VID		0x1dd5
+#define METAGEEK_WISPY950x_PID		0x0950
 
 /* Default config */
 #define WISPYDBx_USB_STARTKHZ_58		5160000
@@ -149,8 +155,11 @@ typedef struct _wispydbx_usb_aux {
 
 	wispy_phy *phydev;
 
-	// Model - 0 = dbx, 1 = 24i, 2 = 900x, 3 = dbxV2
+	// Model - 0 = dbx, 1 = 24i, 2 = 900x, 3 = dbxV2, 4 = 24xv2, 5 = 950
 	int model;
+
+	// Protocol - v1 or v2
+	int protocol;
 
 	uint8_t cmd_seq : 2;
 } wispydbx_usb_aux;
@@ -388,8 +397,12 @@ int wispydbx_usb_device_scan(wispy_device_list *list) {
 				 (dev->descriptor.idProduct == METAGEEK_WISPYDBx_V2_PID)) ||
 				((dev->descriptor.idVendor == METAGEEK_WISPY24I_VID) &&
 				 (dev->descriptor.idProduct == METAGEEK_WISPY24I_PID)) ||
+				((dev->descriptor.idVendor == METAGEEK_WISPY24x_V2_PID) &&
+				 (dev->descriptor.idProduct == METAGEEK_WISPY24x_V2_PID)) ||
 				((dev->descriptor.idVendor == METAGEEK_WISPY900x_VID) &&
-				 (dev->descriptor.idProduct == METAGEEK_WISPY900x_PID))) {
+				 (dev->descriptor.idProduct == METAGEEK_WISPY900x_PID)) ||
+				((dev->descriptor.idVendor == METAGEEK_WISPY950x_VID) &&
+				 (dev->descriptor.idProduct == METAGEEK_WISPY950x_PID))) {
 
 				/* If we're full up, break */
 				if (list->num_devs == list->max_devs - 1)
@@ -410,10 +423,18 @@ int wispydbx_usb_device_scan(wispy_device_list *list) {
 					snprintf(list->list[list->num_devs].name, WISPY_PHY_NAME_MAX,
 							 "Wi-Spy %s USB %u", "900x", list->list[list->num_devs].device_id);
 					model = 2;
+				} else if (dev->descriptor.idProduct == METAGEEK_WISPY950x_PID) {
+					snprintf(list->list[list->num_devs].name, WISPY_PHY_NAME_MAX,
+							 "Wi-Spy %s USB %u", "950x", list->list[list->num_devs].device_id);
+					model = 2;
 				} else if (dev->descriptor.idProduct == METAGEEK_WISPYDBx_V2_PID) {
 					snprintf(list->list[list->num_devs].name, WISPY_PHY_NAME_MAX,
 							 "Wi-Spy %s USB %u", "DBxV2", list->list[list->num_devs].device_id);
 					model = 3;
+				} else if (dev->descriptor.idProduct == METAGEEK_WISPY24x_V2_PID) {
+					snprintf(list->list[list->num_devs].name, WISPY_PHY_NAME_MAX,
+							 "Wi-Spy %s USB %u", "24xV2", list->list[list->num_devs].device_id);
+					model = 4;
 				} else {
 					snprintf(list->list[list->num_devs].name, WISPY_PHY_NAME_MAX,
 							 "Wi-Spy %s USB %u", "DBx", list->list[list->num_devs].device_id);
@@ -495,8 +516,12 @@ int wispydbx_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 				 (dev->descriptor.idProduct == METAGEEK_WISPYDBx_V2_PID)) ||
 				((dev->descriptor.idVendor == METAGEEK_WISPY24I_VID) &&
 				 (dev->descriptor.idProduct == METAGEEK_WISPY24I_PID)) ||
+				((dev->descriptor.idVendor == METAGEEK_WISPY24x_V2_PID) &&
+				 (dev->descriptor.idProduct == METAGEEK_WISPY24x_V2_PID)) ||
 				((dev->descriptor.idVendor == METAGEEK_WISPY900x_VID) &&
-				 (dev->descriptor.idProduct == METAGEEK_WISPY900x_PID))) {
+				 (dev->descriptor.idProduct == METAGEEK_WISPY900x_PID)) ||
+				((dev->descriptor.idVendor == METAGEEK_WISPY950x_VID) &&
+				 (dev->descriptor.idProduct == METAGEEK_WISPY950x_PID))) {
 				usb_dev_chosen = dev;
 				break;
 			} else {
@@ -521,6 +546,10 @@ int wispydbx_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 		model = 2;
 	else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPYDBx_V2_PID)
 		model = 3;
+	else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPY24x_V2_PID)
+		model = 4;
+	else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPY950x_PID)
+		model = 5;
 
 	/* Build the device record with appropriate sweep capabilities */
 	phydev->device_spec = (wispy_dev_spec *) malloc(sizeof(wispy_dev_spec));
@@ -542,6 +571,14 @@ int wispydbx_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 			snprintf(phydev->device_spec->device_name, WISPY_PHY_NAME_MAX,
 					 "Wi-Spy %s USB %u", "DBxv2", cid);
 			break;
+		case 4:
+			snprintf(phydev->device_spec->device_name, WISPY_PHY_NAME_MAX,
+					 "Wi-Spy %s USB %u", "24xv2", cid);
+			break;
+		case 5:
+			snprintf(phydev->device_spec->device_name, WISPY_PHY_NAME_MAX,
+					 "Wi-Spy %s USB %u", "950x", cid);
+			break;
 		default:
 			snprintf(phydev->device_spec->device_name, WISPY_PHY_NAME_MAX,
 					 "Wi-Spy %s USB %u", "DBx", cid);
@@ -557,12 +594,15 @@ int wispydbx_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 	phydev->device_spec->device_flags = WISPY_DEV_FL_VAR_SWEEP;
 
 	if (model == 0 || model == 3) {
+		// DBX v1 and V2
 		wispydbx_add_supportedranges(&phydev->device_spec->num_sweep_ranges,
 									 &phydev->device_spec->supported_ranges);
-	} else if (model == 1) {
+	} else if (model == 1 || model == 4) {
+		// 24i and 24xv2
 		wispy24i_add_supportedranges(&phydev->device_spec->num_sweep_ranges,
 									 &phydev->device_spec->supported_ranges);
-	} else if (model == 2) {
+	} else if (model == 2 || model == 5) {
+		// 900 and 950x
 		wispy900x_add_supportedranges(&phydev->device_spec->num_sweep_ranges,
 									  &phydev->device_spec->supported_ranges);
 	}
@@ -578,6 +618,12 @@ int wispydbx_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 	phydev->auxptr = auxptr;
 
 	auxptr->model = model;
+
+	// Set the protocol version
+	if (model == 3 || model == 4)
+		auxptr->protocol = 2;
+	else
+		auxptr->protocol = 1;
 
 	auxptr->configured = 0;
 
@@ -629,7 +675,7 @@ void *wispydbx_usb_servicethread(void *aux) {
 	sock = auxptr->sockpair[1];
 
 	// Size report based on v1 or v2 protocol
-	if (auxptr->model == 3)
+	if (auxptr->protocol == 2)
 		bufsz = sizeof(wispydbx_report_v2);
 	else
 		bufsz = sizeof(wispydbx_report);
@@ -896,7 +942,7 @@ int wispydbx_usb_poll(wispy_phy *phydev) {
 	uint16_t packet_index;
 	uint8_t *data;
 
-	if (auxptr->model == 3)
+	if (auxptr->protocol == 2)
 		bufsz = sizeof(wispydbx_report_v2);
 	else
 		bufsz = sizeof(wispydbx_report);
@@ -950,7 +996,7 @@ int wispydbx_usb_poll(wispy_phy *phydev) {
 	if (auxptr->sweepbuf == NULL)
 		return WISPY_POLL_NONE;
 
-	if (auxptr->model == 3) {
+	if (auxptr->protocol == 2) {
 		report2 = (wispydbx_report_v2 *) lbuf;
 
 		packet_index = report2->packet_index;
@@ -1050,7 +1096,7 @@ int wispydbx_usb_setposition(wispy_phy *phydev, int in_profile,
 		phydev->device_spec->supported_ranges[in_profile].samples_per_point;
 
 	/* Initialize the hw sweep features */
-	if (auxptr->model == 3) {
+	if (auxptr->protocol == 2) {
 		// model 3 (dbx v2) gets the v2 settings block
 		rfset2.report_id = 0x53;
 		rfset2.command_id = 0x10;
