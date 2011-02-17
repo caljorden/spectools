@@ -193,13 +193,14 @@ typedef struct _wispydbx_rfsettings_v2 {
 	uint32_t freq_res_hz;
 	uint32_t filter_bw_hz;
 	uint16_t points_per_sweep;
-	uint8_t samples_per_point;
+
+	// Samples per point goes away and becomes dwell time
 
 	uint8_t dwell_time;
 	uint8_t dither_steps;
 	uint8_t reserved;
 } __attribute__((packed)) wispydbx_rfsettings_v2;
-#define WISPYDBx_USB_RFSETTINGS_V2_LEN		18
+#define WISPYDBx_USB_RFSETTINGS_V2_LEN		17
 
 typedef struct _wispydbx_startsweep {
 	uint8_t report_id;
@@ -1075,8 +1076,10 @@ int wispydbx_usb_setposition(wispy_phy *phydev, int in_profile,
 
 	wispydbx_rfsettings rfset;
 	wispydbx_rfsettings_v2 rfset2;
-	void *use_rfset = NULL;
+	uint8_t *use_rfset = NULL;
 	int rfset_len = 0;
+
+	int x;
 
 	wispydbx_usb_aux *auxptr = (wispydbx_usb_aux *) phydev->auxptr;
 	int use_default = 0;
@@ -1124,8 +1127,6 @@ int wispydbx_usb_setposition(wispy_phy *phydev, int in_profile,
 		rfset2.filter_bw_hz = filter_bw_hz;
 		rfset2.points_per_sweep = points_per_sweep;
 #endif
-		rfset2.samples_per_point = samples_per_point;
-
 		rfset2.dwell_time = 100;
 		rfset2.dither_steps = 1;
 		rfset2.reserved = 0;
@@ -1176,6 +1177,44 @@ int wispydbx_usb_setposition(wispy_phy *phydev, int in_profile,
 		return -1;
 	}
 	// printf("debug - finished wrting usb control\n");
+
+#if 0
+	memset(use_rfset, 0, rfset_len);
+
+	if (auxptr->protocol == 2) {
+		rfset2.report_id = 0x53;
+		rfset2.command_id = 0x11;
+		rfset2.command_flags =
+			WISPYDBx_USB_ASSEMBLE_CMDFLAGS(auxptr->cmd_seq++, 
+										   WISPYDBx_USB_RFSETTINGS_V2_LEN);
+	} else {
+		rfset.report_id = 0x53;
+		rfset.command_id = 0x11;
+		rfset.command_flags =
+			WISPYDBx_USB_ASSEMBLE_CMDFLAGS(auxptr->cmd_seq++, 
+										   WISPYDBx_USB_RFSETTINGS_LEN);
+	}
+
+	if (usb_control_msg(wispy, 
+						USB_ENDPOINT_IN + USB_TYPE_CLASS + USB_RECIP_INTERFACE,
+						HID_GET_REPORT, 
+						0x02 + (0x03 << 8),
+						0, 
+						(uint8_t *) use_rfset, rfset_len, 
+						0) == 0) {
+		fprintf(stderr, "debug - control_msg_fail: %s\n", usb_strerror());
+		snprintf(phydev->errstr, WISPY_ERROR_MAX,
+				 "wispydbx_usb setposition failed to get sweep feature set: %s",
+				 strerror(errno));
+		phydev->state = WISPY_STATE_ERROR;
+		return -1;
+	}
+
+	for (x = 0; x < rfset_len; x++) {
+		printf("%02x ", use_rfset[x]);
+	}
+	printf("\n");
+#endif
 
 	/* We're not configured, so we need to push a new configure block out next time
 	 * we sweep */
