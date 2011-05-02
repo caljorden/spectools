@@ -513,11 +513,11 @@ int wispydbx_usb_device_scan(wispy_device_list *list) {
 					wispydbx_add_supportedranges(
 							 &(list->list[list->num_devs].num_sweep_ranges),
 							 &(list->list[list->num_devs].supported_ranges));
-				else if (model == 1)
+				else if (model == 1 || model == 4)
 					wispy24i_add_supportedranges(
 							 &(list->list[list->num_devs].num_sweep_ranges),
 							 &(list->list[list->num_devs].supported_ranges));
-				else if (model == 2)
+				else if (model == 2 || model == 5)
 					wispy900x_add_supportedranges(
 							 &(list->list[list->num_devs].num_sweep_ranges),
 							 &(list->list[list->num_devs].supported_ranges));
