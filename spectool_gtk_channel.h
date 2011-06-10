@@ -1,4 +1,4 @@
-/* Wispy signal graph
+/* Spectool signal graph
  *
  * GTK widget implementation
  *
@@ -20,8 +20,8 @@
 
 #include "config.h"
 
-#ifndef __WISPY_CHANNEL_WIDGET_H__
-#define __WISPY_CHANNEL_WIDGET_H__
+#ifndef __SPECTOOL_CHANNEL_WIDGET_H__
+#define __SPECTOOL_CHANNEL_WIDGET_H__
 
 #ifdef HAVE_GTK
 
@@ -34,28 +34,28 @@
 
 G_BEGIN_DECLS
 
-#define WISPY_TYPE_CHANNEL \
-	(wispy_channel_get_type())
-#define WISPY_CHANNEL(obj) \
+#define SPECTOOL_TYPE_CHANNEL \
+	(spectool_channel_get_type())
+#define SPECTOOL_CHANNEL(obj) \
 	(G_TYPE_CHECK_INSTANCE_CAST((obj), \
-	WISPY_TYPE_CHANNEL, WispyChannel))
-#define WISPY_CHANNEL_CLASS(klass) \
+	SPECTOOL_TYPE_CHANNEL, SpectoolChannel))
+#define SPECTOOL_CHANNEL_CLASS(klass) \
 	(G_TYPE_CHECK_CLASS_CAST((klass), \
-	WISPY_TYPE_CHANNEL, WispyChannelClass))
-#define IS_WISPY_CHANNEL(obj) \
+	SPECTOOL_TYPE_CHANNEL, SpectoolChannelClass))
+#define IS_SPECTOOL_CHANNEL(obj) \
 	(G_TYPE_CHECK_INSTANCE_TYPE((obj), \
-	WISPY_TYPE_CHANNEL))
-#define IS_WISPY_CHANNEL_CLASS(klass) \
+	SPECTOOL_TYPE_CHANNEL))
+#define IS_SPECTOOL_CHANNEL_CLASS(klass) \
 	(G_TYPE_CHECK_CLASS_TYPE((class), \
-	WISPY_TYPE_CHANNEL))
+	SPECTOOL_TYPE_CHANNEL))
 
-typedef struct _WispyChannel WispyChannel;
-typedef struct _WispyChannelClass WispyChannelClass;
+typedef struct _SpectoolChannel SpectoolChannel;
+typedef struct _SpectoolChannelClass SpectoolChannelClass;
 
-#define WISPY_CHANNEL_NUM_SAMPLES		0
+#define SPECTOOL_CHANNEL_NUM_SAMPLES		0
 
-struct _WispyChannel {
-	WispyWidget parent;
+struct _SpectoolChannel {
+	SpectoolWidget parent;
 
 	/* is the mouse down during an event? */
 	int mouse_down;
@@ -68,13 +68,13 @@ struct _WispyChannel {
 	GList *update_list;
 };
 
-struct _WispyChannelClass {
-	WispyWidgetClass parent_class;
+struct _SpectoolChannelClass {
+	SpectoolWidgetClass parent_class;
 };
 
-GType wispy_channel_get_type(void);
-GtkWidget *wispy_channel_new();
-void wispy_channel_append_update(GtkWidget *widget, GtkWidget *update);
+GType spectool_channel_get_type(void);
+GtkWidget *spectool_channel_new();
+void spectool_channel_append_update(GtkWidget *widget, GtkWidget *update);
 
 G_END_DECLS
 

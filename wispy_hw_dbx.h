@@ -32,11 +32,11 @@ typedef struct _wispydbx_usb_pair {
 	char dev[64];
 } wispydbx_usb_pair;
 
-int wispydbx_usb_device_scan(wispy_device_list *list);
+int wispydbx_usb_device_scan(spectool_device_list *list);
 
 /* Wispy24x init function to build a phydev linked to a bus and device path
  * scanned */
-int wispydbx_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath);
-int wispydbx_usb_init(wispy_phy *phydev, wispy_device_rec *rec);
+int wispydbx_usb_init_path(spectool_phy *phydev, char *buspath, char *devpath);
+int wispydbx_usb_init(spectool_phy *phydev, spectool_device_rec *rec);
 
 #endif

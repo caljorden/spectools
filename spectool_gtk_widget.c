@@ -23,28 +23,28 @@
 #include "spectool_gtk_widget.h"
 
 /* control/picker pane width and initial height */
-#define WISPY_WIDGET_PADDING	5
+#define SPECTOOL_WIDGET_PADDING	5
 
-static void wispy_widget_class_init(WispyWidgetClass *class);
-static void wispy_widget_init(WispyWidget *graph);
-static void wispy_widget_destroy(GtkObject *object);
-static void wispy_widget_realize(GtkWidget *widget);
+static void spectool_widget_class_init(SpectoolWidgetClass *class);
+static void spectool_widget_init(SpectoolWidget *graph);
+static void spectool_widget_destroy(GtkObject *object);
+static void spectool_widget_realize(GtkWidget *widget);
 
-static gint wispy_widget_configure(GtkWidget *widget, 
+static gint spectool_widget_configure(GtkWidget *widget, 
 									 GdkEventConfigure *event);
-static gboolean wispy_widget_expose(GtkWidget *widget, 
+static gboolean spectool_widget_expose(GtkWidget *widget, 
 									  GdkEventExpose *event,
 									  gpointer *aux);
-static void wispy_widget_size_allocate(GtkWidget *widget,
+static void spectool_widget_size_allocate(GtkWidget *widget,
 										 GtkAllocation *allocation);
-static void wispy_widget_wdr_sweep(int slot, int mode,
-								   wispy_sample_sweep *sweep, void *aux);
+static void spectool_widget_wdr_sweep(int slot, int mode,
+								   spectool_sample_sweep *sweep, void *aux);
 
-static GType wispy_widget_child_type (GtkContainer *container);
+static GType spectool_widget_child_type (GtkContainer *container);
 
-G_DEFINE_TYPE(WispyWidget, wispy_widget, GTK_TYPE_BIN);
+G_DEFINE_TYPE(SpectoolWidget, spectool_widget, GTK_TYPE_BIN);
 
-void wispychannelopts_init(WispyChannelOpts *in) {
+void spectoolchannelopts_init(SpectoolChannelOpts *in) {
 	in->chan_h = -1;
 	in->chanhit = NULL;
 	in->chancolors = NULL;
@@ -52,11 +52,11 @@ void wispychannelopts_init(WispyChannelOpts *in) {
 	in->hi_chan = -1;
 }
 						
-static void wispy_widget_destroy(GtkObject *object) {
-	WispyWidget *wwidget = WISPY_WIDGET(object);
+static void spectool_widget_destroy(GtkObject *object) {
+	SpectoolWidget *wwidget = SPECTOOL_WIDGET(object);
 
 	wdr_del_sweepcb(wwidget->wdr, wwidget->wdr_slot,
-					wispy_widget_wdr_sweep, wwidget);
+					spectool_widget_wdr_sweep, wwidget);
 
 	if (wwidget->wdr_slot >= 0) {
 		wdr_del_ref(wwidget->wdr, wwidget->wdr_slot);
@@ -68,65 +68,65 @@ static void wispy_widget_destroy(GtkObject *object) {
 		wwidget->timeout_ref = -1;
 	}
 
-	GTK_OBJECT_CLASS(wispy_widget_parent_class)->destroy(object);
+	GTK_OBJECT_CLASS(spectool_widget_parent_class)->destroy(object);
 }
 
-GtkWidget *wispy_widget_new() {
-	WispyWidget *wwidget;
+GtkWidget *spectool_widget_new() {
+	SpectoolWidget *wwidget;
 
-	wwidget = gtk_type_new(wispy_widget_get_type());
+	wwidget = gtk_type_new(spectool_widget_get_type());
 
 	return GTK_WIDGET(wwidget);
 }
 
-static void wispy_widget_wdr_sweep(int slot, int mode,
-								   wispy_sample_sweep *sweep, void *aux) {
-	WispyWidget *wwidget;
+static void spectool_widget_wdr_sweep(int slot, int mode,
+								   spectool_sample_sweep *sweep, void *aux) {
+	SpectoolWidget *wwidget;
 
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
 
-	wwidget = WISPY_WIDGET(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
 
 	wwidget->dirty = 1;
 
 	/* Generic sweep handler to add it to our cache, all things get this */
-	if ((mode & WISPY_POLL_ERROR)) {
+	if ((mode & SPECTOOL_POLL_ERROR)) {
 		wwidget->phydev = NULL;
 		if (wwidget->sweepcache != NULL) {
-			wispy_cache_free(wwidget->sweepcache);
+			spectool_cache_free(wwidget->sweepcache);
 			wwidget->sweepcache = NULL;
 		}
 		wdr_del_ref(wwidget->wdr, wwidget->wdr_slot);
 		wwidget->wdr_slot = -1;
-	} else if ((mode & WISPY_POLL_CONFIGURED)) {
+	} else if ((mode & SPECTOOL_POLL_CONFIGURED)) {
 		if (wwidget->sweepcache != NULL) {
-			wispy_cache_free(wwidget->sweepcache);
+			spectool_cache_free(wwidget->sweepcache);
 			wwidget->sweepcache = NULL;
 		}
 
 		if (wwidget->sweep_num_samples > 0) {
 			wwidget->sweepcache = 
-				wispy_cache_alloc(wwidget->sweep_num_samples, 
+				spectool_cache_alloc(wwidget->sweep_num_samples, 
 								  wwidget->sweep_keep_avg, 
 								  wwidget->sweep_keep_peak);
 		}
 
 		wwidget->amp_offset_mdbm = 
-			wispy_phy_getcurprofile(wwidget->phydev)->amp_offset_mdbm;
+			spectool_phy_getcurprofile(wwidget->phydev)->amp_offset_mdbm;
 		wwidget->amp_res_mdbm = 
-			wispy_phy_getcurprofile(wwidget->phydev)->amp_res_mdbm;
+			spectool_phy_getcurprofile(wwidget->phydev)->amp_res_mdbm;
 
 		wwidget->base_db_offset =
-			WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
-							   wispy_phy_getcurprofile(wwidget->phydev)->rssi_max);
+			SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
+							   spectool_phy_getcurprofile(wwidget->phydev)->rssi_max);
 		wwidget->min_db_draw = 
-			WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm, 0);
+			SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm, 0);
 
 	} else if (wwidget->sweepcache != NULL && sweep != NULL) {
-		wispy_cache_append(wwidget->sweepcache, sweep);
+		spectool_cache_append(wwidget->sweepcache, sweep);
 		wwidget->min_db_draw = 
-			WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm, 
+			SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm, 
 							   sweep->min_rssi_seen > 2 ? 
 							   sweep->min_rssi_seen - 2: sweep->min_rssi_seen);
 	}
@@ -138,16 +138,16 @@ static void wispy_widget_wdr_sweep(int slot, int mode,
 
 /* Common level function for opening a device, calls the secondary level
  * function if one exists after device is linked in */
-void wispy_widget_bind_dev(GtkWidget *widget, wispy_device_registry *wdr,
+void spectool_widget_bind_dev(GtkWidget *widget, spectool_device_registry *wdr,
 						   int slot) {
-	WispyWidget *wwidget;
+	SpectoolWidget *wwidget;
 	char ltxt[256];
-	wispy_sample_sweep *ran;
+	spectool_sample_sweep *ran;
 
 	g_return_if_fail(widget != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(widget));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(widget));
 
-	wwidget = WISPY_WIDGET(widget);
+	wwidget = SPECTOOL_WIDGET(widget);
 
 	wwidget->wdr = wdr;
 
@@ -163,7 +163,7 @@ void wispy_widget_bind_dev(GtkWidget *widget, wispy_device_registry *wdr,
 
 	/* register a sweep callback */
 	wdr_add_sweepcb(wwidget->wdr, wwidget->wdr_slot,
-					wispy_widget_wdr_sweep, wwidget->sweep_num_aggregate,
+					spectool_widget_wdr_sweep, wwidget->sweep_num_aggregate,
 					wwidget);
 
 	/* Call our secondary open function */
@@ -171,16 +171,16 @@ void wispy_widget_bind_dev(GtkWidget *widget, wispy_device_registry *wdr,
 		(*(wwidget->wdr_devbind_func))(widget, wdr, slot);
 
 	/* Force calibration */
-	if (wispy_get_state(wwidget->phydev) > WISPY_STATE_CONFIGURING)
-		wispy_widget_wdr_sweep(-1, WISPY_POLL_CONFIGURED, NULL, widget);
+	if (spectool_get_state(wwidget->phydev) > SPECTOOL_STATE_CONFIGURING)
+		spectool_widget_wdr_sweep(-1, SPECTOOL_POLL_CONFIGURED, NULL, widget);
 
 	/* Toggle off the "no device" panel and give us the graph */
 	gtk_widget_show(wwidget->draw);
 }
 
-static gboolean wispy_widget_menu_button_press(gpointer *widget,
+static gboolean spectool_widget_menu_button_press(gpointer *widget,
 											   GdkEvent *event) {
-	WispyWidgetController *con = (WispyWidgetController *) widget;
+	SpectoolWidgetController *con = (SpectoolWidgetController *) widget;
 	char alt_title_text[32];
 
 	g_return_if_fail(widget != NULL);
@@ -221,19 +221,19 @@ static gboolean wispy_widget_menu_button_press(gpointer *widget,
 	return FALSE;
 }
 
-WispyWidgetController *wispy_widget_buildcontroller(GtkWidget *widget) {
+SpectoolWidgetController *spectool_widget_buildcontroller(GtkWidget *widget) {
 	GtkWidget *hbox;
-	WispyWidgetController *con = 
-		(WispyWidgetController *) malloc(sizeof(WispyWidgetController));
-	WispyWidget *wwidget;
+	SpectoolWidgetController *con = 
+		(SpectoolWidgetController *) malloc(sizeof(SpectoolWidgetController));
+	SpectoolWidget *wwidget;
 
 	GdkColor c;
 	GtkStyle *style;
 
 	g_return_if_fail(widget != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(widget));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(widget));
 
-	wwidget = WISPY_WIDGET(widget);
+	wwidget = SPECTOOL_WIDGET(widget);
 
 	con->wwidget = wwidget;
 
@@ -263,7 +263,7 @@ WispyWidgetController *wispy_widget_buildcontroller(GtkWidget *widget) {
 		gtk_container_add(GTK_CONTAINER(con->menubutton), con->arrow);
 		gtk_box_pack_end(GTK_BOX(hbox), con->menubutton, FALSE, FALSE, 0);
 		g_signal_connect_swapped(G_OBJECT(con->menubutton), "event", 
-								 G_CALLBACK(wispy_widget_menu_button_press),
+								 G_CALLBACK(spectool_widget_menu_button_press),
 								 G_OBJECT(con));
 
 		gtk_widget_show(con->arrow);
@@ -277,27 +277,27 @@ WispyWidgetController *wispy_widget_buildcontroller(GtkWidget *widget) {
 	return con;
 }
 
-void wispy_widget_link_channel(GtkWidget *widget, WispyChannelOpts *opts) {
-	WispyWidget *wwidget;
+void spectool_widget_link_channel(GtkWidget *widget, SpectoolChannelOpts *opts) {
+	SpectoolWidget *wwidget;
 
 	g_return_if_fail(widget != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(widget));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(widget));
 
-	wwidget = WISPY_WIDGET(widget);
+	wwidget = SPECTOOL_WIDGET(widget);
 
 	wwidget->chanopts = opts;
 }
 
-gint wispy_widget_mouse_click(GtkWidget *widget, GdkEventButton *button, gpointer *aux) {
-	WispyWidget *wwidget;
+gint spectool_widget_mouse_click(GtkWidget *widget, GdkEventButton *button, gpointer *aux) {
+	SpectoolWidget *wwidget;
 	GtkWidget *menu;
 	GdkEvent *event = (GdkEvent *) button;
 
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
 
-	wwidget = WISPY_WIDGET(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
 
 	/* Catch rightclick */
 	if (event->type == GDK_BUTTON_PRESS && event->button.button == 3 &&
@@ -320,7 +320,7 @@ gint wispy_widget_mouse_click(GtkWidget *widget, GdkEventButton *button, gpointe
 	return 0;
 }
 
-void wispy_widget_buildgui(WispyWidget *widget) {
+void spectool_widget_buildgui(SpectoolWidget *widget) {
 	GtkWidget *vbox, *hbox, *hbox2;
 	GtkWidget *temp;
 	/* Sigh, is this really the only way to change the colors here? */
@@ -346,7 +346,7 @@ void wispy_widget_buildgui(WispyWidget *widget) {
 	widget->draw = gtk_drawing_area_new();
 
 	gtk_signal_connect(GTK_OBJECT(widget->draw), "expose_event",
-					   (GtkSignalFunc) wispy_widget_expose, widget);
+					   (GtkSignalFunc) spectool_widget_expose, widget);
 
 	/* Set mask */
 	gtk_widget_set_events(widget->draw, GDK_EXPOSURE_MASK |
@@ -357,7 +357,7 @@ void wispy_widget_buildgui(WispyWidget *widget) {
 
 	/* Attach mouse */
 	gtk_signal_connect(GTK_OBJECT(widget->draw), "button_press_event",
-					   (GtkSignalFunc) wispy_widget_mouse_click, 
+					   (GtkSignalFunc) spectool_widget_mouse_click, 
 					   widget);
 #ifndef HAVE_HILDON
 	/* Hildon doesn't get mouseover events since it doesn't have mouse
@@ -383,7 +383,7 @@ void wispy_widget_buildgui(WispyWidget *widget) {
 
 	/* Sidebar contents */
 	vbox = gtk_vbox_new(FALSE, 0);
-	gtk_container_set_border_width(GTK_CONTAINER(vbox), WISPY_WIDGET_PADDING);
+	gtk_container_set_border_width(GTK_CONTAINER(vbox), SPECTOOL_WIDGET_PADDING);
 	gtk_box_pack_end(GTK_BOX(hbox), vbox, FALSE, FALSE, 0);
 
 	eb = gtk_event_box_new();
@@ -411,7 +411,7 @@ void wispy_widget_buildgui(WispyWidget *widget) {
 	gtk_widget_show(hbox);
 }
 
-static void wispy_widget_init(WispyWidget *widget) {
+static void spectool_widget_init(SpectoolWidget *widget) {
 	widget->chanopts = NULL;
 	widget->g_start_x = widget->g_end_x = widget->g_len_x = 0;
 	widget->g_start_y = widget->g_end_y = widget->g_len_y = 0;
@@ -422,7 +422,7 @@ static void wispy_widget_init(WispyWidget *widget) {
 	widget->sweepcache = NULL;
 	widget->wdr_slot = -1;
 
-	widget->hbox = gtk_hbox_new(FALSE, WISPY_WIDGET_PADDING);
+	widget->hbox = gtk_hbox_new(FALSE, SPECTOOL_WIDGET_PADDING);
 	gtk_widget_set_parent(widget->hbox, GTK_WIDGET(widget));
 	GTK_BIN(widget)->child = widget->hbox;
 
@@ -432,9 +432,9 @@ static void wispy_widget_init(WispyWidget *widget) {
 	widget->dirty = 0;
 }
 
-static void wispy_widget_size_allocate(GtkWidget *widget,
+static void spectool_widget_size_allocate(GtkWidget *widget,
 										 GtkAllocation *allocation) {
-	WispyWidget *wwidget = WISPY_WIDGET(widget);
+	SpectoolWidget *wwidget = SPECTOOL_WIDGET(widget);
 
 	widget->allocation = *allocation;
 
@@ -456,8 +456,8 @@ static void wispy_widget_size_allocate(GtkWidget *widget,
 	}
 }
 
-static void wispy_widget_size_request (GtkWidget *widget, GtkRequisition *requisition) {
-	WispyWidget *wwidget = WISPY_WIDGET(widget);
+static void spectool_widget_size_request (GtkWidget *widget, GtkRequisition *requisition) {
+	SpectoolWidget *wwidget = SPECTOOL_WIDGET(widget);
 
 	requisition->width = 0;
 	requisition->height = 0;
@@ -472,7 +472,7 @@ static void wispy_widget_size_request (GtkWidget *widget, GtkRequisition *requis
 	}
 }
 
-void wispy_widget_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
+void spectool_widget_draw(GtkWidget *widget, cairo_t *cr, SpectoolWidget *wwidget) {
 	cairo_text_extents_t extents;
 	int x, chpix, maxcw, start_db;
 	const double dash_onoff[] = {2, 4};
@@ -656,7 +656,7 @@ void wispy_widget_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 	cairo_restore(cr);
 }
 
-void wispy_widget_graphics_update(WispyWidget *wwidget) {
+void spectool_widget_graphics_update(SpectoolWidget *wwidget) {
 	cairo_text_extents_t extents;
 	int x, chpix, maxcw, start_db;
 	const double dash_onoff[] = {2, 4};
@@ -676,7 +676,7 @@ void wispy_widget_graphics_update(WispyWidget *wwidget) {
 
 	widget = wwidget->draw;
 
-	/* Make an offscreen surface for this wispywidget if one doesn't exist (ie, it's a 
+	/* Make an offscreen surface for this spectoolwidget if one doesn't exist (ie, it's a 
 	 * new widget, or it's been resized) */
 	if (wwidget->offscreen == NULL) {
 		wwidget->offscreen = 
@@ -693,10 +693,10 @@ void wispy_widget_graphics_update(WispyWidget *wwidget) {
 	cairo_fill(offcr);
 	cairo_stroke(offcr);
 
-	wwidget->g_len_x = widget->allocation.width - (WISPY_WIDGET_PADDING * 2);
-	wwidget->g_len_y = widget->allocation.height - (WISPY_WIDGET_PADDING * 2);
-	wwidget->g_start_x = WISPY_WIDGET_PADDING;
-	wwidget->g_start_y = WISPY_WIDGET_PADDING;
+	wwidget->g_len_x = widget->allocation.width - (SPECTOOL_WIDGET_PADDING * 2);
+	wwidget->g_len_y = widget->allocation.height - (SPECTOOL_WIDGET_PADDING * 2);
+	wwidget->g_start_x = SPECTOOL_WIDGET_PADDING;
+	wwidget->g_start_y = SPECTOOL_WIDGET_PADDING;
 	wwidget->g_end_x = wwidget->g_start_x + wwidget->g_len_x;
 	wwidget->g_end_y = wwidget->g_start_y + wwidget->g_len_y;
 
@@ -746,13 +746,13 @@ void wispy_widget_graphics_update(WispyWidget *wwidget) {
 	 * width of a sample, so we can use that for all sorts of math later */
 	wwidget->wbar = 
 		(double) (widget->allocation.width - wwidget->dbm_w -
-		 (WISPY_WIDGET_PADDING * 2) - 5) / 
+		 (SPECTOOL_WIDGET_PADDING * 2) - 5) / 
 		(double) (wwidget->sweepcache->latest->num_samples - 1);
 	wwidget->g_len_x = wwidget->wbar * 
 		(wwidget->sweepcache->latest->num_samples - 1);
-	wwidget->g_len_y = widget->allocation.height - (WISPY_WIDGET_PADDING * 2);
-	wwidget->g_start_x = WISPY_WIDGET_PADDING + wwidget->dbm_w;
-	wwidget->g_start_y = WISPY_WIDGET_PADDING;
+	wwidget->g_len_y = widget->allocation.height - (SPECTOOL_WIDGET_PADDING * 2);
+	wwidget->g_start_x = SPECTOOL_WIDGET_PADDING + wwidget->dbm_w;
+	wwidget->g_start_y = SPECTOOL_WIDGET_PADDING;
 	wwidget->g_end_x = wwidget->g_start_x + wwidget->g_len_x;
 	wwidget->g_end_y = wwidget->g_start_y + wwidget->g_len_y;
 
@@ -770,15 +770,15 @@ void wispy_widget_graphics_update(WispyWidget *wwidget) {
 }
 
 /* Expose event on the drawable widget */
-static gint wispy_widget_expose(GtkWidget *widget, GdkEventExpose *event,
+static gint spectool_widget_expose(GtkWidget *widget, GdkEventExpose *event,
 								gpointer *aux) {
 	int x, y, w, h;
-	WispyWidget *wwidget;
+	SpectoolWidget *wwidget;
 	cairo_t *cr;
 
 	g_return_if_fail(widget != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
-	wwidget = WISPY_WIDGET(aux);
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
+	wwidget = SPECTOOL_WIDGET(aux);
 
 	cr = gdk_cairo_create(widget->window);
 
@@ -798,21 +798,21 @@ static gint wispy_widget_expose(GtkWidget *widget, GdkEventExpose *event,
 
 	cairo_clip(cr);
 
-	wispy_widget_draw(widget, cr, wwidget);
+	spectool_widget_draw(widget, cr, wwidget);
 
 	cairo_destroy(cr);
 
 	return FALSE;
 }
 
-void wispy_widget_update(GtkWidget *widget) {
-	WispyWidget *wwidget;
+void spectool_widget_update(GtkWidget *widget) {
+	SpectoolWidget *wwidget;
 	GdkRectangle update_rect;
 
 	g_return_if_fail(widget != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(widget));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(widget));
 
-	wwidget = WISPY_WIDGET(widget);
+	wwidget = SPECTOOL_WIDGET(widget);
 
 	g_return_if_fail(wwidget->draw != NULL);
 
@@ -827,26 +827,26 @@ void wispy_widget_update(GtkWidget *widget) {
 		(*(wwidget->update_func))(widget);
 }
 
-gint wispy_widget_timeout(gpointer *data) {
+gint spectool_widget_timeout(gpointer *data) {
 	/* Kick the graphics update out here during a timered update */
-	if (WISPY_WIDGET(data)->dirty)
-		wispy_widget_graphics_update(WISPY_WIDGET(data));
+	if (SPECTOOL_WIDGET(data)->dirty)
+		spectool_widget_graphics_update(SPECTOOL_WIDGET(data));
 
-	WISPY_WIDGET(data)->dirty = 0;
+	SPECTOOL_WIDGET(data)->dirty = 0;
 
 	/* do a GTK level update */
-	wispy_widget_update(GTK_WIDGET(data));
+	spectool_widget_update(GTK_WIDGET(data));
 	return TRUE;
 }
 
-static GType wispy_widget_child_type(GtkContainer *container) {
+static GType spectool_widget_child_type(GtkContainer *container) {
 	if (!GTK_BIN(container)->child)
 		return GTK_TYPE_WIDGET;
 	else
 		return G_TYPE_NONE;
 }
 
-static void wispy_widget_class_init(WispyWidgetClass *class) {
+static void spectool_widget_class_init(SpectoolWidgetClass *class) {
 	GObjectClass *gobject_class;
 	GtkObjectClass *object_class;
 	GtkWidgetClass *widget_class;
@@ -857,11 +857,11 @@ static void wispy_widget_class_init(WispyWidgetClass *class) {
 	widget_class = GTK_WIDGET_CLASS(class);
 	container_class = (GtkContainerClass*) class;
 
-	object_class->destroy = wispy_widget_destroy;
-	widget_class->size_allocate = wispy_widget_size_allocate;
-	widget_class->size_request = wispy_widget_size_request;
+	object_class->destroy = spectool_widget_destroy;
+	widget_class->size_allocate = spectool_widget_size_allocate;
+	widget_class->size_request = spectool_widget_size_request;
 
-	container_class->child_type = wispy_widget_child_type;
+	container_class->child_type = spectool_widget_child_type;
 }
 
 /* Annoying that nothing else seems to include this, but we need it for
@@ -1005,13 +1005,13 @@ inline void hsv_to_rgb(double *r, double *g, double *b,
 	*g *= 255;
 }
 
-void wispy_widget_context_channels(gpointer *aux) {
-	WispyWidget *wwidget;
+void spectool_widget_context_channels(gpointer *aux) {
+	SpectoolWidget *wwidget;
 
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
 
-	wwidget = WISPY_WIDGET(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
 
 	if (wwidget->show_channels) {
 		wwidget->show_channels = 0;
@@ -1019,16 +1019,16 @@ void wispy_widget_context_channels(gpointer *aux) {
 		wwidget->show_channels = 1;
 	}
 
-	wispy_widget_update(GTK_WIDGET(wwidget));
+	spectool_widget_update(GTK_WIDGET(wwidget));
 }
 
-void wispy_widget_context_dbm(gpointer *aux) {
-	WispyWidget *wwidget;
+void spectool_widget_context_dbm(gpointer *aux) {
+	SpectoolWidget *wwidget;
 
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
 
-	wwidget = WISPY_WIDGET(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
 
 	if (wwidget->show_dbm) {
 		wwidget->show_dbm = 0;
@@ -1036,16 +1036,16 @@ void wispy_widget_context_dbm(gpointer *aux) {
 		wwidget->show_dbm = 1;
 	}
 
-	wispy_widget_update(GTK_WIDGET(wwidget));
+	spectool_widget_update(GTK_WIDGET(wwidget));
 }
 
-void wispy_widget_context_dbmlines(gpointer *aux) {
-	WispyWidget *wwidget;
+void spectool_widget_context_dbmlines(gpointer *aux) {
+	SpectoolWidget *wwidget;
 
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
 
-	wwidget = WISPY_WIDGET(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
 
 	if (wwidget->show_dbm_lines) {
 		wwidget->show_dbm_lines = 0;
@@ -1053,6 +1053,6 @@ void wispy_widget_context_dbmlines(gpointer *aux) {
 		wwidget->show_dbm_lines = 1;
 	}
 
-	wispy_widget_update(GTK_WIDGET(wwidget));
+	spectool_widget_update(GTK_WIDGET(wwidget));
 }
 

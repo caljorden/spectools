@@ -82,17 +82,17 @@ float topo_21_colormap[] = {
 };
 int topo_21_colormap_len = 50;
 
-static void wispy_topo_class_init(WispyTopoClass *class);
-static void wispy_topo_init(WispyTopo *graph);
-static void wispy_topo_destroy(GtkObject *object);
+static void spectool_topo_class_init(SpectoolTopoClass *class);
+static void spectool_topo_init(SpectoolTopo *graph);
+static void spectool_topo_destroy(GtkObject *object);
 
-static gint wispy_topo_configure(GtkWidget *widget, 
+static gint spectool_topo_configure(GtkWidget *widget, 
 									 GdkEventConfigure *event);
 
-G_DEFINE_TYPE(WispyTopo, wispy_topo, WISPY_TYPE_WIDGET);
+G_DEFINE_TYPE(SpectoolTopo, spectool_topo, SPECTOOL_TYPE_WIDGET);
 
-void wispy_topo_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
-	WispyTopo *topo;
+void spectool_topo_draw(GtkWidget *widget, cairo_t *cr, SpectoolWidget *wwidget) {
+	SpectoolTopo *topo;
 
 	float sh; 
 	double chpix;
@@ -100,9 +100,9 @@ void wispy_topo_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 
 	int samp, db;
 
-	g_return_if_fail(IS_WISPY_TOPO(wwidget));
+	g_return_if_fail(IS_SPECTOOL_TOPO(wwidget));
 
-	topo = WISPY_TOPO(wwidget);
+	topo = SPECTOOL_TOPO(wwidget);
 
 	if (topo->sch == 0 || topo->scw == 0)
 		return;
@@ -137,9 +137,9 @@ void wispy_topo_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 
 			cairo_pattern_add_color_stop_rgb(pattern,
 					(float) (samp) / (topo->scw),
-					WISPY_TOPO_COLOR(topo->colormap, cpos, 0),
-					WISPY_TOPO_COLOR(topo->colormap, cpos, 1),
-					WISPY_TOPO_COLOR(topo->colormap, cpos, 2));
+					SPECTOOL_TOPO_COLOR(topo->colormap, cpos, 0),
+					SPECTOOL_TOPO_COLOR(topo->colormap, cpos, 1),
+					SPECTOOL_TOPO_COLOR(topo->colormap, cpos, 2));
 		}
 
 		cairo_set_source(cr, pattern);
@@ -163,17 +163,17 @@ void wispy_topo_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 	cairo_restore(cr);
 }
 
-void wispy_topo_update(GtkWidget *widget) {
-	WispyWidget *wwidget;
-	WispyTopo *topo;
+void spectool_topo_update(GtkWidget *widget) {
+	SpectoolWidget *wwidget;
+	SpectoolTopo *topo;
 	char perct[6];
 	
 	g_return_if_fail(widget != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(widget));
-	g_return_if_fail(IS_WISPY_TOPO(widget));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(widget));
+	g_return_if_fail(IS_SPECTOOL_TOPO(widget));
 
-	wwidget = WISPY_WIDGET(widget);
-	topo = WISPY_TOPO(widget);
+	wwidget = SPECTOOL_WIDGET(widget);
+	topo = SPECTOOL_TOPO(widget);
 
 	if (topo->sweep_count_num > 0 && topo->sweep_peak_max > 0) {
 		snprintf(perct, 6, "%2.1f%%", 
@@ -184,7 +184,7 @@ void wispy_topo_update(GtkWidget *widget) {
 
 }
 
-static void wispy_topo_class_init(WispyTopoClass *class) {
+static void spectool_topo_class_init(SpectoolTopoClass *class) {
 	GObjectClass *gobject_class;
 	GtkObjectClass *object_class;
 	GtkWidgetClass *widget_class;
@@ -193,48 +193,48 @@ static void wispy_topo_class_init(WispyTopoClass *class) {
 	object_class = GTK_OBJECT_CLASS(class);
 	widget_class = GTK_WIDGET_CLASS(class);
 
-	object_class->destroy = wispy_topo_destroy;
+	object_class->destroy = spectool_topo_destroy;
 }
 
-static void wispy_topo_destroy(GtkObject *object) {
-	WispyTopo *topo = WISPY_TOPO(object);
-	WispyWidget *wwidget;
+static void spectool_topo_destroy(GtkObject *object) {
+	SpectoolTopo *topo = SPECTOOL_TOPO(object);
+	SpectoolWidget *wwidget;
 
-	wwidget = WISPY_WIDGET(topo);
+	wwidget = SPECTOOL_WIDGET(topo);
 
 	if (topo->sample_counts != NULL) {
 		free(topo->sample_counts);
 		topo->sample_counts = NULL;
 	}
 
-	GTK_OBJECT_CLASS(wispy_topo_parent_class)->destroy(object);
+	GTK_OBJECT_CLASS(spectool_topo_parent_class)->destroy(object);
 }
 
-static void wispy_topo_wdr_devbind(GtkWidget *widget, wispy_device_registry *wdr, 
+static void spectool_topo_wdr_devbind(GtkWidget *widget, spectool_device_registry *wdr, 
 								   int slot) {
 	/* Nothing, magic moved to sweep-configured */
 }
 
-static void wispy_topo_wdr_sweep(int slot, int mode, 
-									 wispy_sample_sweep *sweep, 
+static void spectool_topo_wdr_sweep(int slot, int mode, 
+									 spectool_sample_sweep *sweep, 
 									 void *aux) {
-	WispyTopo *topo;
-	WispyWidget *wwidget;
+	SpectoolTopo *topo;
+	SpectoolWidget *wwidget;
 	int s, x, sc, tout;
-	wispy_phy *pd;
+	spectool_phy *pd;
 
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_TOPO(aux));
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
+	g_return_if_fail(IS_SPECTOOL_TOPO(aux));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
 
-	topo = WISPY_TOPO(aux);
-	wwidget = WISPY_WIDGET(aux);
+	topo = SPECTOOL_TOPO(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
 
 	tout = wwidget->draw_timeout;
 
 	/* Update the timer */
 	if (sweep != NULL && sweep->phydev != NULL) {
-		pd = (wispy_phy *) sweep->phydev;
+		pd = (spectool_phy *) sweep->phydev;
 #ifdef HAVE_HILDON
 		tout = 500 * pd->draw_agg_suggestion;
 #else
@@ -247,15 +247,15 @@ static void wispy_topo_wdr_sweep(int slot, int mode,
 		g_source_remove(wwidget->timeout_ref);
 		wwidget->timeout_ref = 
 			g_timeout_add(wwidget->draw_timeout, 
-						  (GSourceFunc) wispy_widget_timeout, wwidget);
+						  (GSourceFunc) spectool_widget_timeout, wwidget);
 	}
 
-	if ((mode & WISPY_POLL_ERROR)) {
+	if ((mode & SPECTOOL_POLL_ERROR)) {
 		if (topo->sample_counts) {
 			free(topo->sample_counts);
 			topo->sample_counts = NULL;
 		}
-	} else if ((mode & WISPY_POLL_CONFIGURED)) {
+	} else if ((mode & SPECTOOL_POLL_CONFIGURED)) {
 		if (topo->sample_counts != NULL) {
 			free(topo->sample_counts);
 		}
@@ -266,7 +266,7 @@ static void wispy_topo_wdr_sweep(int slot, int mode,
 			wwidget->phydev->device_spec->supported_ranges[0].num_samples;
 		*/
 		topo->scw =
-			wispy_phy_getcurprofile(wwidget->phydev)->num_samples;
+			spectool_phy_getcurprofile(wwidget->phydev)->num_samples;
 
 		topo->sample_counts = (unsigned int *)
 			malloc(sizeof(unsigned int) * topo->sch * topo->scw);
@@ -278,7 +278,7 @@ static void wispy_topo_wdr_sweep(int slot, int mode,
 		/* always 1 for math */
 		topo->sweep_peak_max = 1;
 
-	} else if ((mode & WISPY_POLL_SWEEPCOMPLETE)) {
+	} else if ((mode & SPECTOOL_POLL_SWEEPCOMPLETE)) {
 		topo->sweep_count_num = 0;
 		topo->sweep_peak_max = 1;
 
@@ -294,7 +294,7 @@ static void wispy_topo_wdr_sweep(int slot, int mode,
 			/* Copy the aggregate sweep (ie our peak data) over... */
 			for (x = 0; x < topo->scw && x < 
 				 wwidget->sweepcache->sweeplist[s]->num_samples; x++) {
-				int sdb = WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, 
+				int sdb = SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, 
 											 wwidget->amp_res_mdbm, 
 								wwidget->sweepcache->sweeplist[s]->sample_data[x]);
 
@@ -321,28 +321,28 @@ static void wispy_topo_wdr_sweep(int slot, int mode,
 	}
 }
 
-void wispy_topo_context_help(gpointer *aux) {
-	Wispy_Help_Dialog("Topographic View", topo_help_txt);
+void spectool_topo_context_help(gpointer *aux) {
+	Spectool_Help_Dialog("Topographic View", topo_help_txt);
 }
 
-void wispy_topo_context_menu(GtkWidget *widget, GtkWidget *menu) {
-	WispyWidget *wwidget;
-	WispyTopo *topo;
+void spectool_topo_context_menu(GtkWidget *widget, GtkWidget *menu) {
+	SpectoolWidget *wwidget;
+	SpectoolTopo *topo;
 	GtkWidget *mi;
 
 	g_return_if_fail(widget != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(widget));
-	g_return_if_fail(IS_WISPY_TOPO(widget));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(widget));
+	g_return_if_fail(IS_SPECTOOL_TOPO(widget));
 
-	wwidget = WISPY_WIDGET(widget);
-	topo = WISPY_TOPO(widget);
+	wwidget = SPECTOOL_WIDGET(widget);
+	topo = SPECTOOL_TOPO(widget);
 
 	mi = gtk_check_menu_item_new_with_label("Show dBm scale");
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), mi);
 	gtk_widget_set_sensitive(mi, (wwidget->wdr_slot >= 0));
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(mi), wwidget->show_dbm);
 	g_signal_connect_swapped(G_OBJECT(mi), "activate",
-							 G_CALLBACK(wispy_widget_context_dbm),
+							 G_CALLBACK(spectool_widget_context_dbm),
 							 widget);
 	gtk_widget_show(mi);
 
@@ -351,36 +351,36 @@ void wispy_topo_context_menu(GtkWidget *widget, GtkWidget *menu) {
 	gtk_widget_set_sensitive(mi, (wwidget->wdr_slot >= 0));
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(mi), wwidget->show_dbm_lines);
 	g_signal_connect_swapped(G_OBJECT(mi), "activate",
-							 G_CALLBACK(wispy_widget_context_dbmlines),
+							 G_CALLBACK(spectool_widget_context_dbmlines),
 							 widget);
 	gtk_widget_show(mi);
 }
 
-GtkWidget *wispy_topo_new(void) {
-	WispyTopo *topo;
-	WispyWidget *wwidget;
+GtkWidget *spectool_topo_new(void) {
+	SpectoolTopo *topo;
+	SpectoolWidget *wwidget;
 
-	topo = gtk_type_new(wispy_topo_get_type());
+	topo = gtk_type_new(spectool_topo_get_type());
 
-	wwidget = WISPY_WIDGET(topo);
+	wwidget = SPECTOOL_WIDGET(topo);
 
 	return GTK_WIDGET(topo);
 }
 
-static gboolean wispy_topo_legend_expose(GtkWidget *widget,
+static gboolean spectool_topo_legend_expose(GtkWidget *widget,
 											 GdkEventExpose *event,
 											 gpointer *aux) {
 	cairo_t *cr;
 	int x, y, w, h, dw, dh;
-	WispyTopo *topo;
+	SpectoolTopo *topo;
 	cairo_pattern_t *pattern;
 	int cp;
 
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_TOPO(aux));
+	g_return_if_fail(IS_SPECTOOL_TOPO(aux));
 
-	topo = WISPY_TOPO(aux);
+	topo = SPECTOOL_TOPO(aux);
 
 	cr = gdk_cairo_create(widget->window);
 
@@ -407,9 +407,9 @@ static gboolean wispy_topo_legend_expose(GtkWidget *widget,
 	for (cp = 0; cp < topo->colormap_len; cp++) {
 		cairo_pattern_add_color_stop_rgb(pattern,
 										 (float) (cp) / (topo->colormap_len),
-								 WISPY_TOPO_COLOR(topo->colormap, cp, 0),
-								 WISPY_TOPO_COLOR(topo->colormap, cp, 1),
-								 WISPY_TOPO_COLOR(topo->colormap, cp, 2));
+								 SPECTOOL_TOPO_COLOR(topo->colormap, cp, 0),
+								 SPECTOOL_TOPO_COLOR(topo->colormap, cp, 1),
+								 SPECTOOL_TOPO_COLOR(topo->colormap, cp, 2));
 	}
 
 	cairo_set_source(cr, pattern);
@@ -422,15 +422,15 @@ static gboolean wispy_topo_legend_expose(GtkWidget *widget,
 	return FALSE;
 }
 
-static void wispy_topo_init(WispyTopo *topo) {
-	WispyWidget *wwidget;
+static void spectool_topo_init(SpectoolTopo *topo) {
+	SpectoolWidget *wwidget;
 
 	GtkWidget *temp;
 	GtkWidget *legendv, *legendh;
 	PangoAttrList *attr_list;
 	PangoAttribute *attr;
 
-	wwidget = WISPY_WIDGET(topo);
+	wwidget = SPECTOOL_WIDGET(topo);
 
 	wwidget->sweep_num_samples = 60;
 
@@ -451,8 +451,8 @@ static void wispy_topo_init(WispyTopo *topo) {
 	wwidget->show_dbm = 1;
 	wwidget->show_dbm_lines = 1;
 
-	wwidget->wdr_sweep_func = wispy_topo_wdr_sweep;
-	wwidget->wdr_devbind_func = wispy_topo_wdr_devbind;
+	wwidget->wdr_sweep_func = spectool_topo_wdr_sweep;
+	wwidget->wdr_devbind_func = spectool_topo_wdr_devbind;
 	wwidget->draw_mouse_move_func = NULL;
 	wwidget->draw_mouse_click_func = NULL;
 
@@ -461,20 +461,20 @@ static void wispy_topo_init(WispyTopo *topo) {
 #else
 	wwidget->draw_timeout = 4000;
 #endif
-	wwidget->draw_func = wispy_topo_draw;
+	wwidget->draw_func = spectool_topo_draw;
 
-	wwidget->menu_func = wispy_topo_context_menu;
+	wwidget->menu_func = spectool_topo_context_menu;
 
-	wwidget->update_func = wispy_topo_update;
+	wwidget->update_func = spectool_topo_update;
 
 	topo->colormap = topo_21_colormap;
 	topo->colormap_len = topo_21_colormap_len;
 
 	wwidget->timeout_ref = 
 		g_timeout_add(wwidget->draw_timeout, 
-					  (GSourceFunc) wispy_widget_timeout, wwidget);
+					  (GSourceFunc) spectool_widget_timeout, wwidget);
 
-	wispy_widget_buildgui(wwidget);
+	spectool_widget_buildgui(wwidget);
 
 	temp = gtk_frame_new("Legend");
 	gtk_box_pack_start(GTK_BOX(wwidget->vbox), temp, FALSE, FALSE, 2);
@@ -489,7 +489,7 @@ static void wispy_topo_init(WispyTopo *topo) {
 	gtk_box_pack_start(GTK_BOX(legendv), topo->legend_pix, FALSE, FALSE, 2);
 	gtk_drawing_area_size(GTK_DRAWING_AREA(topo->legend_pix), -1, 10);
 	gtk_signal_connect(GTK_OBJECT(topo->legend_pix), "expose_event",
-					   (GtkSignalFunc) wispy_topo_legend_expose, topo);
+					   (GtkSignalFunc) spectool_topo_legend_expose, topo);
 
 	attr_list = pango_attr_list_new();
 	attr = pango_attr_size_new(7.0 * PANGO_SCALE);

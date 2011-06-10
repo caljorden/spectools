@@ -36,7 +36,7 @@
 #include "spectool_container.h"
 #include "spectool_net_client.h"
 
-wispy_phy *devs = NULL;
+spectool_phy *devs = NULL;
 int ndev = 0;
 
 void sighandle(int sig) {
@@ -58,13 +58,13 @@ void Usage(void) {
 }
 
 int main(int argc, char *argv[]) {
-	wispy_device_list list;
+	spectool_device_list list;
 	int x = 0, r = 0;
-	wispy_sample_sweep *sb;
+	spectool_sample_sweep *sb;
 	spectool_server sr;
-	char errstr[WISPY_ERROR_MAX];
+	char errstr[SPECTOOL_ERROR_MAX];
 	int ret;
-	wispy_phy *pi;
+	spectool_phy *pi;
 
 	static struct option long_options[] = {
 		{ "net", required_argument, 0, 'n' },
@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
 
 	int list_only = 0;
 
-	ndev = wispy_device_scan(&list);
+	ndev = spectool_device_scan(&list);
 
 	int *rangeset = NULL;
 	if (ndev > 0) {
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
 			bcastlisten = 1;
 		} else if (o == 'n') {
 			neturl = strdup(optarg);
-			printf("debug - wispy_raw neturl %s\n", neturl);
+			printf("debug - spectool_raw neturl %s\n", neturl);
 			continue;
 		} else if (o == 'l') {
 			list_only = 1;
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
 
 	if (list_only) {
 		if (ndev <= 0) {
-			printf("No wispy devices found, bailing\n");
+			printf("No spectool devices found, bailing\n");
 			exit(1);
 		}
 
@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
 				   x, list.list[x].name, list.list[x].device_id);
 
 			for (r = 0; r < list.list[x].num_sweep_ranges; r++) {
-				wispy_sample_sweep *ran = 
+				spectool_sample_sweep *ran = 
 					&(list.list[x].supported_ranges[r]);
 
 				printf("  Range %d: \"%s\" %d%s-%d%s @ %0.2f%s, %d samples\n", r, 
@@ -169,7 +169,7 @@ int main(int argc, char *argv[]) {
 	if (bcastlisten) {
 		printf("Initializing broadcast listen...\n");
 
-		if ((bcastsock = spectool_netcli_initbroadcast(WISPY_NET_DEFAULT_PORT,
+		if ((bcastsock = spectool_netcli_initbroadcast(SPECTOOL_NET_DEFAULT_PORT,
 													   errstr)) < 0) {
 			printf("Error initializing bcast socket: %s\n", errstr);
 			exit(1);
@@ -192,41 +192,41 @@ int main(int argc, char *argv[]) {
 		printf("Connected to server, waiting for device list...\n");
 	} else if (neturl == NULL) {
 		if (ndev <= 0) {
-			printf("No wispy devices found, bailing\n");
+			printf("No spectool devices found, bailing\n");
 			exit(1);
 		}
 
-		printf("Found %d wispy devices...\n", ndev);
+		printf("Found %d spectool devices...\n", ndev);
 
 		for (x = 0; x < ndev; x++) {
 			printf("Initializing WiSPY device %s id %u\n", 
 				   list.list[x].name, list.list[x].device_id);
 
-			pi = (wispy_phy *) malloc(WISPY_PHY_SIZE);
+			pi = (spectool_phy *) malloc(SPECTOOL_PHY_SIZE);
 			pi->next = devs;
 			devs = pi;
 
-			if (wispy_device_init(pi, &(list.list[x])) < 0) {
+			if (spectool_device_init(pi, &(list.list[x])) < 0) {
 				printf("Error initializing WiSPY device %s id %u\n",
 					   list.list[x].name, list.list[x].device_id);
-				printf("%s\n", wispy_get_error(pi));
+				printf("%s\n", spectool_get_error(pi));
 				exit(1);
 			}
 
-			if (wispy_phy_open(pi) < 0) {
+			if (spectool_phy_open(pi) < 0) {
 				printf("Error opening WiSPY device %s id %u\n",
 					   list.list[x].name, list.list[x].device_id);
-				printf("%s\n", wispy_get_error(pi));
+				printf("%s\n", spectool_get_error(pi));
 				exit(1);
 			}
 
-			wispy_phy_setcalibration(pi, 1);
+			spectool_phy_setcalibration(pi, 1);
 
 			/* configure the default sweep block */
-			wispy_phy_setposition(pi, rangeset[x], 0, 0);
+			spectool_phy_setposition(pi, rangeset[x], 0, 0);
 		}
 
-		wispy_device_scan_free(&list); 
+		spectool_device_scan_free(&list); 
 	}
 
 	/* Naive poll that doesn't use select() to find pending data */
@@ -241,11 +241,11 @@ int main(int argc, char *argv[]) {
 
 		pi = devs;
 		while (pi != NULL) {
-			if (wispy_phy_getpollfd(pi) >= 0) {
-				FD_SET(wispy_phy_getpollfd(pi), &rfds);
+			if (spectool_phy_getpollfd(pi) >= 0) {
+				FD_SET(spectool_phy_getpollfd(pi), &rfds);
 
-				if (wispy_phy_getpollfd(pi) > maxfd)
-					maxfd = wispy_phy_getpollfd(pi);
+				if (spectool_phy_getpollfd(pi) > maxfd)
+					maxfd = spectool_phy_getpollfd(pi);
 			}
 
 			pi = pi->next;
@@ -276,7 +276,7 @@ int main(int argc, char *argv[]) {
 		tm.tv_usec = 10000;
 
 		if (select(maxfd + 1, &rfds, &wfds, NULL, &tm) < 0) {
-			printf("wispy_raw select() error: %s\n", strerror(errno));
+			printf("spectool_raw select() error: %s\n", strerror(errno));
 			exit(1);
 		}
 
@@ -336,35 +336,35 @@ int main(int argc, char *argv[]) {
 
 		pi = devs;
 		while (pi != NULL) {
-			wispy_phy *di = pi;
+			spectool_phy *di = pi;
 			pi = pi->next;
 
-			if (wispy_phy_getpollfd(di) < 0) {
-				if (wispy_get_state(di) == WISPY_STATE_ERROR) {
-					printf("Error polling wispy device %s\n",
-						   wispy_phy_getname(di));
-					printf("%s\n", wispy_get_error(di));
+			if (spectool_phy_getpollfd(di) < 0) {
+				if (spectool_get_state(di) == SPECTOOL_STATE_ERROR) {
+					printf("Error polling spectool device %s\n",
+						   spectool_phy_getname(di));
+					printf("%s\n", spectool_get_error(di));
 					exit(1);
 				}
 
 				continue;
 			}
 
-			if (FD_ISSET(wispy_phy_getpollfd(di), &rfds) == 0) {
+			if (FD_ISSET(spectool_phy_getpollfd(di), &rfds) == 0) {
 				continue;
 			}
 
 			do {
-				r = wispy_phy_poll(di);
+				r = spectool_phy_poll(di);
 
-				if ((r & WISPY_POLL_CONFIGURED)) {
+				if ((r & SPECTOOL_POLL_CONFIGURED)) {
 					printf("Configured device %u (%s)\n", 
-						   wispy_phy_getdevid(di), 
-						   wispy_phy_getname(di),
+						   spectool_phy_getdevid(di), 
+						   spectool_phy_getname(di),
 						   di->device_spec->num_sweep_ranges);
 
-					wispy_sample_sweep *ran = 
-						wispy_phy_getcurprofile(di);
+					spectool_sample_sweep *ran = 
+						spectool_phy_getcurprofile(di);
 
 					if (ran == NULL) {
 						printf("Error - no current profile?\n");
@@ -383,24 +383,24 @@ int main(int argc, char *argv[]) {
 						   ran->num_samples);
 
 					continue;
-				} else if ((r & WISPY_POLL_ERROR)) {
-					printf("Error polling wispy device %s\n",
-						   wispy_phy_getname(di));
-					printf("%s\n", wispy_get_error(di));
+				} else if ((r & SPECTOOL_POLL_ERROR)) {
+					printf("Error polling spectool device %s\n",
+						   spectool_phy_getname(di));
+					printf("%s\n", spectool_get_error(di));
 					exit(1);
-				} else if ((r & WISPY_POLL_SWEEPCOMPLETE)) {
-					sb = wispy_phy_getsweep(di);
+				} else if ((r & SPECTOOL_POLL_SWEEPCOMPLETE)) {
+					sb = spectool_phy_getsweep(di);
 					if (sb == NULL)
 						continue;
-					printf("%s: ", wispy_phy_getname(di));
+					printf("%s: ", spectool_phy_getname(di));
 					for (r = 0; r < sb->num_samples; r++) {
 						printf("%d ", 
-							WISPY_RSSI_CONVERT(sb->amp_offset_mdbm, sb->amp_res_mdbm,
+							SPECTOOL_RSSI_CONVERT(sb->amp_offset_mdbm, sb->amp_res_mdbm,
 											   sb->sample_data[r]));
 					}
 					printf("\n");
 				}
-			} while ((r & WISPY_POLL_ADDITIONAL));
+			} while ((r & SPECTOOL_POLL_ADDITIONAL));
 
 		}
 	}

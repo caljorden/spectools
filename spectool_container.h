@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef __WISPY_DEVCONTAINER_H__
-#define __WISPY_DEVCONTAINER_H__
+#ifndef __SPECTOOL_DEVCONTAINER_H__
+#define __SPECTOOL_DEVCONTAINER_H__
 
 #include <time.h>
 #include <sys/time.h>
@@ -32,7 +32,7 @@
  * re-use this same record as the definition of what sweep ranges a device
  * can handle.
  */
-typedef struct _wispy_sample_sweep {
+typedef struct _spectool_sample_sweep {
 	/* Name of sweep (if used as a range marker */
 	char *name;
 
@@ -70,39 +70,39 @@ typedef struct _wispy_sample_sweep {
 
 	/* Actual sample data.  This is num_samples of uint8_t RSSI */
 	uint8_t sample_data[0];
-} wispy_sample_sweep;
+} spectool_sample_sweep;
 
-#define WISPY_RSSI_CONVERT(O,R,D)	(int) ((D) * ((double) (R) / 1000.0f) + \
+#define SPECTOOL_RSSI_CONVERT(O,R,D)	(int) ((D) * ((double) (R) / 1000.0f) + \
 										   ((double) (O) / 1000.0f))
 
-#define WISPY_SWEEP_SIZE(y)		(sizeof(wispy_sample_sweep) + (y))
+#define SPECTOOL_SWEEP_SIZE(y)		(sizeof(spectool_sample_sweep) + (y))
 
 /* Sweep record for aggregating multiple sweep points */
-typedef struct _wispy_sweep_cache {
-	wispy_sample_sweep **sweeplist;
-	wispy_sample_sweep *avg;
-	wispy_sample_sweep *peak;
-	wispy_sample_sweep *latest;
+typedef struct _spectool_sweep_cache {
+	spectool_sample_sweep **sweeplist;
+	spectool_sample_sweep *avg;
+	spectool_sample_sweep *peak;
+	spectool_sample_sweep *latest;
 	int num_alloc, pos, looped;
 	int calc_peak, calc_avg;
 	uint32_t device_id;
-} wispy_sweep_cache;
+} spectool_sweep_cache;
 
 /* Allocate and manipulate sweep caches */
-wispy_sweep_cache *wispy_cache_alloc(int nsweeps, int calc_peak, int calc_avg);
-void wispy_cache_append(wispy_sweep_cache *c, wispy_sample_sweep *s);
-void wispy_cache_clear(wispy_sweep_cache *c);
-void wispy_cache_free(wispy_sweep_cache *c);
+spectool_sweep_cache *spectool_cache_alloc(int nsweeps, int calc_peak, int calc_avg);
+void spectool_cache_append(spectool_sweep_cache *c, spectool_sample_sweep *s);
+void spectool_cache_clear(spectool_sweep_cache *c);
+void spectool_cache_free(spectool_sweep_cache *c);
 
-#define WISPY_ERROR_MAX			512
-#define WISPY_PHY_NAME_MAX		256
-typedef struct _wispy_dev_spec {
+#define SPECTOOL_ERROR_MAX			512
+#define SPECTOOL_PHY_NAME_MAX		256
+typedef struct _spectool_dev_spec {
 	/* A unique ID fetched from the firmware (in the future) or extracted from the
 	 * USB bus (currently) */
 	uint32_t device_id;
 
 	/* User-specified name */
-	char device_name[WISPY_PHY_NAME_MAX];
+	char device_name[SPECTOOL_PHY_NAME_MAX];
 
 	/* Version of the physical source device.
 	 * 0x01 WiSPY generation 1 USB device
@@ -114,7 +114,7 @@ typedef struct _wispy_dev_spec {
 	/* Device flags */
 	uint8_t device_flags;
 
-	wispy_sample_sweep *default_range;
+	spectool_sample_sweep *default_range;
 
 	/* Number of sweep ranges this device supports. 
 	 * Gen1 supports 1 range.
@@ -122,22 +122,22 @@ typedef struct _wispy_dev_spec {
 	unsigned int num_sweep_ranges;
 
 	/* Supported sweep ranges */
-	wispy_sample_sweep *supported_ranges;
+	spectool_sample_sweep *supported_ranges;
 
 	int cur_profile;
-} wispy_dev_spec;
+} spectool_dev_spec;
 
 /* Device flags */
-#define WISPY_DEV_FL_NONE			0
+#define SPECTOOL_DEV_FL_NONE			0
 /* Variable sweep supported */
-#define WISPY_DEV_FL_VAR_SWEEP		1
+#define SPECTOOL_DEV_FL_VAR_SWEEP		1
 
-#define WISPY_DEV_SIZE(y)		(sizeof(wispy_dev_spec))
+#define SPECTOOL_DEV_SIZE(y)		(sizeof(spectool_dev_spec))
 
-/* Central tracking structure for wispy device data and API callbacks */
-typedef struct _wispy_phy {
+/* Central tracking structure for spectool device data and API callbacks */
+typedef struct _spectool_phy {
 	/* Phy capabilities */
-	wispy_dev_spec *device_spec;
+	spectool_dev_spec *device_spec;
 
 	/* Running state */
 	int state;
@@ -149,92 +149,92 @@ typedef struct _wispy_phy {
 	void *auxptr;
 
 	/* Function pointers to be filled in by the device init system */
-	int (*open_func)(struct _wispy_phy *);
-	int (*close_func)(struct _wispy_phy *);
-	int (*poll_func)(struct _wispy_phy *);
-	int (*pollfd_func)(struct _wispy_phy *);
-	void (*setcalib_func)(struct _wispy_phy *, int);
-	int (*setposition_func)(struct _wispy_phy *, int, int, int);
-	wispy_sample_sweep *(*getsweep_func)(struct _wispy_phy *);
+	int (*open_func)(struct _spectool_phy *);
+	int (*close_func)(struct _spectool_phy *);
+	int (*poll_func)(struct _spectool_phy *);
+	int (*pollfd_func)(struct _spectool_phy *);
+	void (*setcalib_func)(struct _spectool_phy *, int);
+	int (*setposition_func)(struct _spectool_phy *, int, int, int);
+	spectool_sample_sweep *(*getsweep_func)(struct _spectool_phy *);
 
-	char errstr[WISPY_ERROR_MAX];
+	char errstr[SPECTOOL_ERROR_MAX];
 
 	/* Linked list elements incase we need them in our implementation */
-	struct _wispy_phy *next;
+	struct _spectool_phy *next;
 
 	/* Suggested delay for drawing */
 	int draw_agg_suggestion;
-} wispy_phy;
+} spectool_phy;
 
-#define WISPY_PHY_SIZE		(sizeof(wispy_phy))
+#define SPECTOOL_PHY_SIZE		(sizeof(spectool_phy))
 
-int wispy_get_state(wispy_phy *phydev);
-char *wispy_get_error(wispy_phy *phydev);
-int wispy_phy_open(wispy_phy *phydev);
-int wispy_phy_close(wispy_phy *phydev);
-int wispy_phy_poll(wispy_phy *phydev);
-int wispy_phy_getpollfd(wispy_phy *phydev);
-wispy_sample_sweep *wispy_phy_getsweep(wispy_phy *phydev);
-void wispy_phy_setcalibration(wispy_phy *phydev, int enable);
-int wispy_phy_setposition(wispy_phy *phydev, int in_profile, 
+int spectool_get_state(spectool_phy *phydev);
+char *spectool_get_error(spectool_phy *phydev);
+int spectool_phy_open(spectool_phy *phydev);
+int spectool_phy_close(spectool_phy *phydev);
+int spectool_phy_poll(spectool_phy *phydev);
+int spectool_phy_getpollfd(spectool_phy *phydev);
+spectool_sample_sweep *spectool_phy_getsweep(spectool_phy *phydev);
+void spectool_phy_setcalibration(spectool_phy *phydev, int enable);
+int spectool_phy_setposition(spectool_phy *phydev, int in_profile, 
 						  int start_khz, int res_hz);
-char *wispy_phy_getname(wispy_phy *phydev);
-void wispy_phy_setname(wispy_phy *phydev, char *name);
-int wispy_phy_getdevid(wispy_phy *phydev);
-int wispy_phy_get_flags(wispy_phy *phydev);
-wispy_sample_sweep *wispy_phy_getcurprofile(wispy_phy *phydev);
+char *spectool_phy_getname(spectool_phy *phydev);
+void spectool_phy_setname(spectool_phy *phydev, char *name);
+int spectool_phy_getdevid(spectool_phy *phydev);
+int spectool_phy_get_flags(spectool_phy *phydev);
+spectool_sample_sweep *spectool_phy_getcurprofile(spectool_phy *phydev);
 
 /* Running states */
-#define WISPY_STATE_CLOSED			0
-#define WISPY_STATE_CONFIGURING		1
-#define WISPY_STATE_CALIBRATING		2
-#define WISPY_STATE_RUNNING			3
-#define WISPY_STATE_ERROR			255
+#define SPECTOOL_STATE_CLOSED			0
+#define SPECTOOL_STATE_CONFIGURING		1
+#define SPECTOOL_STATE_CALIBRATING		2
+#define SPECTOOL_STATE_RUNNING			3
+#define SPECTOOL_STATE_ERROR			255
 
 /* Poll return states */
 /* Failure */
-#define WISPY_POLL_ERROR			256
+#define SPECTOOL_POLL_ERROR			256
 /* No state - partial poll, etc */
-#define WISPY_POLL_NONE				1
+#define SPECTOOL_POLL_NONE				1
 /* Sweep is complete, caller should pull data */
-#define WISPY_POLL_SWEEPCOMPLETE	2
+#define SPECTOOL_POLL_SWEEPCOMPLETE	2
 /* Device has finished configuring */
-#define WISPY_POLL_CONFIGURED		4
+#define SPECTOOL_POLL_CONFIGURED		4
 /* Device has additional pending data and poll should be called again */
-#define WISPY_POLL_ADDITIONAL		8
+#define SPECTOOL_POLL_ADDITIONAL		8
 
 /* Device scan handling */
-typedef struct _wispy_device_rec {
+typedef struct _spectool_device_rec {
 	/* Name of device */
-	char name[WISPY_PHY_NAME_MAX];
+	char name[SPECTOOL_PHY_NAME_MAX];
 	/* ID of device */
 	uint32_t device_id;
 	/* Init function */
-	int (*init_func)(struct _wispy_phy *, struct _wispy_device_rec *);
+	int (*init_func)(struct _spectool_phy *, struct _spectool_device_rec *);
 	/* Hardware record pointing to the aux handling */
 	void *hw_rec;
 
 	/* Supported sweep ranges identified from hw type */
 	unsigned int num_sweep_ranges;
-	wispy_sample_sweep *supported_ranges;
-} wispy_device_rec;
+	spectool_sample_sweep *supported_ranges;
+} spectool_device_rec;
 
-typedef struct _wispy_device_list {
+typedef struct _spectool_device_list {
 	int num_devs;
 	int max_devs;
-	wispy_device_rec *list;
-} wispy_device_list;
+	spectool_device_rec *list;
+} spectool_device_list;
 
 /* Hopefully this doesn't come back and bite us, but, really, 32 SAs on one system? */
 #define MAX_SCAN_RESULT		32
 
 /* Scan for all attached devices we can handle */
-void wispy_device_scan_init(wispy_device_list *list);
-int wispy_device_scan(wispy_device_list *list);
-void wispy_device_scan_free(wispy_device_list *list);
-int wispy_device_init(wispy_phy *phydev, wispy_device_rec *rec);
+void spectool_device_scan_init(spectool_device_list *list);
+int spectool_device_scan(spectool_device_list *list);
+void spectool_device_scan_free(spectool_device_list *list);
+int spectool_device_init(spectool_phy *phydev, spectool_device_rec *rec);
 
-struct wispy_channels {
+struct spectool_channels {
 	/* Name of the channel set */
 	char *name;
 	/* Start and end khz for matching */
@@ -281,7 +281,7 @@ static char *chan_text_900[] = {
 };
 
 /* Allocate all our channels in a big nasty array */
-static struct wispy_channels channel_list[] = {
+static struct spectool_channels channel_list[] = {
 	{ "802.11b/g", 2400000, 2483000, 14, chan_freqs_24, 22000, chan_text_24 },
 	{ "802.11a", 5100000, 5832000, 24, chan_freqs_5, 20000, chan_text_5 },
 	{ "802.11a UN-II", 5100000, 5483000, 14, chan_freqs_5, 20000, chan_text_5 },

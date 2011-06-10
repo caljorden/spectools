@@ -18,8 +18,8 @@
 
 #include "config.h"
 
-#ifndef __WISPY_GTK_WIDGET_H__
-#define __WISPY_GTK_WIDGET_H__
+#ifndef __SPECTOOL_GTK_WIDGET_H__
+#define __SPECTOOL_GTK_WIDGET_H__
 
 #ifdef HAVE_GTK
 
@@ -44,37 +44,37 @@ G_BEGIN_DECLS
 /* Hex color to cairo color */
 #define HC2CC(x)				((double) ((double) (x) / (double) 0xFF))
 
-#define WISPY_TYPE_WIDGET \
-	(wispy_widget_get_type())
-#define WISPY_WIDGET(obj) \
+#define SPECTOOL_TYPE_WIDGET \
+	(spectool_widget_get_type())
+#define SPECTOOL_WIDGET(obj) \
 	(G_TYPE_CHECK_INSTANCE_CAST((obj), \
-	WISPY_TYPE_WIDGET, WispyWidget))
-#define WISPY_WIDGET_CLASS(klass) \
+	SPECTOOL_TYPE_WIDGET, SpectoolWidget))
+#define SPECTOOL_WIDGET_CLASS(klass) \
 	(G_TYPE_CHECK_CLASS_CAST((klass), \
-	WISPY_TYPE_WIDGET, WispyWidgetClass))
-#define IS_WISPY_WIDGET(obj) \
+	SPECTOOL_TYPE_WIDGET, SpectoolWidgetClass))
+#define IS_SPECTOOL_WIDGET(obj) \
 	(G_TYPE_CHECK_INSTANCE_TYPE((obj), \
-	WISPY_TYPE_WIDGET))
-#define IS_WISPY_WIDGET_CLASS(klass) \
+	SPECTOOL_TYPE_WIDGET))
+#define IS_SPECTOOL_WIDGET_CLASS(klass) \
 	(G_TYPE_CHECK_CLASS_TYPE((class), \
-	WISPY_TYPE_WIDGET))
+	SPECTOOL_TYPE_WIDGET))
 
-typedef struct _WispyWidget WispyWidget;
-typedef struct _WispyWidgetClass WispyWidgetClass;
+typedef struct _SpectoolWidget SpectoolWidget;
+typedef struct _SpectoolWidgetClass SpectoolWidgetClass;
 
-typedef struct _WispyChannelOpts {
+typedef struct _SpectoolChannelOpts {
 	int chan_h;
 	int *chanhit;
 	double *chancolors;
-	struct wispy_channels *chanset;
+	struct spectool_channels *chanset;
 
 	/* Hilighted channel, if we're showing channels */
 	int hi_chan;
-} WispyChannelOpts;
+} SpectoolChannelOpts;
 
-void wispychannelopts_init(WispyChannelOpts *in);
+void spectoolchannelopts_init(SpectoolChannelOpts *in);
 
-struct _WispyWidget {
+struct _SpectoolWidget {
 	GtkBinClass parent;
 
 	int hlines;
@@ -99,7 +99,7 @@ struct _WispyWidget {
 	GtkWidget *sweepinfo;
 	GtkWidget *draw, *menubutton;
 
-	wispy_sweep_cache *sweepcache;
+	spectool_sweep_cache *sweepcache;
 
 	/* To be set by children to control behavior */
 	int sweep_num_samples;
@@ -109,12 +109,12 @@ struct _WispyWidget {
 	int sweep_num_aggregate;
 
 	/* Callbacks used by open, sweep */
-	void (* wdr_sweep_func)(int, int, wispy_sample_sweep *, void *);
-	void (* wdr_devbind_func)(GtkWidget *, wispy_device_registry *, int);
+	void (* wdr_sweep_func)(int, int, spectool_sample_sweep *, void *);
+	void (* wdr_devbind_func)(GtkWidget *, spectool_device_registry *, int);
 
-	wispy_device_registry *wdr;
+	spectool_device_registry *wdr;
 	int wdr_slot;
-	wispy_phy *phydev;
+	spectool_phy *phydev;
 
 	/* Graph title (INCLUDING formatting) */
 	char *graph_title;
@@ -136,7 +136,7 @@ struct _WispyWidget {
 
 	/* Callbacks for drawing */
 	int draw_timeout;
-	void (* draw_func)(GtkWidget *, cairo_t *, WispyWidget *);
+	void (* draw_func)(GtkWidget *, cairo_t *, SpectoolWidget *);
 
 	/* Plot channels on the bottom */
 	int show_channels;
@@ -152,52 +152,52 @@ struct _WispyWidget {
 	/* Update function */
 	void (* update_func)(GtkWidget *);
 
-	WispyChannelOpts *chanopts;
+	SpectoolChannelOpts *chanopts;
 
 	/* Have we gotten a sweep? */
 	int dirty;
 };
 
-struct _WispyWidgetClass {
+struct _SpectoolWidgetClass {
 	GtkBinClass parent_class;
 };
 
 /* Controller item - didn't feel like making this a full widget, so you ask
  * the widget to make you a controller then embed the box prior to the widget */
-typedef struct _WispyWidgetController {
+typedef struct _SpectoolWidgetController {
 	/* Main widget */
 	GtkWidget *evbox;
 
 	GtkWidget *label, *arrow, *menubutton;
-	WispyWidget *wwidget;
-} WispyWidgetController;
+	SpectoolWidget *wwidget;
+} SpectoolWidgetController;
 
-GType wispy_widget_get_type(void);
-GtkWidget *wispy_widget_new(void);
-void wispy_widget_bind_dev(GtkWidget *widget, wispy_device_registry *wdr,
+GType spectool_widget_get_type(void);
+GtkWidget *spectool_widget_new(void);
+void spectool_widget_bind_dev(GtkWidget *widget, spectool_device_registry *wdr,
 						   int slot);
 
 /* Do the heavy lifting of actually constructing the GUI, so that child
  * classes can trigger this after setting up titles, etc.  I'm sure this
  * isn't the most elegant method, someone can send me a patch */
-void wispy_widget_buildgui(WispyWidget *widget);
+void spectool_widget_buildgui(SpectoolWidget *widget);
 
 /* Update the backing graphics */
-void wispy_widget_graphics_update(WispyWidget *wwidget);
+void spectool_widget_graphics_update(SpectoolWidget *wwidget);
 
-WispyWidgetController *wispy_widget_buildcontroller(GtkWidget *widget);
+SpectoolWidgetController *spectool_widget_buildcontroller(GtkWidget *widget);
 
-void wispy_widget_link_channel(GtkWidget *widget, WispyChannelOpts *opts);
+void spectool_widget_link_channel(GtkWidget *widget, SpectoolChannelOpts *opts);
 
 /* Timeout function */
-gint wispy_widget_timeout(gpointer *data);
+gint spectool_widget_timeout(gpointer *data);
 
 /* Calculate the channel clicked in */
-inline int wispy_widget_find_chan_pt(WispyWidget *wwidget, int x, int y);
+inline int spectool_widget_find_chan_pt(SpectoolWidget *wwidget, int x, int y);
 
-void wispy_widget_context_channels(gpointer *aux);
-void wispy_widget_context_dbm(gpointer *aux);
-void wispy_widget_context_dbmlines(gpointer *aux);
+void spectool_widget_context_channels(gpointer *aux);
+void spectool_widget_context_dbm(gpointer *aux);
+void spectool_widget_context_dbmlines(gpointer *aux);
 
 /* Color space conversion tools */
 inline void rgb_to_hsv(double r, double g, double b, 

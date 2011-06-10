@@ -21,31 +21,31 @@
 
 #include "spectool_gtk_channel.h"
 
-static void wispy_channel_class_init(WispyChannelClass *class);
-static void wispy_channel_init(WispyChannel *graph);
-static void wispy_channel_destroy(GtkObject *object);
+static void spectool_channel_class_init(SpectoolChannelClass *class);
+static void spectool_channel_init(SpectoolChannel *graph);
+static void spectool_channel_destroy(GtkObject *object);
 
-static gint wispy_channel_configure(GtkWidget *widget, 
+static gint spectool_channel_configure(GtkWidget *widget, 
 									 GdkEventConfigure *event);
-static gboolean wispy_channel_expose(GtkWidget *widget, 
+static gboolean spectool_channel_expose(GtkWidget *widget, 
 									  GdkEventExpose *event,
 									  gpointer *aux);
-static gboolean wispy_channel_button_press(GtkWidget *widget,
+static gboolean spectool_channel_button_press(GtkWidget *widget,
 											GdkEventButton *event,
 											gpointer *aux);
-static gboolean wispy_channel_mouse_move(GtkWidget *widget,
+static gboolean spectool_channel_mouse_move(GtkWidget *widget,
 										GdkEventMotion *event,
 										gpointer *aux);
 
-G_DEFINE_TYPE(WispyChannel, wispy_channel, WISPY_TYPE_WIDGET);
+G_DEFINE_TYPE(SpectoolChannel, spectool_channel, SPECTOOL_TYPE_WIDGET);
 
-inline int wispy_channel_find_chan_pt(WispyChannel *cwidget, int x, int y) {
+inline int spectool_channel_find_chan_pt(SpectoolChannel *cwidget, int x, int y) {
 	int dbm, maxy, nchannels;
-	WispyWidget *wwidget;
+	SpectoolWidget *wwidget;
 
 	g_return_if_fail(cwidget != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(cwidget));
-	wwidget = WISPY_WIDGET(cwidget);
+	g_return_if_fail(IS_SPECTOOL_WIDGET(cwidget));
+	wwidget = SPECTOOL_WIDGET(cwidget);
 
 	/* Only compute if we know a chanset and if we're inside the bounding
 	 * box */
@@ -79,15 +79,15 @@ inline int wispy_channel_find_chan_pt(WispyChannel *cwidget, int x, int y) {
 	return -1;
 }
 
-void wispy_channel_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
-	WispyChannel *channel;
+void spectool_channel_draw(GtkWidget *widget, cairo_t *cr, SpectoolWidget *wwidget) {
+	SpectoolChannel *channel;
 	cairo_text_extents_t extents;
 	int x, chpix;
 	char mtext[128];
 
 	g_return_if_fail(widget != NULL);
 
-	channel = WISPY_CHANNEL(wwidget);
+	channel = SPECTOOL_CHANNEL(wwidget);
 
 	cairo_save(cr);
 
@@ -216,20 +216,20 @@ void wispy_channel_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 	}
 }
 
-static gint wispy_channel_button_press(GtkWidget *widget, 
+static gint spectool_channel_button_press(GtkWidget *widget, 
 									  GdkEventButton *event,
 									  gpointer *aux) {
-	WispyChannel *channel;
-	WispyWidget *wwidget;
+	SpectoolChannel *channel;
+	SpectoolWidget *wwidget;
 	int ch;
 	GList *upd_iter;
 
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_CHANNEL(aux));
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
+	g_return_if_fail(IS_SPECTOOL_CHANNEL(aux));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
 
-	channel = WISPY_CHANNEL(aux);
-	wwidget = WISPY_WIDGET(aux);
+	channel = SPECTOOL_CHANNEL(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
 
 	g_return_if_fail(wwidget->chanopts != NULL);
 	g_return_if_fail(wwidget->chanopts->chanset != NULL);
@@ -239,7 +239,7 @@ static gint wispy_channel_button_press(GtkWidget *widget,
 	if (event->button != 1)
 		return TRUE;
 
-	if ((ch = wispy_channel_find_chan_pt(channel, event->x, event->y)) > -1) {
+	if ((ch = spectool_channel_find_chan_pt(channel, event->x, event->y)) > -1) {
 		/* Should never get here if we don't have a chanset, do some
 		 * checking anyhow though */
 		if (ch < 0 || ch > wwidget->chanopts->chanset->chan_num)
@@ -255,11 +255,11 @@ static gint wispy_channel_button_press(GtkWidget *widget,
 
 	}
 
-	wispy_widget_update(GTK_WIDGET(wwidget));
+	spectool_widget_update(GTK_WIDGET(wwidget));
 
 	upd_iter = channel->update_list;
 	while (upd_iter != NULL) {
-		wispy_widget_update(GTK_WIDGET(upd_iter->data));
+		spectool_widget_update(GTK_WIDGET(upd_iter->data));
 
 		upd_iter = g_list_next(upd_iter);
 		continue;
@@ -268,22 +268,22 @@ static gint wispy_channel_button_press(GtkWidget *widget,
 	return TRUE;
 }
 
-static gboolean wispy_channel_mouse_move(GtkWidget *widget,
+static gboolean spectool_channel_mouse_move(GtkWidget *widget,
 										GdkEventMotion *event,
 										gpointer *aux) {
 	int x, y;
 	int ch;
 	GdkModifierType state;
-	WispyChannel *channel;
-	WispyWidget *wwidget;
+	SpectoolChannel *channel;
+	SpectoolWidget *wwidget;
 	GList *upd_iter;
 
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_CHANNEL(aux));
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
+	g_return_if_fail(IS_SPECTOOL_CHANNEL(aux));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
 
-	channel = WISPY_CHANNEL(aux);
-	wwidget = WISPY_WIDGET(aux);
+	channel = SPECTOOL_CHANNEL(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
 
 	g_return_if_fail(wwidget->sweepcache != NULL);
 	g_return_if_fail(wwidget->sweepcache->latest != NULL);
@@ -301,14 +301,14 @@ static gboolean wispy_channel_mouse_move(GtkWidget *widget,
 	g_return_if_fail(wwidget->chanopts != NULL);
 	g_return_if_fail(wwidget->chanopts->chanset != NULL);
 
-	if ((ch = wispy_channel_find_chan_pt(channel, x, y)) >= -1) {
+	if ((ch = spectool_channel_find_chan_pt(channel, x, y)) >= -1) {
 		if (ch != wwidget->chanopts->hi_chan) {
 			wwidget->chanopts->hi_chan = ch;
-			wispy_widget_update(GTK_WIDGET(wwidget));
+			spectool_widget_update(GTK_WIDGET(wwidget));
 
 			upd_iter = channel->update_list;
 			while (upd_iter != NULL) {
-				wispy_widget_update(GTK_WIDGET(upd_iter->data));
+				spectool_widget_update(GTK_WIDGET(upd_iter->data));
 
 				upd_iter = g_list_next(upd_iter);
 				continue;
@@ -316,11 +316,11 @@ static gboolean wispy_channel_mouse_move(GtkWidget *widget,
 		}
 	} else if (wwidget->chanopts->hi_chan > -1) {
 		wwidget->chanopts->hi_chan = -1;
-		wispy_widget_update(GTK_WIDGET(wwidget));
+		spectool_widget_update(GTK_WIDGET(wwidget));
 
 		upd_iter = channel->update_list;
 		while (upd_iter != NULL) {
-			wispy_widget_update(GTK_WIDGET(upd_iter->data));
+			spectool_widget_update(GTK_WIDGET(upd_iter->data));
 
 			upd_iter = g_list_next(upd_iter);
 			continue;
@@ -330,16 +330,16 @@ static gboolean wispy_channel_mouse_move(GtkWidget *widget,
 	return TRUE;
 }
 
-void wispy_channel_update(GtkWidget *widget) {
-	WispyWidget *wwidget;
-	WispyChannel *channel;
+void spectool_channel_update(GtkWidget *widget) {
+	SpectoolWidget *wwidget;
+	SpectoolChannel *channel;
 
 	g_return_if_fail(widget != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(widget));
-	g_return_if_fail(IS_WISPY_CHANNEL(widget));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(widget));
+	g_return_if_fail(IS_SPECTOOL_CHANNEL(widget));
 
-	wwidget = WISPY_WIDGET(widget);
-	channel = WISPY_CHANNEL(widget);
+	wwidget = SPECTOOL_WIDGET(widget);
+	channel = SPECTOOL_CHANNEL(widget);
 
 	g_return_if_fail(wwidget->draw != NULL);
 
@@ -350,8 +350,8 @@ void wispy_channel_update(GtkWidget *widget) {
 		return;
 }
 
-static void wispy_channel_size_request (GtkWidget *widget, GtkRequisition *requisition) {
-	WispyWidget *wwidget = WISPY_WIDGET(widget);
+static void spectool_channel_size_request (GtkWidget *widget, GtkRequisition *requisition) {
+	SpectoolWidget *wwidget = SPECTOOL_WIDGET(widget);
 
 	requisition->width = 0;
 	requisition->height = 25;
@@ -366,7 +366,7 @@ static void wispy_channel_size_request (GtkWidget *widget, GtkRequisition *requi
 	}
 }
 
-static void wispy_channel_class_init(WispyChannelClass *class) {
+static void spectool_channel_class_init(SpectoolChannelClass *class) {
 	GObjectClass *gobject_class;
 	GtkObjectClass *object_class;
 	GtkWidgetClass *widget_class;
@@ -375,44 +375,44 @@ static void wispy_channel_class_init(WispyChannelClass *class) {
 	object_class = GTK_OBJECT_CLASS(class);
 	widget_class = GTK_WIDGET_CLASS(class);
 
-	object_class->destroy = wispy_channel_destroy;
+	object_class->destroy = spectool_channel_destroy;
 
-	widget_class->size_request = wispy_channel_size_request;
+	widget_class->size_request = spectool_channel_size_request;
 }
 
-static void wispy_channel_destroy(GtkObject *object) {
-	WispyChannel *channel = WISPY_CHANNEL(object);
-	WispyWidget *wwidget;
+static void spectool_channel_destroy(GtkObject *object) {
+	SpectoolChannel *channel = SPECTOOL_CHANNEL(object);
+	SpectoolWidget *wwidget;
 
-	wwidget = WISPY_WIDGET(channel);
+	wwidget = SPECTOOL_WIDGET(channel);
 
-	GTK_OBJECT_CLASS(wispy_channel_parent_class)->destroy(object);
+	GTK_OBJECT_CLASS(spectool_channel_parent_class)->destroy(object);
 }
 
-GtkWidget *wispy_channel_new() {
-	WispyChannel *channel;
-	WispyWidget *wwidget;
+GtkWidget *spectool_channel_new() {
+	SpectoolChannel *channel;
+	SpectoolWidget *wwidget;
 
-	channel = gtk_type_new(wispy_channel_get_type());
+	channel = gtk_type_new(spectool_channel_get_type());
 	printf("debug - channel new %p widget %p\n", channel, GTK_WIDGET(channel));
 
-	wwidget = WISPY_WIDGET(channel);
+	wwidget = SPECTOOL_WIDGET(channel);
 
 	return GTK_WIDGET(channel);
 }
 
-static void wispy_channel_wdr_sweep(int slot, int mode,
-								   wispy_sample_sweep *sweep, void *aux) {
-	WispyChannel *cwidget;
-	WispyWidget *wwidget;
+static void spectool_channel_wdr_sweep(int slot, int mode,
+								   spectool_sample_sweep *sweep, void *aux) {
+	SpectoolChannel *cwidget;
+	SpectoolWidget *wwidget;
 
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_CHANNEL(aux));
+	g_return_if_fail(IS_SPECTOOL_CHANNEL(aux));
 
-	cwidget = WISPY_CHANNEL(aux);
-	wwidget = WISPY_WIDGET(aux);
+	cwidget = SPECTOOL_CHANNEL(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
 
-	if ((mode & WISPY_POLL_CONFIGURED)) {
+	if ((mode & SPECTOOL_POLL_CONFIGURED)) {
 		if (wwidget->chanopts == NULL)
 			return;
 
@@ -426,11 +426,11 @@ static void wispy_channel_wdr_sweep(int slot, int mode,
 	}
 }
 
-static void wispy_channel_init(WispyChannel *channel) {
-	WispyWidget *wwidget;
+static void spectool_channel_init(SpectoolChannel *channel) {
+	SpectoolWidget *wwidget;
 	GtkWidget *temp;
 
-	wwidget = WISPY_WIDGET(channel);
+	wwidget = SPECTOOL_WIDGET(channel);
 
 	channel->chan_points = NULL;
 	channel->chan_h = -1;
@@ -445,29 +445,29 @@ static void wispy_channel_init(WispyChannel *channel) {
 	wwidget->graph_control_bg = "#ABBBBB";
 	wwidget->show_channels = 1;
 
-	wwidget->wdr_sweep_func = wispy_channel_wdr_sweep;
+	wwidget->wdr_sweep_func = spectool_channel_wdr_sweep;
 	wwidget->wdr_devbind_func = NULL;
-	wwidget->draw_mouse_move_func = wispy_channel_mouse_move;
-	wwidget->draw_mouse_click_func = wispy_channel_button_press;
+	wwidget->draw_mouse_move_func = spectool_channel_mouse_move;
+	wwidget->draw_mouse_click_func = spectool_channel_button_press;
 
 	wwidget->draw_timeout = 1000;
-	wwidget->draw_func = wispy_channel_draw;
-	wwidget->update_func = wispy_channel_update;
+	wwidget->draw_func = spectool_channel_draw;
+	wwidget->update_func = spectool_channel_update;
 
 	wwidget->timeout_ref =
 		g_timeout_add(wwidget->draw_timeout,
-					  (GSourceFunc) wispy_widget_timeout, wwidget);
+					  (GSourceFunc) spectool_widget_timeout, wwidget);
 
-	wispy_widget_buildgui(wwidget);
+	spectool_widget_buildgui(wwidget);
 }
 
-void wispy_channel_append_update(GtkWidget *widget, GtkWidget *update) {
-	WispyChannel *channel;
+void spectool_channel_append_update(GtkWidget *widget, GtkWidget *update) {
+	SpectoolChannel *channel;
 
 	g_return_if_fail(widget != NULL);
-	g_return_if_fail(IS_WISPY_CHANNEL(widget));
+	g_return_if_fail(IS_SPECTOOL_CHANNEL(widget));
 
-	channel = WISPY_CHANNEL(widget);
+	channel = SPECTOOL_CHANNEL(widget);
 
 	channel->update_list = g_list_append(channel->update_list, update);
 }

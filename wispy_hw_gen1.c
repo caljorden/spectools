@@ -110,7 +110,7 @@ typedef struct _wispy1_usb_aux {
 	int num_sweeps;
 
 	/* Sweep buffer we maintain and return */
-	wispy_sample_sweep *sweepbuf;
+	spectool_sample_sweep *sweepbuf;
 
 	/* Calibration modes.  We avoid a "want calibration" by setting it to true */
 	int calibrated;
@@ -121,7 +121,7 @@ typedef struct _wispy1_usb_aux {
 
 	int sockpair[2];
 
-	wispy_phy *phydev;
+	spectool_phy *phydev;
 } wispy1_usb_aux;
 
 #ifdef SYS_LINUX
@@ -154,13 +154,13 @@ int wispy_usb_detach_hack(struct usb_dev_handle *dev, int interface, char *errst
 
 	if (ioctl(gdev->fd, USBDEVFS_IOCTL, &command) < 0) {
 		if (errno == EINVAL) {
-			snprintf(errstr, WISPY_ERROR_MAX, "Your kernel doesn't appear to accept "
+			snprintf(errstr, SPECTOOL_ERROR_MAX, "Your kernel doesn't appear to accept "
 					 "the USB disconnect command.  Either your kernel is too old and "
 					 "does not support device removal, or support for removal has "
 					 "been changed by your distribution kernel maintainers.");
 		} 
 
-		snprintf(errstr, WISPY_ERROR_MAX, "Could not detatch kernel driver from "
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "Could not detatch kernel driver from "
 				 "interface %d: %s", interface, strerror(errno));
 		return -1;
 	}
@@ -170,12 +170,12 @@ int wispy_usb_detach_hack(struct usb_dev_handle *dev, int interface, char *errst
 #endif /* sys_linux */
 
 /* Prototypes */
-int wispy1_usb_open(wispy_phy *);
-int wispy1_usb_close(wispy_phy *);
-int wispy1_usb_poll(wispy_phy *);
-int wispy1_usb_getpollfd(wispy_phy *);
-void wispy1_usb_setcalibration(wispy_phy *, int);
-wispy_sample_sweep *wispy1_usb_getsweep(wispy_phy *);
+int wispy1_usb_open(spectool_phy *);
+int wispy1_usb_close(spectool_phy *);
+int wispy1_usb_poll(spectool_phy *);
+int wispy1_usb_getpollfd(spectool_phy *);
+void wispy1_usb_setcalibration(spectool_phy *, int);
+spectool_sample_sweep *wispy1_usb_getsweep(spectool_phy *);
 
 uint32_t wispy1_adler_checksum(const char *buf1, int len) {
 	int i;
@@ -198,7 +198,7 @@ uint32_t wispy1_adler_checksum(const char *buf1, int len) {
 }
 
 /* Scan for devices */
-int wispy1_usb_device_scan(wispy_device_list *list) {
+int wispy1_usb_device_scan(spectool_device_list *list) {
 	struct usb_bus *bus;
 	struct usb_device *dev;
 	int num_found = 0;
@@ -231,7 +231,7 @@ int wispy1_usb_device_scan(wispy_device_list *list) {
 				/* Fill in the list elements */
 				list->list[list->num_devs].device_id = 
 					wispy1_adler_checksum(combopath, 128);
-				snprintf(list->list[list->num_devs].name, WISPY_PHY_NAME_MAX,
+				snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
 						 "Wi-Spy v1 USB %u", list->list[list->num_devs].device_id);
 				list->list[list->num_devs].init_func = wispy1_usb_init;
 				list->list[list->num_devs].hw_rec = auxpair;
@@ -239,7 +239,7 @@ int wispy1_usb_device_scan(wispy_device_list *list) {
 				list->list[list->num_devs].num_sweep_ranges = 1;
 
 				list->list[list->num_devs].supported_ranges = 
-					(wispy_sample_sweep *) malloc(WISPY_SWEEP_SIZE(0));
+					(spectool_sample_sweep *) malloc(SPECTOOL_SWEEP_SIZE(0));
 
 				/* 2400 to 2484 MHz at 1MHz res */
 				list->list[list->num_devs].supported_ranges[0].name =
@@ -267,7 +267,7 @@ int wispy1_usb_device_scan(wispy_device_list *list) {
 	return num_found;
 }
 
-int wispy1_usb_init(wispy_phy *phydev, wispy_device_rec *rec) {
+int wispy1_usb_init(spectool_phy *phydev, spectool_device_rec *rec) {
 	wispy1_usb_pair *auxpair = (wispy1_usb_pair *) rec->hw_rec;
 
 	if (auxpair == NULL)
@@ -277,7 +277,7 @@ int wispy1_usb_init(wispy_phy *phydev, wispy_device_rec *rec) {
 }
 
 /* Initialize a specific USB device based on bus and device IDs passed by the UI */
-int wispy1_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
+int wispy1_usb_init_path(spectool_phy *phydev, char *buspath, char *devpath) {
 	struct usb_bus *bus = NULL;
 	struct usb_device *dev = NULL;
 
@@ -312,7 +312,7 @@ int wispy1_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 				usb_dev_chosen = dev;
 				break;
 			} else {
-				snprintf(phydev->errstr, WISPY_ERROR_MAX,
+				snprintf(phydev->errstr, SPECTOOL_ERROR_MAX,
 						 "WISPY1_INIT failed, specified device %u does not "
 						 "appear to be a Wi-Spy device", cid);
 				return -1;
@@ -321,23 +321,23 @@ int wispy1_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 	}
 
 	if (usb_dev_chosen == NULL) {
-		snprintf(phydev->errstr, WISPY_ERROR_MAX,
+		snprintf(phydev->errstr, SPECTOOL_ERROR_MAX,
 				 "WISPY1_INIT failed, specified device %u does not appear "
 				 "to exist.", cid);
 		return -1;
 	}
 
 	/* Build the device record with one sweep capability */
-	phydev->device_spec = (wispy_dev_spec *) malloc(sizeof(wispy_dev_spec));
+	phydev->device_spec = (spectool_dev_spec *) malloc(sizeof(spectool_dev_spec));
 
 	phydev->device_spec->device_id = cid;
 
 	/* Default the name to the buspath */
-	snprintf(phydev->device_spec->device_name, WISPY_PHY_NAME_MAX,
+	snprintf(phydev->device_spec->device_name, SPECTOOL_PHY_NAME_MAX,
 			 "Wi-Spy v1 USB %u", cid);
 
 	/* State */
-	phydev->state = WISPY_STATE_CLOSED;
+	phydev->state = SPECTOOL_STATE_CLOSED;
 
 	phydev->min_rssi_seen = -1;
 
@@ -345,7 +345,7 @@ int wispy1_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 	phydev->device_spec->num_sweep_ranges = 1;
 
 	phydev->device_spec->supported_ranges = 
-		(wispy_sample_sweep *) malloc(WISPY_SWEEP_SIZE(0));
+		(spectool_sample_sweep *) malloc(SPECTOOL_SWEEP_SIZE(0));
 
 	/* 2400 to 2484 MHz at 1MHz res */
 	phydev->device_spec->supported_ranges[0].start_khz = 2400000;
@@ -376,7 +376,7 @@ int wispy1_usb_init_path(wispy_phy *phydev, char *buspath, char *devpath) {
 	auxptr->sweepbuf_initialized = 0;
 
 	auxptr->sweepbuf = 
-		(wispy_sample_sweep *) malloc(WISPY_SWEEP_SIZE(WISPY1_USB_NUM_SAMPLES));
+		(spectool_sample_sweep *) malloc(SPECTOOL_SWEEP_SIZE(WISPY1_USB_NUM_SAMPLES));
 	auxptr->sweepbuf->start_khz = 2400000;
 	auxptr->sweepbuf->end_khz = 2484000;
 	auxptr->sweepbuf->res_hz = 1000 * 1000;
@@ -439,16 +439,16 @@ void *wispy1_usb_servicethread(void *aux) {
 		FD_SET(sock, &wset);
 
 		if (select(sock + 1, NULL, &wset, NULL, NULL) < 0) {
-			snprintf(auxptr->phydev->errstr, WISPY_ERROR_MAX,
+			snprintf(auxptr->phydev->errstr, SPECTOOL_ERROR_MAX,
 					 "wispy1_usb poller failed on IPC write select(): %s",
 					 strerror(errno));
 			auxptr->usb_thread_alive = 0;
-			auxptr->phydev->state = WISPY_STATE_ERROR;
+			auxptr->phydev->state = SPECTOOL_STATE_ERROR;
 			pthread_exit(NULL);
 		}
 
 		if (auxptr->usb_thread_alive == 0) {
-			auxptr->phydev->state = WISPY_STATE_ERROR;
+			auxptr->phydev->state = SPECTOOL_STATE_ERROR;
 			pthread_exit(NULL);
 		}
 
@@ -464,21 +464,21 @@ void *wispy1_usb_servicethread(void *aux) {
 								USB_ENDPOINT_IN + USB_TYPE_CLASS + USB_RECIP_INTERFACE,
 								HID_GET_REPORT, (HID_RT_FEATURE << 8),
 								0, buf, 8, TIMEOUT) == 0) {
-				snprintf(auxptr->phydev->errstr, WISPY_ERROR_MAX,
+				snprintf(auxptr->phydev->errstr, SPECTOOL_ERROR_MAX,
 						 "wispy1_usb poller failed on usb_control_msg "
 						 "HID cmd: %s", strerror(errno));
 				auxptr->usb_thread_alive = 0;
-				auxptr->phydev->state = WISPY_STATE_ERROR;
+				auxptr->phydev->state = SPECTOOL_STATE_ERROR;
 				pthread_exit(NULL);
 			}
 
 			if (buf[0] == (char) 0xFF) {
-				snprintf(auxptr->phydev->errstr, WISPY_ERROR_MAX,
+				snprintf(auxptr->phydev->errstr, SPECTOOL_ERROR_MAX,
 						 "wispy1_usb poller failed on usb_control_msg "
 						 "HID cmd, no data returned, was the device removed?");
 				auxptr->usb_thread_alive = 0;
 				send(sock, buf, 8, 0);
-				auxptr->phydev->state = WISPY_STATE_ERROR;
+				auxptr->phydev->state = SPECTOOL_STATE_ERROR;
 				pthread_exit(NULL);
 			}
 		}
@@ -490,11 +490,11 @@ void *wispy1_usb_servicethread(void *aux) {
 				continue;
 			}
 
-			snprintf(auxptr->phydev->errstr, WISPY_ERROR_MAX,
+			snprintf(auxptr->phydev->errstr, SPECTOOL_ERROR_MAX,
 					 "wispy1_usb poller failed on IPC send: %s",
 					 strerror(errno));
 			auxptr->usb_thread_alive = 0;
-			auxptr->phydev->state = WISPY_STATE_ERROR;
+			auxptr->phydev->state = SPECTOOL_STATE_ERROR;
 			pthread_exit(NULL);
 		}
 
@@ -507,11 +507,11 @@ void *wispy1_usb_servicethread(void *aux) {
 
 	auxptr->usb_thread_alive = 0;
 	send(sock, buf, 8, 0);
-	auxptr->phydev->state = WISPY_STATE_ERROR;
+	auxptr->phydev->state = SPECTOOL_STATE_ERROR;
 	pthread_exit(NULL);
 }
 
-int wispy1_usb_getpollfd(wispy_phy *phydev) {
+int wispy1_usb_getpollfd(spectool_phy *phydev) {
 	wispy1_usb_aux *auxptr = (wispy1_usb_aux *) phydev->auxptr;
 
 	if (auxptr->usb_thread_alive == 0) {
@@ -522,20 +522,20 @@ int wispy1_usb_getpollfd(wispy_phy *phydev) {
 	return auxptr->sockpair[0];
 }
 
-int wispy1_usb_open(wispy_phy *phydev) {
+int wispy1_usb_open(spectool_phy *phydev) {
 	int pid_status;
 	wispy1_usb_aux *auxptr = (wispy1_usb_aux *) phydev->auxptr;
 
 	/* Make the client/server socketpair */
 	if (socketpair(PF_UNIX, SOCK_DGRAM, 0, auxptr->sockpair) < 0) {
-		snprintf(phydev->errstr, WISPY_ERROR_MAX,
+		snprintf(phydev->errstr, SPECTOOL_ERROR_MAX,
 				 "wispy1_usb open failed to create socket pair for capture "
 				 "process: %s", strerror(errno));
 		return -1;
 	}
 
 	if ((auxptr->devhdl = usb_open(auxptr->dev)) == NULL) {
-		snprintf(phydev->errstr, WISPY_ERROR_MAX,
+		snprintf(phydev->errstr, SPECTOOL_ERROR_MAX,
 				 "wispy1_usb capture process failed to open USB device: %s",
 				 strerror(errno));
 		return -1;
@@ -544,12 +544,12 @@ int wispy1_usb_open(wispy_phy *phydev) {
 #ifndef SYS_DARWIN
 	/* Claim the device on non-OSX systems */
 	if (usb_claim_interface(auxptr->devhdl, 0) < 0) {
-		snprintf(phydev->errstr, WISPY_ERROR_MAX,
+		snprintf(phydev->errstr, SPECTOOL_ERROR_MAX,
 				 "could not claim interface: %s", usb_strerror());
 #ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
 		if (usb_detach_kernel_driver_np(auxptr->devhdl, 0) < 0) {
 			fprintf(stderr, "Could not detach kernel driver %s\n", usb_strerror());
-			snprintf(phydev->errstr, WISPY_ERROR_MAX,
+			snprintf(phydev->errstr, SPECTOOL_ERROR_MAX,
 					 "Could not detach device from kernel driver: %s",
 					 usb_strerror());
 #endif
@@ -561,7 +561,7 @@ int wispy1_usb_open(wispy_phy *phydev) {
 		usb_set_configuration(auxptr->devhdl, auxptr->dev->config->bConfigurationValue);
 
 		if (usb_claim_interface(auxptr->devhdl, 0) < 0) {
-			snprintf(phydev->errstr, WISPY_ERROR_MAX,
+			snprintf(phydev->errstr, SPECTOOL_ERROR_MAX,
 					 "wispy24x_usb capture process detached device but still "
 					 "can't claim interface: %s", strerror(errno));
 			return -1;
@@ -580,7 +580,7 @@ int wispy1_usb_open(wispy_phy *phydev) {
 
 	if (pthread_create(&(auxptr->usb_thread), NULL, 
 					   wispy1_usb_servicethread, auxptr) < 0) {
-		snprintf(phydev->errstr, WISPY_ERROR_MAX,
+		snprintf(phydev->errstr, SPECTOOL_ERROR_MAX,
 				 "wispy1_usb capture failed to create thread: %s",
 				 strerror(errno));
 		auxptr->usb_thread_alive = 0;
@@ -588,12 +588,12 @@ int wispy1_usb_open(wispy_phy *phydev) {
 	}
 
 	/* Update the state */
-	phydev->state = WISPY_STATE_CONFIGURING;
+	phydev->state = SPECTOOL_STATE_CONFIGURING;
 
 	return 1;
 }
 
-int wispy1_usb_close(wispy_phy *phydev) {
+int wispy1_usb_close(spectool_phy *phydev) {
 	wispy1_usb_aux *aux;
 	
 	if (phydev == NULL)
@@ -627,13 +627,13 @@ int wispy1_usb_close(wispy_phy *phydev) {
 	return 1;
 }
 
-wispy_sample_sweep *wispy1_usb_getsweep(wispy_phy *phydev) {
+spectool_sample_sweep *wispy1_usb_getsweep(spectool_phy *phydev) {
 	wispy1_usb_aux *auxptr = (wispy1_usb_aux *) phydev->auxptr;
 
 	return auxptr->sweepbuf;
 }
 
-void wispy1_usb_setcalibration(wispy_phy *phydev, int in_calib) {
+void wispy1_usb_setcalibration(spectool_phy *phydev, int in_calib) {
 	wispy1_usb_aux *auxptr = (wispy1_usb_aux *) phydev->auxptr;
 	int x;
 
@@ -641,7 +641,7 @@ void wispy1_usb_setcalibration(wispy_phy *phydev, int in_calib) {
 		free(auxptr->calibrationbuf);
 		auxptr->calibrationbuf = NULL;
 		auxptr->calibrated = 1;
-		phydev->state = WISPY_STATE_RUNNING;
+		phydev->state = SPECTOOL_STATE_RUNNING;
 	}
 
 	if (in_calib != 0 && auxptr->calibrationbuf == NULL) {
@@ -650,11 +650,11 @@ void wispy1_usb_setcalibration(wispy_phy *phydev, int in_calib) {
 		auxptr->calibrated = 0;
 		for (x = 0; x < WISPY1_USB_NUM_SAMPLES; x++)
 			auxptr->calibrationbuf[x] = 0;
-		phydev->state = WISPY_STATE_CALIBRATING;
+		phydev->state = SPECTOOL_STATE_CALIBRATING;
 	}
 }
 
-int wispy1_usb_poll(wispy_phy *phydev) {
+int wispy1_usb_poll(spectool_phy *phydev) {
 	wispy1_usb_aux *auxptr = (wispy1_usb_aux *) phydev->auxptr;
 	unsigned char lbuf[8];
 	int x, pos, calfreqs, ret;
@@ -664,31 +664,31 @@ int wispy1_usb_poll(wispy_phy *phydev) {
 	/* Push a configure event before anything else */
 	if (auxptr->configured == 0) {
 		auxptr->configured = 1;
-		return WISPY_POLL_CONFIGURED;
+		return SPECTOOL_POLL_CONFIGURED;
 	}
 
 	/* Use the error set by the polling thread */
 	if (auxptr->usb_thread_alive == 0) {
-		phydev->state = WISPY_STATE_ERROR;
+		phydev->state = SPECTOOL_STATE_ERROR;
 		wispy1_usb_close(phydev);
-		return WISPY_POLL_ERROR;
+		return SPECTOOL_POLL_ERROR;
 	}
 
 	if ((ret = recv(auxptr->sockpair[0], lbuf, 8, 0)) < 0) {
 		if (auxptr->usb_thread_alive != 0)
-			snprintf(phydev->errstr, WISPY_ERROR_MAX,
+			snprintf(phydev->errstr, SPECTOOL_ERROR_MAX,
 					 "wispy1_usb IPC receiver failed to read signal data: %s",
 					 strerror(errno));
-		phydev->state = WISPY_STATE_ERROR;
-		return WISPY_POLL_ERROR;
+		phydev->state = SPECTOOL_STATE_ERROR;
+		return SPECTOOL_POLL_ERROR;
 	}
 
 	if (time(0) - auxptr->last_read > 3) {
-		snprintf(phydev->errstr, WISPY_ERROR_MAX,
+		snprintf(phydev->errstr, SPECTOOL_ERROR_MAX,
 				 "wispy1_usb didn't see any data for more than 3 seconds, "
 				 "something has gone wrong (was the device removed?)");
-		phydev->state = WISPY_STATE_ERROR;
-		return WISPY_POLL_ERROR;
+		phydev->state = SPECTOOL_STATE_ERROR;
+		return SPECTOOL_POLL_ERROR;
 	}
 
 	if (ret > 0)
@@ -734,11 +734,11 @@ int wispy1_usb_poll(wispy_phy *phydev) {
 			free(auxptr->calibrationbuf);
 			auxptr->calibrationbuf = NULL;
 
-			phydev->state = WISPY_STATE_RUNNING;
+			phydev->state = SPECTOOL_STATE_RUNNING;
 		}
 
 	} else if (auxptr->sweepbuf_initialized == 0) {
-		return WISPY_POLL_NONE;
+		return SPECTOOL_POLL_NONE;
 	}
 
 	for (x = 0; x < 7; x++) {
@@ -774,9 +774,9 @@ int wispy1_usb_poll(wispy_phy *phydev) {
 		auxptr->calibrated) {
 		gettimeofday(&(auxptr->sweepbuf->tm_end), NULL);
 		auxptr->sweepbuf->min_rssi_seen = phydev->min_rssi_seen;
-		return WISPY_POLL_SWEEPCOMPLETE;
+		return SPECTOOL_POLL_SWEEPCOMPLETE;
 	}
 
-	return WISPY_POLL_NONE;
+	return SPECTOOL_POLL_NONE;
 }
 

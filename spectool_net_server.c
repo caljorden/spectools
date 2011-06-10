@@ -41,12 +41,12 @@
  * it would fragment all over, so this should be fine */
 #define CLI_BUF_SZ		2048
 
-typedef struct _wispy_tcpcli_dev {
+typedef struct _spectool_tcpcli_dev {
 	uint32_t device_id;
-	struct _wispy_tcpcli_dev *next;
-} wispy_tcpcli_dev;
+	struct _spectool_tcpcli_dev *next;
+} spectool_tcpcli_dev;
 
-typedef struct _wispy_tcpcli {
+typedef struct _spectool_tcpcli {
 	int fd;
 	uint8_t wbuf[CLI_BUF_SZ];
 	uint8_t rbuf[CLI_BUF_SZ];
@@ -59,17 +59,17 @@ typedef struct _wispy_tcpcli {
 	int write_fill, read_fill;
 
 	/* List of devices we send sweep data for */
-	wispy_tcpcli_dev *devlist;
+	spectool_tcpcli_dev *devlist;
 
-	struct _wispy_tcpcli *next;
-} wispy_tcpcli;
+	struct _spectool_tcpcli *next;
+} spectool_tcpcli;
 
-typedef struct _wispy_tcpserv_dev {
-	wispy_phy phydev;
+typedef struct _spectool_tcpserv_dev {
+	spectool_phy phydev;
 	int lock_fd;
-} wispy_tcpserv_dev;
+} spectool_tcpserv_dev;
 
-typedef struct _wispy_tcpserv {
+typedef struct _spectool_tcpserv {
 	short int port;
 	unsigned int maxclients;
 	struct sockaddr_in serv_addr;
@@ -77,14 +77,14 @@ typedef struct _wispy_tcpserv {
 	fd_set master_fds;
 	unsigned int maxfd;
 
-	wispy_tcpcli *cli_list;
+	spectool_tcpcli *cli_list;
 
-	wispy_tcpserv_dev *devs;
+	spectool_tcpserv_dev *devs;
 
 	int ndev;
-} wispy_tcpserv;
+} spectool_tcpserv;
 
-int wts_init(wispy_tcpserv *wts) {
+int wts_init(spectool_tcpserv *wts) {
 	wts->port = 0;
 	wts->maxclients = 0;
 	wts->bindfd = 0;
@@ -97,7 +97,7 @@ int wts_init(wispy_tcpserv *wts) {
 	return 1;
 }
 
-int wts_bind(wispy_tcpserv *wts, char *addr, short int port, char *errstr) {
+int wts_bind(spectool_tcpserv *wts, char *addr, short int port, char *errstr) {
 	int sz = 2;
 
 	/* TODO - support binding to an address */
@@ -111,23 +111,23 @@ int wts_bind(wispy_tcpserv *wts, char *addr, short int port, char *errstr) {
 	wts->serv_addr.sin_port = htons(port);
 
 	if ((wts->bindfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX, "socket() failed %s", strerror(errno));
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "socket() failed %s", strerror(errno));
 		return -1;
 	}
 
 	if (setsockopt(wts->bindfd, SOL_SOCKET, SO_REUSEADDR, &sz, sizeof(sz)) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX, "setsockopt() failed %s", strerror(errno));
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "setsockopt() failed %s", strerror(errno));
 		return -1;
 	}
 
 	if (bind(wts->bindfd, (struct sockaddr *) &(wts->serv_addr), 
 			 sizeof(wts->serv_addr)) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX, "bind() failed %s", strerror(errno));
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "bind() failed %s", strerror(errno));
 		return -1;
 	}
 
 	if (listen(wts->bindfd, 10) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX, "listen() failed %s", strerror(errno));
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "listen() failed %s", strerror(errno));
 		return -1;
 	}
 
@@ -139,9 +139,9 @@ int wts_bind(wispy_tcpserv *wts, char *addr, short int port, char *errstr) {
 	return 1;
 }
 
-int wts_cli_append(wispy_tcpcli *tci, uint8_t *data, int len, char *errstr) {
+int wts_cli_append(spectool_tcpcli *tci, uint8_t *data, int len, char *errstr) {
 	if (tci->write_fill + len >= CLI_BUF_SZ) {
-		snprintf(errstr, WISPY_ERROR_MAX, "client write buffer %d can't fit %d bytes, "
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "client write buffer %d can't fit %d bytes, "
 				 "%d of %d full", tci->fd, len, tci->write_fill, CLI_BUF_SZ);
 		return -1;
 	}
@@ -152,46 +152,46 @@ int wts_cli_append(wispy_tcpcli *tci, uint8_t *data, int len, char *errstr) {
 	return 1;
 }
 
-int wts_send_devblock(wispy_tcpserv *wts, wispy_tcpcli *tci, char *errstr) {
-	wispy_fr_header *hdr;
-	wispy_fr_device *dev;
-	wispy_fr_sweep *sweep;
+int wts_send_devblock(spectool_tcpserv *wts, spectool_tcpcli *tci, char *errstr) {
+	spectool_fr_header *hdr;
+	spectool_fr_device *dev;
+	spectool_fr_sweep *sweep;
 
 	int devblen = 0, x = 0, r = 0;
-	wispy_sample_sweep *ran;
+	spectool_sample_sweep *ran;
 
 	/* Number of devices */
-	devblen = wispy_fr_device_size() * wts->ndev;
+	devblen = spectool_fr_device_size() * wts->ndev;
 
 	/* Plus one more device for the end block */
-	devblen += wispy_fr_device_size();
+	devblen += spectool_fr_device_size();
 
 	/* Big allocation of the entire block */
-	hdr = (wispy_fr_header *) malloc(wispy_fr_header_size() +
+	hdr = (spectool_fr_header *) malloc(spectool_fr_header_size() +
 									 devblen);
 
-	hdr->sentinel = htonl(WISPY_NET_SENTINEL);
-	hdr->frame_len = htons(wispy_fr_header_size() + devblen);
-	hdr->proto_version = WISPY_NET_PROTO_VERSION;
-	hdr->block_type = WISPY_NET_FRAME_DEVICE;
+	hdr->sentinel = htonl(SPECTOOL_NET_SENTINEL);
+	hdr->frame_len = htons(spectool_fr_header_size() + devblen);
+	hdr->proto_version = SPECTOOL_NET_PROTO_VERSION;
+	hdr->block_type = SPECTOOL_NET_FRAME_DEVICE;
 	hdr->num_blocks = wts->ndev + 1; /* ndevs + lastdev */
 
 	int lastpos = 0;
 	for (x = 0; x < wts->ndev; x++) {
-		wispy_tcpserv_dev *d = &(wts->devs[x]);
+		spectool_tcpserv_dev *d = &(wts->devs[x]);
 
-		dev = (wispy_fr_device *) &(hdr->data[lastpos]);
+		dev = (spectool_fr_device *) &(hdr->data[lastpos]);
 
-		lastpos += wispy_fr_device_size();
+		lastpos += spectool_fr_device_size();
 
-		dev->frame_len = htons(wispy_fr_device_size());
+		dev->frame_len = htons(spectool_fr_device_size());
 		dev->device_version = d->phydev.device_spec->device_version;
 		dev->device_flags = htons(d->phydev.device_spec->device_flags);
 		dev->device_id = htonl(d->phydev.device_spec->device_id);
-		dev->device_name_len = strlen(wispy_phy_getname(&(d->phydev)));
-		snprintf(dev->device_name, 256, "%s", wispy_phy_getname(&(d->phydev)));
+		dev->device_name_len = strlen(spectool_phy_getname(&(d->phydev)));
+		snprintf(dev->device_name, 256, "%s", spectool_phy_getname(&(d->phydev)));
 
-		ran = wispy_phy_getcurprofile(&(d->phydev));
+		ran = spectool_phy_getcurprofile(&(d->phydev));
 
 		dev->amp_offset_mdbm = htonl(ran->amp_offset_mdbm * -1);
 		dev->amp_res_mdbm = htonl(ran->amp_res_mdbm);
@@ -221,13 +221,13 @@ int wts_send_devblock(wispy_tcpserv *wts, wispy_tcpcli *tci, char *errstr) {
 
 	/* Set the last device sentinel -- nothing needs to be set except the 
 	 * length of the block and the device type */
-	dev = (wispy_fr_device *) &(hdr->data[lastpos]);
-	memset(dev, 0, wispy_fr_device_size());
-	dev->frame_len = htons(wispy_fr_device_size());
-	dev->device_version = WISPY_NET_DEVTYPE_LASTDEV;
+	dev = (spectool_fr_device *) &(hdr->data[lastpos]);
+	memset(dev, 0, spectool_fr_device_size());
+	dev->frame_len = htons(spectool_fr_device_size());
+	dev->device_version = SPECTOOL_NET_DEVTYPE_LASTDEV;
 
 	if (wts_cli_append(tci, (uint8_t *) hdr,
-					   wispy_fr_header_size() + devblen,
+					   spectool_fr_header_size() + devblen,
 					   errstr) < 0)
 		return -1;
 
@@ -236,8 +236,8 @@ int wts_send_devblock(wispy_tcpserv *wts, wispy_tcpcli *tci, char *errstr) {
 	return 1;
 }
 
-int wts_send_devblock_all(wispy_tcpserv *wts, char *errstr) {
-	wispy_tcpcli *tci = wts->cli_list;
+int wts_send_devblock_all(spectool_tcpserv *wts, char *errstr) {
+	spectool_tcpcli *tci = wts->cli_list;
 
 	while (tci != NULL) {
 		wts_send_devblock(wts, tci, errstr);
@@ -248,9 +248,9 @@ int wts_send_devblock_all(wispy_tcpserv *wts, char *errstr) {
 	return 1;
 }
 
-wispy_tcpcli *wts_accept(wispy_tcpserv *wts, char *errstr) {
+spectool_tcpcli *wts_accept(spectool_tcpserv *wts, char *errstr) {
 	int newfd;
-	wispy_tcpcli *tc;
+	spectool_tcpcli *tc;
 	struct sockaddr_in client_addr;
 	socklen_t client_len;
 	char inhost[16];
@@ -261,11 +261,11 @@ wispy_tcpcli *wts_accept(wispy_tcpserv *wts, char *errstr) {
 
 	if ((newfd = accept(wts->bindfd, (struct sockaddr *) &client_addr,
 						&client_len)) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX, "accept() failed %s", strerror(errno));
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "accept() failed %s", strerror(errno));
 		return NULL;
 	}
 
-	tc = (wispy_tcpcli *) malloc(sizeof(wispy_tcpcli));
+	tc = (spectool_tcpcli *) malloc(sizeof(spectool_tcpcli));
 
 	tc->fd = newfd;
 
@@ -286,9 +286,9 @@ wispy_tcpcli *wts_accept(wispy_tcpserv *wts, char *errstr) {
 	return tc;
 }
 
-void wts_remove(wispy_tcpserv *wts, wispy_tcpcli *tc, char *errstr) {
-	wispy_tcpcli *tci = wts->cli_list;
-	wispy_tcpcli *tcb = NULL;
+void wts_remove(spectool_tcpserv *wts, spectool_tcpcli *tc, char *errstr) {
+	spectool_tcpcli *tci = wts->cli_list;
+	spectool_tcpcli *tcb = NULL;
 	int x, dchange;
 
 	/* Unlock any devices they controlled */
@@ -327,8 +327,8 @@ void wts_remove(wispy_tcpserv *wts, wispy_tcpcli *tc, char *errstr) {
 		wts_send_devblock_all(wts, errstr);
 }
 
-int wts_fdset(wispy_tcpserv *wts, fd_set *rfd, fd_set *wfd) {
-	wispy_tcpcli *tci = wts->cli_list;
+int wts_fdset(spectool_tcpserv *wts, fd_set *rfd, fd_set *wfd) {
+	spectool_tcpcli *tci = wts->cli_list;
 	int x;
 
 	FD_SET(wts->bindfd, rfd);
@@ -347,42 +347,42 @@ int wts_fdset(wispy_tcpserv *wts, fd_set *rfd, fd_set *wfd) {
 		tci = tci->next;
 	}
 
-	/* wispy devices */
+	/* spectool devices */
 	for (x = 0; x < wts->ndev; x++) {
-		FD_SET(wispy_phy_getpollfd(&(wts->devs[x].phydev)), rfd);
+		FD_SET(spectool_phy_getpollfd(&(wts->devs[x].phydev)), rfd);
 
-		if (wispy_phy_getpollfd(&(wts->devs[x].phydev)) > wts->maxfd)
-			wts->maxfd = wispy_phy_getpollfd(&(wts->devs[x].phydev));
+		if (spectool_phy_getpollfd(&(wts->devs[x].phydev)) > wts->maxfd)
+			wts->maxfd = spectool_phy_getpollfd(&(wts->devs[x].phydev));
 	}
 
 	return 1;
 }
 
-int wts_send_sweepblock(wispy_tcpserv *wts, 
-						wispy_phy *phydev, wispy_sample_sweep *sweep, 
+int wts_send_sweepblock(spectool_tcpserv *wts, 
+						spectool_phy *phydev, spectool_sample_sweep *sweep, 
 						char *errstr) {
-	wispy_fr_header *hdr;
-	wispy_fr_sweep *fsweep;
-	wispy_tcpcli *tci = NULL;
+	spectool_fr_header *hdr;
+	spectool_fr_sweep *fsweep;
+	spectool_tcpcli *tci = NULL;
 	int x;
 
 	/* Big allocation */
-	hdr = (wispy_fr_header *) malloc(wispy_fr_header_size() +
-									 wispy_fr_sweep_size(sweep->num_samples));
+	hdr = (spectool_fr_header *) malloc(spectool_fr_header_size() +
+									 spectool_fr_sweep_size(sweep->num_samples));
 
-	hdr->sentinel = htonl(WISPY_NET_SENTINEL);
-	hdr->frame_len = htons(wispy_fr_header_size() + 
-						   wispy_fr_sweep_size(sweep->num_samples));
-	hdr->proto_version = WISPY_NET_PROTO_VERSION;
-	hdr->block_type = WISPY_NET_FRAME_SWEEP;
+	hdr->sentinel = htonl(SPECTOOL_NET_SENTINEL);
+	hdr->frame_len = htons(spectool_fr_header_size() + 
+						   spectool_fr_sweep_size(sweep->num_samples));
+	hdr->proto_version = SPECTOOL_NET_PROTO_VERSION;
+	hdr->block_type = SPECTOOL_NET_FRAME_SWEEP;
 	hdr->num_blocks = 1;
 
-	fsweep = (wispy_fr_sweep *) hdr->data;
+	fsweep = (spectool_fr_sweep *) hdr->data;
 
-	fsweep->frame_len = htons(wispy_fr_sweep_size(sweep->num_samples));
+	fsweep->frame_len = htons(spectool_fr_sweep_size(sweep->num_samples));
 	fsweep->device_id = htonl(phydev->device_spec->device_id);
 
-	fsweep->sweep_type = WISPY_NET_SWEEPTYPE_CUR;
+	fsweep->sweep_type = SPECTOOL_NET_SWEEPTYPE_CUR;
 
 	fsweep->start_sec = htonl(sweep->tm_start.tv_sec);
 	fsweep->start_usec = htonl(sweep->tm_start.tv_usec);
@@ -394,7 +394,7 @@ int wts_send_sweepblock(wispy_tcpserv *wts,
 	while (tci != NULL) {
 		int send = 0;
 
-		wispy_tcpcli_dev *di = tci->devlist;
+		spectool_tcpcli_dev *di = tci->devlist;
 		while (di != NULL) {
 			if (di->device_id == phydev->device_spec->device_id) {
 				send = 1;
@@ -406,8 +406,8 @@ int wts_send_sweepblock(wispy_tcpserv *wts,
 
 		if (send) {
 			if (wts_cli_append(tci, (uint8_t *) hdr,
-							   wispy_fr_header_size() + 
-							   wispy_fr_sweep_size(sweep->num_samples),
+							   spectool_fr_header_size() + 
+							   spectool_fr_sweep_size(sweep->num_samples),
 							   errstr) < 0)
 				printf("Failure to send\n");
 		}
@@ -420,42 +420,42 @@ int wts_send_sweepblock(wispy_tcpserv *wts,
 	return 1;
 }
 
-int wts_handle_command(wispy_tcpserv *wts, wispy_tcpcli *tci, 
-					   wispy_fr_header *frh) {
+int wts_handle_command(spectool_tcpserv *wts, spectool_tcpcli *tci, 
+					   spectool_fr_header *frh) {
 	int blk, offt = 0;
-	wispy_fr_command *ch;
-	wispy_tcpcli_dev *di, *pdi;
+	spectool_fr_command *ch;
+	spectool_tcpcli_dev *di, *pdi;
 	int did, x;
 
-	if (ntohs(frh->frame_len) < wispy_fr_command_size(0)) {
+	if (ntohs(frh->frame_len) < spectool_fr_command_size(0)) {
 		fprintf(stderr, "Short command frame, something is wrong, "
 				"total len < cmd header\n");
 		return -1;
 	}
 
 	for (blk = 0; blk < frh->num_blocks; blk++) {
-		ch = (wispy_fr_command *) &(frh->data[offt]);
+		ch = (spectool_fr_command *) &(frh->data[offt]);
 
 		offt += ntohs(ch->frame_len);
 
-		if (ch->command_id == WISPY_NET_COMMAND_NULL) {
+		if (ch->command_id == SPECTOOL_NET_COMMAND_NULL) {
 			/* No action */
 			continue;
-		} else if (ch->command_id == WISPY_NET_COMMAND_ENABLEDEV) {
-			wispy_fr_command_enabledev *ce;
+		} else if (ch->command_id == SPECTOOL_NET_COMMAND_ENABLEDEV) {
+			spectool_fr_command_enabledev *ce;
 			int matched = 0;
 
 			/* Find the device and activate it */
 			if (ntohs(ch->frame_len) < 
-				wispy_fr_command_size(wispy_fr_command_enabledev_size())) {
+				spectool_fr_command_size(spectool_fr_command_enabledev_size())) {
 				fprintf(stderr, "Short enabledev frame, something is wrong, skipping\n");
 				continue;
 			}
 
-			ce = (wispy_fr_command_enabledev *) ch->command_data;
+			ce = (spectool_fr_command_enabledev *) ch->command_data;
 
 			for (x = 0; x < wts->ndev; x++) {
-				if (wispy_phy_getdevid(&(wts->devs[x].phydev)) == 
+				if (spectool_phy_getdevid(&(wts->devs[x].phydev)) == 
 					ntohl(ce->device_id)) {
 					matched = 1;
 					break;
@@ -484,22 +484,22 @@ int wts_handle_command(wispy_tcpserv *wts, wispy_tcpcli *tci,
 				continue;
 
 			/* Make a new record */
-			di = (wispy_tcpcli_dev *) malloc(sizeof(wispy_tcpcli_dev));
+			di = (spectool_tcpcli_dev *) malloc(sizeof(spectool_tcpcli_dev));
 			di->next = tci->devlist;
 			di->device_id = ntohl(ce->device_id);
 			tci->devlist = di;
 
-		} else if (ch->command_id == WISPY_NET_COMMAND_DISABLEDEV) {
-			wispy_fr_command_disabledev *cd;
+		} else if (ch->command_id == SPECTOOL_NET_COMMAND_DISABLEDEV) {
+			spectool_fr_command_disabledev *cd;
 			int matched = 0;
 
 			if (ntohs(ch->frame_len) < 
-				wispy_fr_command_size(wispy_fr_command_disabledev_size())) {
+				spectool_fr_command_size(spectool_fr_command_disabledev_size())) {
 				fprintf(stderr, "Short disabledev frame, something is wrong, skipping\n");
 				continue;
 			}
 
-			cd = (wispy_fr_command_disabledev *) ch->command_data;
+			cd = (spectool_fr_command_disabledev *) ch->command_data;
 
 			/* Shortcut removing the only device */
 			if (tci->devlist != NULL && tci->devlist->device_id == ntohl(cd->device_id)) {
@@ -521,9 +521,9 @@ int wts_handle_command(wispy_tcpserv *wts, wispy_tcpcli *tci,
 				}
 			}
 
-		} else if (ch->command_id == WISPY_NET_COMMAND_SETSCAN) {
+		} else if (ch->command_id == SPECTOOL_NET_COMMAND_SETSCAN) {
 			if (ntohs(ch->frame_len) < 
-				wispy_fr_command_size(wispy_fr_command_setscan_size())) {
+				spectool_fr_command_size(spectool_fr_command_setscan_size())) {
 				fprintf(stderr, "Short setscan frame, something is wrong, skipping\n");
 				continue;
 			}
@@ -533,8 +533,8 @@ int wts_handle_command(wispy_tcpserv *wts, wispy_tcpcli *tci,
 	return 1;
 }
 
-int wts_poll(wispy_tcpserv *wts, fd_set *rfd, fd_set *wfd, char *errstr) {
-	wispy_tcpcli *tci = NULL, *tcb = NULL;
+int wts_poll(spectool_tcpserv *wts, fd_set *rfd, fd_set *wfd, char *errstr) {
+	spectool_tcpcli *tci = NULL, *tcb = NULL;
 	int x = 0, r = 0;
 
 	tci = wts->cli_list;
@@ -547,7 +547,7 @@ int wts_poll(wispy_tcpserv *wts, fd_set *rfd, fd_set *wfd, char *errstr) {
 
 			if ((res = write(tcb->fd, &(tcb->wbuf[tcb->write_pos]),
 							 tcb->write_fill - tcb->write_pos)) < 0) {
-				snprintf(errstr, WISPY_ERROR_MAX, "write() failed on fd %d %s",
+				snprintf(errstr, SPECTOOL_ERROR_MAX, "write() failed on fd %d %s",
 						 tcb->fd, strerror(errno));
 				wts_remove(wts, tcb, errstr);
 				return 0;
@@ -570,7 +570,7 @@ int wts_poll(wispy_tcpserv *wts, fd_set *rfd, fd_set *wfd, char *errstr) {
 				if (errno == EAGAIN)
 					continue;
 
-				snprintf(errstr, WISPY_ERROR_MAX, 
+				snprintf(errstr, SPECTOOL_ERROR_MAX, 
 						 "fd %d read error %s\n", tcb->fd, strerror(errno));
 
 				wts_remove(wts, tcb, errstr);
@@ -581,10 +581,10 @@ int wts_poll(wispy_tcpserv *wts, fd_set *rfd, fd_set *wfd, char *errstr) {
 
 			/* Process incoming packets */
 			while (tcb->read_pos < tcb->read_fill &&
-				   tcb->read_fill - tcb->read_pos > wispy_fr_header_size()) {
-				wispy_fr_header *frh = (wispy_fr_header *) &(tcb->rbuf[tcb->read_pos]);
+				   tcb->read_fill - tcb->read_pos > spectool_fr_header_size()) {
+				spectool_fr_header *frh = (spectool_fr_header *) &(tcb->rbuf[tcb->read_pos]);
 
-				if (ntohl(frh->sentinel) != WISPY_NET_SENTINEL) {
+				if (ntohl(frh->sentinel) != SPECTOOL_NET_SENTINEL) {
 					tcb->read_fill = 0;
 					tcb->read_pos = 0;
 					/* Yes, I know, 'goto'.  Go away. */
@@ -599,7 +599,7 @@ int wts_poll(wispy_tcpserv *wts, fd_set *rfd, fd_set *wfd, char *errstr) {
 				/* advance to the end of the frame */
 				tcb->read_pos += ntohs(frh->frame_len);
 
-				if (frh->block_type == WISPY_NET_FRAME_COMMAND) {
+				if (frh->block_type == SPECTOOL_NET_FRAME_COMMAND) {
 					wts_handle_command(wts, tcb, frh);
 				}
 
@@ -628,41 +628,41 @@ read_done:
 	}
 
 	for (x = 0; x < wts->ndev; x++) {
-		if (wispy_get_state(&(wts->devs[x].phydev)) == WISPY_STATE_ERROR) {
-			snprintf(errstr, WISPY_ERROR_MAX, "Wispy phy %d in error state: %s", 
-					 x, wispy_get_error(&(wts->devs[x].phydev)));
+		if (spectool_get_state(&(wts->devs[x].phydev)) == SPECTOOL_STATE_ERROR) {
+			snprintf(errstr, SPECTOOL_ERROR_MAX, "Spectool phy %d in error state: %s", 
+					 x, spectool_get_error(&(wts->devs[x].phydev)));
 			return -1;
 		}
 
-		if (FD_ISSET(wispy_phy_getpollfd(&(wts->devs[x].phydev)), rfd) == 0)
+		if (FD_ISSET(spectool_phy_getpollfd(&(wts->devs[x].phydev)), rfd) == 0)
 			continue;
 
 		do {
-			r = wispy_phy_poll(&(wts->devs[x].phydev));
+			r = spectool_phy_poll(&(wts->devs[x].phydev));
 
-			if ((r & WISPY_POLL_ERROR)) {
-				snprintf(errstr, WISPY_ERROR_MAX, "Wispy phy %d poll failed: %s", 
-						 x, wispy_get_error(&(wts->devs[x].phydev)));
+			if ((r & SPECTOOL_POLL_ERROR)) {
+				snprintf(errstr, SPECTOOL_ERROR_MAX, "Spectool phy %d poll failed: %s", 
+						 x, spectool_get_error(&(wts->devs[x].phydev)));
 				return -1;
 			}
 
-			if ((r & WISPY_POLL_SWEEPCOMPLETE)) {
+			if ((r & SPECTOOL_POLL_SWEEPCOMPLETE)) {
 				if (wts_send_sweepblock(wts, &(wts->devs[x].phydev),
-										wispy_phy_getsweep(&(wts->devs[x].phydev)),
+										spectool_phy_getsweep(&(wts->devs[x].phydev)),
 										errstr) < 0)
 					return -1;
 			}
-		} while ((r & WISPY_POLL_ADDITIONAL));
+		} while ((r & SPECTOOL_POLL_ADDITIONAL));
 	}
 
 	return 1;
 }
 
-void wts_shutdown(wispy_tcpserv *wts) {
-	wispy_tcpcli *tci = wts->cli_list;
+void wts_shutdown(spectool_tcpserv *wts) {
+	spectool_tcpcli *tci = wts->cli_list;
 
 	while (tci != NULL) {
-		wispy_tcpcli *tcb = tci;
+		spectool_tcpcli *tcb = tci;
 		close(tci->fd);
 		tci = tci->next;
 		free(tcb);
@@ -687,28 +687,28 @@ int wts_init_bcast(char *errstr, int port) {
 	lin.sin_addr.s_addr = INADDR_ANY;
 
 	if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX,
+		snprintf(errstr, SPECTOOL_ERROR_MAX,
 				 "Could not make bcast socket: %s", strerror(errno));
 		return -1;
 	}
 
 	x = 1;
 	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &x, sizeof(x)) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX,
+		snprintf(errstr, SPECTOOL_ERROR_MAX,
 				 "Could not set socket broadcast option: %s", strerror(errno));
 		close(sock);
 		return -1;
 	}
 
 	if (bind(sock, (struct sockaddr *) &lin, sizeof(lin)) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX,
+		snprintf(errstr, SPECTOOL_ERROR_MAX,
 				 "Could not bind bcast socket: %s", strerror(errno));
 		close(sock);
 		return -1;
 	}
 
 	if (connect(sock, (struct sockaddr *) &sin, sizeof(sin)) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX,
+		snprintf(errstr, SPECTOOL_ERROR_MAX,
 				 "Could not connect bcast socket: %s", strerror(errno));
 		close(sock);
 		return -1;
@@ -718,14 +718,14 @@ int wts_init_bcast(char *errstr, int port) {
 }
 
 int wts_send_bcast(int sock, short int port, char *errstr) {
-	wispy_fr_broadcast bp;
+	spectool_fr_broadcast bp;
 
-	bp.sentinel = htonl(WISPY_NET_SENTINEL);
-	bp.version = WISPY_NET_PROTO_VERSION;
+	bp.sentinel = htonl(SPECTOOL_NET_SENTINEL);
+	bp.version = SPECTOOL_NET_PROTO_VERSION;
 	bp.server_port = htons(port);
 
-	if (send(sock, &bp, sizeof(wispy_fr_broadcast), 0) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX,
+	if (send(sock, &bp, sizeof(spectool_fr_broadcast), 0) < 0) {
+		snprintf(errstr, SPECTOOL_ERROR_MAX,
 				 "Could not send broadcast frame: %s", strerror(errno));
 		return -1;
 	}
@@ -748,13 +748,13 @@ void sigcatch(int sig) {
 }
 
 int main(int argc, char *argv[]) {
-	wispy_tcpserv wts;
-	char errstr[WISPY_ERROR_MAX];
+	spectool_tcpserv wts;
+	char errstr[SPECTOOL_ERROR_MAX];
 	fd_set sel_r_fds, sel_w_fds;
 	struct timeval tm;
 	
-	wispy_device_list list;
-	wispy_tcpserv_dev *devs = NULL;
+	spectool_device_list list;
+	spectool_tcpserv_dev *devs = NULL;
 	int ndev = 0;
 
 	int x = 0, r = 0;
@@ -771,14 +771,14 @@ int main(int argc, char *argv[]) {
 	int option_index;
 
 	char *bindaddr = NULL;
-	short int bindport = WISPY_NET_DEFAULT_PORT;
+	short int bindport = SPECTOOL_NET_DEFAULT_PORT;
 
 	int broadcast = 0, bcast_sock = -1;
 	time_t last_bcast = 0;
 
 	int list_only = 0;
 
-	ndev = wispy_device_scan(&list);
+	ndev = spectool_device_scan(&list);
 
 	int *rangeset = NULL;
 	if (ndev > 0) {
@@ -835,7 +835,7 @@ int main(int argc, char *argv[]) {
 
 	if (list_only) {
 		if (ndev <= 0) {
-			printf("No wispy devices found, bailing\n");
+			printf("No spectool devices found, bailing\n");
 			exit(1);
 		}
 
@@ -846,7 +846,7 @@ int main(int argc, char *argv[]) {
 				   x, list.list[x].name, list.list[x].device_id);
 
 			for (r = 0; r < list.list[x].num_sweep_ranges; r++) {
-				wispy_sample_sweep *ran = 
+				spectool_sample_sweep *ran = 
 					&(list.list[x].supported_ranges[r]);
 
 				printf("  Range %d: \"%s\" %d%s-%d%s @ %0.2f%s, %d samples\n", r, 
@@ -868,16 +868,16 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (ndev <= 0) {
-		printf("No wispy devices found, bailing\n");
+		printf("No spectool devices found, bailing\n");
 		exit(1);
 	}
 
 	signal(SIGPIPE, &sigcatch);
 
-	fprintf(stderr, "Found %d wispy devices...\n", ndev);
+	fprintf(stderr, "Found %d spectool devices...\n", ndev);
 
-	/* devs = (wispy_phy *) malloc(WISPY_PHY_SIZE * ndev); */
-	devs = (wispy_tcpserv_dev *) malloc(sizeof(wispy_tcpserv_dev) * ndev);
+	/* devs = (spectool_phy *) malloc(SPECTOOL_PHY_SIZE * ndev); */
+	devs = (spectool_tcpserv_dev *) malloc(sizeof(spectool_tcpserv_dev) * ndev);
 
 	for (x = 0; x < ndev; x++) {
 		fprintf(stderr, "Initializing WiSPY device %s id %u\n", 
@@ -885,26 +885,26 @@ int main(int argc, char *argv[]) {
 
 		devs[x].lock_fd = -1;
 
-		if (wispy_device_init(&(devs[x].phydev), &(list.list[x])) < 0) {
+		if (spectool_device_init(&(devs[x].phydev), &(list.list[x])) < 0) {
 			fprintf(stderr, "Error initializing WiSPY device %s id %u\n",
 					list.list[x].name, list.list[x].device_id);
-			fprintf(stderr, "%s\n", wispy_get_error(&(devs[x].phydev)));
+			fprintf(stderr, "%s\n", spectool_get_error(&(devs[x].phydev)));
 			exit(1);
 		}
 
-		if (wispy_phy_open(&(devs[x].phydev)) < 0) {
+		if (spectool_phy_open(&(devs[x].phydev)) < 0) {
 			fprintf(stderr, "Error opening WiSPY device %s id %u\n",
 					list.list[x].name, list.list[x].device_id);
-			fprintf(stderr, "%s\n", wispy_get_error(&(devs[x].phydev)));
+			fprintf(stderr, "%s\n", spectool_get_error(&(devs[x].phydev)));
 			exit(1);
 		}
 
-		wispy_phy_setcalibration(&(devs[x].phydev), 1);
+		spectool_phy_setcalibration(&(devs[x].phydev), 1);
 
 		/* configure the default sweep block */
-		wispy_phy_setposition(&(devs[x].phydev), rangeset[x], 0, 0);
+		spectool_phy_setposition(&(devs[x].phydev), rangeset[x], 0, 0);
 	}
-	wispy_device_scan_free(&list);
+	spectool_device_scan_free(&list);
 
 	wts_init(&wts);
 

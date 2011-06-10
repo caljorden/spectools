@@ -1,4 +1,4 @@
-/* Wispy signal graph
+/* Spectool signal graph
  *
  * GTK widget implementation
  *
@@ -20,8 +20,8 @@
 
 #include "config.h"
 
-#ifndef __WISPY_TOPO_WIDGET_H__
-#define __WISPY_TOPO_WIDGET_H__
+#ifndef __SPECTOOL_TOPO_WIDGET_H__
+#define __SPECTOOL_TOPO_WIDGET_H__
 
 #ifdef HAVE_GTK
 
@@ -34,29 +34,29 @@
 
 G_BEGIN_DECLS
 
-#define WISPY_TYPE_TOPO \
-	(wispy_topo_get_type())
-#define WISPY_TOPO(obj) \
+#define SPECTOOL_TYPE_TOPO \
+	(spectool_topo_get_type())
+#define SPECTOOL_TOPO(obj) \
 	(G_TYPE_CHECK_INSTANCE_CAST((obj), \
-	WISPY_TYPE_TOPO, WispyTopo))
-#define WISPY_TOPO_CLASS(klass) \
+	SPECTOOL_TYPE_TOPO, SpectoolTopo))
+#define SPECTOOL_TOPO_CLASS(klass) \
 	(G_TYPE_CHECK_CLASS_CAST((klass), \
-	WISPY_TYPE_TOPO, WispyTopoClass))
-#define IS_WISPY_TOPO(obj) \
+	SPECTOOL_TYPE_TOPO, SpectoolTopoClass))
+#define IS_SPECTOOL_TOPO(obj) \
 	(G_TYPE_CHECK_INSTANCE_TYPE((obj), \
-	WISPY_TYPE_TOPO))
-#define IS_WISPY_TOPO_CLASS(klass) \
+	SPECTOOL_TYPE_TOPO))
+#define IS_SPECTOOL_TOPO_CLASS(klass) \
 	(G_TYPE_CHECK_CLASS_TYPE((class), \
-	WISPY_TYPE_TOPO))
+	SPECTOOL_TYPE_TOPO))
 
-typedef struct _WispyTopo WispyTopo;
-typedef struct _WispyTopoClass WispyTopoClass;
+typedef struct _SpectoolTopo SpectoolTopo;
+typedef struct _SpectoolTopoClass SpectoolTopoClass;
 
 /* Access the color array */
-#define WISPY_TOPO_COLOR(a, b, c)	((a)[((b) * 3) + c])
+#define SPECTOOL_TOPO_COLOR(a, b, c)	((a)[((b) * 3) + c])
 
-struct _WispyTopo {
-	WispyWidget parent;
+struct _SpectoolTopo {
+	SpectoolWidget parent;
 
 	GtkWidget *sweepinfo;
 
@@ -71,13 +71,13 @@ struct _WispyTopo {
 	int sweep_count_num, sweep_peak_max;
 };
 
-struct _WispyTopoClass {
-	WispyWidgetClass parent_class;
+struct _SpectoolTopoClass {
+	SpectoolWidgetClass parent_class;
 };
 
-GType wispy_topo_get_type(void);
-GtkWidget *wispy_topo_new(void);
-void wispy_topo_clear(void);
+GType spectool_topo_get_type(void);
+GtkWidget *spectool_topo_new(void);
+void spectool_topo_clear(void);
 
 G_END_DECLS
 

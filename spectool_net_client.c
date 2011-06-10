@@ -42,9 +42,9 @@ int spectool_netcli_init(spectool_server *sr, char *url, char *errstr) {
 
 	if ((ret = sscanf(url, "tcp://%256[^:]:%hd", sr->hostname, 
 					  &(sr->port))) == 1) {
-		sr->port = WISPY_NET_DEFAULT_PORT;
+		sr->port = SPECTOOL_NET_DEFAULT_PORT;
 	} else if (ret != 2) {
-		snprintf(errstr, WISPY_ERROR_MAX, "Could not parse server URL, expected "
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "Could not parse server URL, expected "
 				 "tcp://host:port");
 		sr->state = SPECTOOL_NET_STATE_ERROR;
 		return -1;
@@ -53,7 +53,7 @@ int spectool_netcli_init(spectool_server *sr, char *url, char *errstr) {
 	sr->host = gethostbyname(sr->hostname);
 
 	if (sr->host == NULL) {
-		snprintf(errstr, WISPY_ERROR_MAX, "Could not resolve host '%s'",
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "Could not resolve host '%s'",
 				 sr->hostname);
 		sr->state = SPECTOOL_NET_STATE_ERROR;
 		return -1;
@@ -80,7 +80,7 @@ int spectool_netcli_connect(spectool_server *sr, char *errstr) {
 	servaddr.sin_port = htons(sr->port);
 
 	if ((sr->sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX, "Failed to create socket to server: %s",
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "Failed to create socket to server: %s",
 				 strerror(errno));
 		sr->state = SPECTOOL_NET_STATE_ERROR;
 		return -1;
@@ -93,7 +93,7 @@ int spectool_netcli_connect(spectool_server *sr, char *errstr) {
 
 	if (bind(sr->sock, (struct sockaddr *) &localaddr, sizeof(localaddr)) < 0) {
 		close(sr->sock);
-		snprintf(errstr, WISPY_ERROR_MAX, "Failed to bind socket to server: %s",
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "Failed to bind socket to server: %s",
 				 strerror(errno));
 		sr->state = SPECTOOL_NET_STATE_ERROR;
 		return -1;
@@ -101,7 +101,7 @@ int spectool_netcli_connect(spectool_server *sr, char *errstr) {
 
 	if (connect(sr->sock, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) {
 		close(sr->sock);
-		snprintf(errstr, WISPY_ERROR_MAX, "Failed to connect socket to server: %s",
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "Failed to connect socket to server: %s",
 				 strerror(errno));
 		sr->state = SPECTOOL_NET_STATE_ERROR;
 		return -1;
@@ -166,19 +166,19 @@ int spectool_netcli_getwritepend(spectool_server *sr) {
 }
 
 int spectool_netcli_poll(spectool_server *sr, char *errstr) {
-	wispy_fr_header *header;
+	spectool_fr_header *header;
 	int res;
 	int ret = 0;
 
 	if (sr->sock < 0)
 		return -1;
 
-	while (sr->read_fill - sr->read_pos >= wispy_fr_header_size()) {
-		header = (wispy_fr_header *) &(sr->rbuf[sr->read_pos]);
+	while (sr->read_fill - sr->read_pos >= spectool_fr_header_size()) {
+		header = (spectool_fr_header *) &(sr->rbuf[sr->read_pos]);
 
 		/* Nuke the buffer entirely and start over if we can't find a 
 		 * sentinel */
-		if (ntohl(header->sentinel) != WISPY_NET_SENTINEL) {
+		if (ntohl(header->sentinel) != SPECTOOL_NET_SENTINEL) {
 			sr->read_fill = 0;
 			sr->read_pos = 0;
 			return 0;
@@ -197,7 +197,7 @@ int spectool_netcli_poll(spectool_server *sr, char *errstr) {
 		}
 
 		/* We only care about device and sweeps, the rest get ignored (for now) */
-		if (header->block_type == WISPY_NET_FRAME_DEVICE) {
+		if (header->block_type == SPECTOOL_NET_FRAME_DEVICE) {
 			if ((res = spectool_netcli_block_netdev(sr, header, errstr)) < 0) {
 				return -1;
 			}
@@ -206,7 +206,7 @@ int spectool_netcli_poll(spectool_server *sr, char *errstr) {
 				ret |= SPECTOOL_NETCLI_POLL_NEWDEVS;
 			}
 
-		} else if (header->block_type == WISPY_NET_FRAME_SWEEP) {
+		} else if (header->block_type == SPECTOOL_NET_FRAME_SWEEP) {
 			if ((res = spectool_netcli_block_sweep(sr, header, errstr)) < 0) {
 				return -1;
 			}
@@ -223,7 +223,7 @@ int spectool_netcli_poll(spectool_server *sr, char *errstr) {
 		if (errno == EAGAIN)
 			return ret;
 
-		snprintf(errstr, WISPY_ERROR_MAX, "Failed to read from socket: %s",
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "Failed to read from socket: %s",
 				 strerror(errno));
 		sr->state == SPECTOOL_NET_STATE_ERROR;
 		return -1;
@@ -243,7 +243,7 @@ int spectool_netcli_writepoll(spectool_server *sr, char *errstr) {
 
 	if ((res = write(sr->sock, &(sr->wbuf[sr->write_pos]),
 					 sr->write_fill - sr->write_pos)) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX, "write() failed on %s",
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "write() failed on %s",
 				 strerror(errno));
 		return -1;
 	}
@@ -258,11 +258,11 @@ int spectool_netcli_writepoll(spectool_server *sr, char *errstr) {
 	return 1;
 }
 
-int spectool_netcli_block_netdev(spectool_server *sr, wispy_fr_header *header,
+int spectool_netcli_block_netdev(spectool_server *sr, spectool_fr_header *header,
 								 char *errstr) {
-	wispy_fr_device *dev;
+	spectool_fr_device *dev;
 	spectool_net_dev *sni;
-	int bsize = ntohs(header->frame_len) - wispy_fr_header_size();
+	int bsize = ntohs(header->frame_len) - spectool_fr_header_size();
 
 	int num_devices;
 	int x;
@@ -272,14 +272,14 @@ int spectool_netcli_block_netdev(spectool_server *sr, wispy_fr_header *header,
 	for (x = 0; x < header->num_blocks; x++) {
 		/* If we can't fit, bail.  In the future this will have to be 
 		 * rewritten to handle variable sized devices, maybe */
-		if (bsize < wispy_fr_device_size() * (x + 1)) {
+		if (bsize < spectool_fr_device_size() * (x + 1)) {
 			return -1;
 		}
 
-		dev = (wispy_fr_device *) &(header->data[wispy_fr_device_size() * x]);
+		dev = (spectool_fr_device *) &(header->data[spectool_fr_device_size() * x]);
 
 		/* Is this the last device? */
-		if (dev->device_version == WISPY_NET_DEVTYPE_LASTDEV) {
+		if (dev->device_version == SPECTOOL_NET_DEVTYPE_LASTDEV) {
 			sr->state == SPECTOOL_NET_STATE_CONFIGURED;
 			return 1;
 		}
@@ -324,27 +324,27 @@ int spectool_netcli_block_netdev(spectool_server *sr, wispy_fr_header *header,
 	return 0;
 }
 
-int spectool_netcli_block_sweep(spectool_server *sr, wispy_fr_header *header,
+int spectool_netcli_block_sweep(spectool_server *sr, spectool_fr_header *header,
 								char *errstr) {
-	wispy_fr_sweep *sweep;
+	spectool_fr_sweep *sweep;
 	int x, y;
-	int bsize = ntohs(header->frame_len) - wispy_fr_header_size();
+	int bsize = ntohs(header->frame_len) - spectool_fr_header_size();
 	int pos = 0;
 	spectool_net_dev *sni;
-	wispy_sample_sweep *auxsweep;
+	spectool_sample_sweep *auxsweep;
 
 	for (x = 0; x < header->num_blocks; x++) {
-		sweep = (wispy_fr_sweep *) &(header->data[pos]);
+		sweep = (spectool_fr_sweep *) &(header->data[pos]);
 
 		if (bsize - pos < 2) {
 			/* way too short, bail with error */
-			snprintf(errstr, WISPY_ERROR_MAX, "Got runt sweep frame, bailing");
+			snprintf(errstr, SPECTOOL_ERROR_MAX, "Got runt sweep frame, bailing");
 			return -1;
 		}
 
-		if (ntohs(sweep->frame_len) < wispy_fr_sweep_size(0)) {
+		if (ntohs(sweep->frame_len) < spectool_fr_sweep_size(0)) {
 			/* Again, too short */
-			snprintf(errstr, WISPY_ERROR_MAX, "Got runt sweep frame, bailing");
+			snprintf(errstr, SPECTOOL_ERROR_MAX, "Got runt sweep frame, bailing");
 			return -1;
 		}
 
@@ -357,18 +357,18 @@ int spectool_netcli_block_sweep(spectool_server *sr, wispy_fr_header *header,
 		}
 
 		if (sni == NULL) {
-			snprintf(errstr, WISPY_ERROR_MAX, "Got sweep frame for device which "
+			snprintf(errstr, SPECTOOL_ERROR_MAX, "Got sweep frame for device which "
 					 "was not advertised, discarding");
 			return -1;
 		}
 
 		if (ntohs(sweep->frame_len) < 
-			wispy_fr_sweep_size(sni->num_samples)) {
-			snprintf(errstr, WISPY_ERROR_MAX, "Got sweep frame too small to hold "
+			spectool_fr_sweep_size(sni->num_samples)) {
+			snprintf(errstr, SPECTOOL_ERROR_MAX, "Got sweep frame too small to hold "
 					 "indicated number of samples, bailing - %u samples %u < %u",
 					 sni->num_samples,
 					 ntohs(sweep->frame_len), 
-					 wispy_fr_sweep_size(sni->num_samples));
+					 spectool_fr_sweep_size(sni->num_samples));
 			return -1;
 		}
 
@@ -380,12 +380,12 @@ int spectool_netcli_block_sweep(spectool_server *sr, wispy_fr_header *header,
 		if (sni->phydev == NULL)
 			continue;
 
-		if ((auxsweep = ((wispy_net_dev_aux *) (sni->phydev->auxptr))->sweep) != NULL) {
+		if ((auxsweep = ((spectool_net_dev_aux *) (sni->phydev->auxptr))->sweep) != NULL) {
 			free(auxsweep);
 		}
 
 		auxsweep = 
-			(wispy_sample_sweep *) malloc(WISPY_SWEEP_SIZE(sni->num_samples));
+			(spectool_sample_sweep *) malloc(SPECTOOL_SWEEP_SIZE(sni->num_samples));
 
 		/* Copy data out of our device record (this will change later when the
 		 * spectool internals change) */
@@ -421,9 +421,9 @@ int spectool_netcli_block_sweep(spectool_server *sr, wispy_fr_header *header,
 		auxsweep->phydev = sni->phydev;
 
 		/* Flag that we got a new frame */
-		((wispy_net_dev_aux *) (sni->phydev->auxptr))->new_sweep = 1;
-		((wispy_net_dev_aux *) (sni->phydev->auxptr))->sweep = auxsweep;
-		write(((wispy_net_dev_aux *) (sni->phydev->auxptr))->spipe[1], "0", 1);
+		((spectool_net_dev_aux *) (sni->phydev->auxptr))->new_sweep = 1;
+		((spectool_net_dev_aux *) (sni->phydev->auxptr))->sweep = auxsweep;
+		write(((spectool_net_dev_aux *) (sni->phydev->auxptr))->spipe[1], "0", 1);
 	}
 
 	return 1;
@@ -432,7 +432,7 @@ int spectool_netcli_block_sweep(spectool_server *sr, wispy_fr_header *header,
 int spectool_netcli_append(spectool_server *sr, uint8_t *data, int len, char *errstr) {
 	if (sr->bufferwrite == 0) {
 		if (write(sr->sock, data, len) < 0) {
-			snprintf(errstr, WISPY_ERROR_MAX, "write() failed on %s",
+			snprintf(errstr, SPECTOOL_ERROR_MAX, "write() failed on %s",
 					 strerror(errno));
 			return -1;
 		}
@@ -441,7 +441,7 @@ int spectool_netcli_append(spectool_server *sr, uint8_t *data, int len, char *er
 	}
 
 	if (sr->write_fill + len >= CLI_BUF_SZ) {
-		snprintf(errstr, WISPY_ERROR_MAX, "Network client write buffer can't "
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "Network client write buffer can't "
 				 "fit %d bytes, %d of %d full", len, sr->write_fill, CLI_BUF_SZ);
 		return -1;
 	}
@@ -452,14 +452,14 @@ int spectool_netcli_append(spectool_server *sr, uint8_t *data, int len, char *er
 	return 1;
 }
 
-wispy_phy *spectool_netcli_enabledev(spectool_server *sr, unsigned int dev_id,
+spectool_phy *spectool_netcli_enabledev(spectool_server *sr, unsigned int dev_id,
 									 char *errstr) {
-	wispy_phy *phyret;
-	wispy_net_dev_aux *aux; 
+	spectool_phy *phyret;
+	spectool_net_dev_aux *aux; 
 	spectool_net_dev *sni;
-	wispy_fr_header *header;
-	wispy_fr_command *cmd;
-	wispy_fr_command_enabledev *cmde;
+	spectool_fr_header *header;
+	spectool_fr_command *cmd;
+	spectool_fr_command_enabledev *cmde;
 	int sz;
 
 	sni = sr->devlist;
@@ -471,7 +471,7 @@ wispy_phy *spectool_netcli_enabledev(spectool_server *sr, unsigned int dev_id,
 	}
 
 	if (sni == NULL) {
-		snprintf(errstr, WISPY_ERROR_MAX, "Could not find device %u in list "
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "Could not find device %u in list "
 				 "from server.", dev_id);
 		return NULL;
 	}
@@ -479,24 +479,24 @@ wispy_phy *spectool_netcli_enabledev(spectool_server *sr, unsigned int dev_id,
 	if (sni->phydev != NULL)
 		return sni->phydev;
 
-	sz = wispy_fr_header_size() +
-		wispy_fr_command_size(wispy_fr_command_enabledev_size(0));
+	sz = spectool_fr_header_size() +
+		spectool_fr_command_size(spectool_fr_command_enabledev_size(0));
 
-	header = (wispy_fr_header *) malloc(sz);
+	header = (spectool_fr_header *) malloc(sz);
 										
-	cmd = (wispy_fr_command *) header->data;
-	cmde = (wispy_fr_command_enabledev *) cmd->command_data;
+	cmd = (spectool_fr_command *) header->data;
+	cmde = (spectool_fr_command_enabledev *) cmd->command_data;
 
-	header->sentinel = htonl(WISPY_NET_SENTINEL);
+	header->sentinel = htonl(SPECTOOL_NET_SENTINEL);
 	header->frame_len = htons(sz);
-	header->proto_version = WISPY_NET_PROTO_VERSION;
-	header->block_type = WISPY_NET_FRAME_COMMAND;
+	header->proto_version = SPECTOOL_NET_PROTO_VERSION;
+	header->block_type = SPECTOOL_NET_FRAME_COMMAND;
 	header->num_blocks = 1;
 
 	cmd->frame_len = 
-		htons(wispy_fr_command_size(wispy_fr_command_enabledev_size(0)));
-	cmd->command_id = WISPY_NET_COMMAND_ENABLEDEV;
-	cmd->command_len = htons(wispy_fr_command_enabledev_size(0));
+		htons(spectool_fr_command_size(spectool_fr_command_enabledev_size(0)));
+	cmd->command_id = SPECTOOL_NET_COMMAND_ENABLEDEV;
+	cmd->command_len = htons(spectool_fr_command_enabledev_size(0));
 
 	cmde->device_id = htonl(dev_id);
 
@@ -507,8 +507,8 @@ wispy_phy *spectool_netcli_enabledev(spectool_server *sr, unsigned int dev_id,
 
 	free(header);
 
-	phyret = (wispy_phy *) malloc(WISPY_PHY_SIZE);
-	aux = (wispy_net_dev_aux *) malloc(sizeof(wispy_net_dev_aux));
+	phyret = (spectool_phy *) malloc(SPECTOOL_PHY_SIZE);
+	aux = (spectool_net_dev_aux *) malloc(sizeof(spectool_net_dev_aux));
 	phyret->auxptr = aux;
 
 	aux->sweep = NULL;
@@ -517,9 +517,9 @@ wispy_phy *spectool_netcli_enabledev(spectool_server *sr, unsigned int dev_id,
 	pipe(aux->spipe);
 	fcntl(aux->spipe[0], F_SETFL, fcntl(aux->spipe[0], F_GETFL, 0) | O_NONBLOCK);
 
-	phyret->device_spec = (wispy_dev_spec *) malloc(sizeof(wispy_dev_spec));
+	phyret->device_spec = (spectool_dev_spec *) malloc(sizeof(spectool_dev_spec));
 
-	phyret->state = WISPY_STATE_CONFIGURING;
+	phyret->state = SPECTOOL_STATE_CONFIGURING;
 	phyret->min_rssi_seen = -1;
 
 	phyret->device_spec->device_id = sni->device_id;
@@ -529,7 +529,7 @@ wispy_phy *spectool_netcli_enabledev(spectool_server *sr, unsigned int dev_id,
 	phyret->device_spec->num_sweep_ranges = 1;
 
 	phyret->device_spec->supported_ranges =
-		(wispy_sample_sweep *) malloc(WISPY_SWEEP_SIZE(0));
+		(spectool_sample_sweep *) malloc(SPECTOOL_SWEEP_SIZE(0));
 
 	phyret->device_spec->supported_ranges[0].num_samples = sni->def_num_samples;
 	phyret->device_spec->supported_ranges[0].amp_offset_mdbm = sni->amp_offset_mdbm;
@@ -554,7 +554,7 @@ wispy_phy *spectool_netcli_enabledev(spectool_server *sr, unsigned int dev_id,
 	phyret->getsweep_func = &spectool_net_getsweep;
 	phyret->setposition_func = &spectool_net_setposition;
 
-	snprintf(phyret->device_spec->device_name, WISPY_PHY_NAME_MAX, 
+	snprintf(phyret->device_spec->device_name, SPECTOOL_PHY_NAME_MAX, 
 			 "%s", sni->device_name);
 
 	sni->phydev = phyret;
@@ -562,13 +562,13 @@ wispy_phy *spectool_netcli_enabledev(spectool_server *sr, unsigned int dev_id,
 	return phyret;
 }
 
-int spectool_netcli_disabledev(spectool_server *sr, wispy_phy *dev) {
-	wispy_net_dev_aux *aux; 
+int spectool_netcli_disabledev(spectool_server *sr, spectool_phy *dev) {
+	spectool_net_dev_aux *aux; 
 	spectool_net_dev *sni;
-	wispy_fr_header *header;
-	wispy_fr_command *cmd;
-	wispy_fr_command_disabledev *cmdd;
-	char errstr[WISPY_ERROR_MAX];
+	spectool_fr_header *header;
+	spectool_fr_command *cmd;
+	spectool_fr_command_disabledev *cmdd;
+	char errstr[SPECTOOL_ERROR_MAX];
 	int sz;
 
 	sni = sr->devlist;
@@ -586,24 +586,24 @@ int spectool_netcli_disabledev(spectool_server *sr, wispy_phy *dev) {
 	if (sni->phydev == NULL)
 		return -1;
 
-	sz = wispy_fr_header_size() +
-		wispy_fr_command_size(wispy_fr_command_disabledev_size(0));
+	sz = spectool_fr_header_size() +
+		spectool_fr_command_size(spectool_fr_command_disabledev_size(0));
 
-	header = (wispy_fr_header *) malloc(sz);
+	header = (spectool_fr_header *) malloc(sz);
 										
-	cmd = (wispy_fr_command *) header->data;
-	cmdd = (wispy_fr_command_disabledev *) cmd->command_data;
+	cmd = (spectool_fr_command *) header->data;
+	cmdd = (spectool_fr_command_disabledev *) cmd->command_data;
 
-	header->sentinel = htonl(WISPY_NET_SENTINEL);
+	header->sentinel = htonl(SPECTOOL_NET_SENTINEL);
 	header->frame_len = htons(sz);
-	header->proto_version = WISPY_NET_PROTO_VERSION;
-	header->block_type = WISPY_NET_FRAME_COMMAND;
+	header->proto_version = SPECTOOL_NET_PROTO_VERSION;
+	header->block_type = SPECTOOL_NET_FRAME_COMMAND;
 	header->num_blocks = 1;
 
 	cmd->frame_len = 
-		htons(wispy_fr_command_size(wispy_fr_command_disabledev_size(0)));
-	cmd->command_id = WISPY_NET_COMMAND_DISABLEDEV;
-	cmd->command_len = htons(wispy_fr_command_disabledev_size(0));
+		htons(spectool_fr_command_size(spectool_fr_command_disabledev_size(0)));
+	cmd->command_id = SPECTOOL_NET_COMMAND_DISABLEDEV;
+	cmd->command_len = htons(spectool_fr_command_disabledev_size(0));
 
 	cmdd->device_id = htonl(sni->device_id);
 
@@ -621,51 +621,51 @@ int spectool_netcli_disabledev(spectool_server *sr, wispy_phy *dev) {
 	return 1;
 }
 
-void spectool_net_setcalibration(wispy_phy *phydev, int in_calib) {
+void spectool_net_setcalibration(spectool_phy *phydev, int in_calib) {
 	return;
 }
 
-int spectool_net_poll(wispy_phy *phydev) {
-	int ret = WISPY_POLL_NONE;
+int spectool_net_poll(spectool_phy *phydev) {
+	int ret = SPECTOOL_POLL_NONE;
 	char junk[8];
 
-	read(((wispy_net_dev_aux *) phydev->auxptr)->spipe[0], junk, 8);
+	read(((spectool_net_dev_aux *) phydev->auxptr)->spipe[0], junk, 8);
 
-	if (phydev->state == WISPY_STATE_CONFIGURING) {
-		ret |= WISPY_POLL_CONFIGURED;
-		ret |= WISPY_POLL_ADDITIONAL;
-		phydev->state = WISPY_STATE_RUNNING;
+	if (phydev->state == SPECTOOL_STATE_CONFIGURING) {
+		ret |= SPECTOOL_POLL_CONFIGURED;
+		ret |= SPECTOOL_POLL_ADDITIONAL;
+		phydev->state = SPECTOOL_STATE_RUNNING;
 		return ret;
 	}
 
-	if (((wispy_net_dev_aux *) phydev->auxptr)->new_sweep) {
-		((wispy_net_dev_aux *) phydev->auxptr)->new_sweep = 0;
-		ret |= WISPY_POLL_SWEEPCOMPLETE;
+	if (((spectool_net_dev_aux *) phydev->auxptr)->new_sweep) {
+		((spectool_net_dev_aux *) phydev->auxptr)->new_sweep = 0;
+		ret |= SPECTOOL_POLL_SWEEPCOMPLETE;
 	}
 
 	return ret;
 }
 
-int spectool_net_getpollfd(wispy_phy *phydev) {
-	 return ((wispy_net_dev_aux *) phydev->auxptr)->spipe[0];
+int spectool_net_getpollfd(spectool_phy *phydev) {
+	 return ((spectool_net_dev_aux *) phydev->auxptr)->spipe[0];
 }
 
-int spectool_net_open(wispy_phy *phydev) {
+int spectool_net_open(spectool_phy *phydev) {
 	return 1;
 }
 
-int spectool_net_close(wispy_phy *phydev) {
+int spectool_net_close(spectool_phy *phydev) {
 	/* TODO - fill this in w/a close */
-	close(((wispy_net_dev_aux *) phydev->auxptr)->spipe[0]);
-	close(((wispy_net_dev_aux *) phydev->auxptr)->spipe[1]);
+	close(((spectool_net_dev_aux *) phydev->auxptr)->spipe[0]);
+	close(((spectool_net_dev_aux *) phydev->auxptr)->spipe[1]);
 	return 1;
 }
 
-wispy_sample_sweep *spectool_net_getsweep(wispy_phy *phydev) {
-	return ((wispy_net_dev_aux *) phydev->auxptr)->sweep;
+spectool_sample_sweep *spectool_net_getsweep(spectool_phy *phydev) {
+	return ((spectool_net_dev_aux *) phydev->auxptr)->sweep;
 }
 
-int spectool_net_setposition(wispy_phy *phydev, int in_profile, 
+int spectool_net_setposition(spectool_phy *phydev, int in_profile, 
 							 int start_khz, int res_hz) {
 	/* todo - fill this in */
 	return 1;
@@ -682,7 +682,7 @@ int spectool_netcli_initbroadcast(short int port, char *errstr) {
 	lsin.sin_addr.s_addr = INADDR_ANY;
 
 	if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX, 
+		snprintf(errstr, SPECTOOL_ERROR_MAX, 
 				 "netcli broadcast listen socket failed: %s", strerror(errno));
 		return -1;
 	}
@@ -690,7 +690,7 @@ int spectool_netcli_initbroadcast(short int port, char *errstr) {
 	/* we don't seem to need this in listen mode?
 	x = 1;
 	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &x, sizeof(x)) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX,
+		snprintf(errstr, SPECTOOL_ERROR_MAX,
 				 "netcli broadcast listen socket bcast sockopt failed: %s",
 				 strerror(errno));
 		close(sock);
@@ -701,7 +701,7 @@ int spectool_netcli_initbroadcast(short int port, char *errstr) {
 	fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) | O_NONBLOCK);
 
 	if (bind(sock, (struct sockaddr *) &lsin, sizeof(lsin)) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX,
+		snprintf(errstr, SPECTOOL_ERROR_MAX,
 				 "netcli broadcast listen socket bind failed: %s",
 				 strerror(errno));
 		close(sock);
@@ -714,11 +714,11 @@ int spectool_netcli_initbroadcast(short int port, char *errstr) {
 int spectool_netcli_pollbroadcast(int sock, char *ret_url, char *errstr) {
 	struct msghdr rcv_msg;
 	struct iovec iov;
-	wispy_fr_broadcast buf;
+	spectool_fr_broadcast buf;
 	struct sockaddr_in recv_addr;
 
 	iov.iov_base = &buf;
-	iov.iov_len = sizeof(wispy_fr_broadcast);
+	iov.iov_len = sizeof(spectool_fr_broadcast);
 
 	rcv_msg.msg_name = &recv_addr;
 	rcv_msg.msg_namelen = sizeof(recv_addr);
@@ -728,12 +728,12 @@ int spectool_netcli_pollbroadcast(int sock, char *ret_url, char *errstr) {
 	rcv_msg.msg_controllen = 0;
 
 	if (recvmsg(sock, &rcv_msg, 0) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX,
+		snprintf(errstr, SPECTOOL_ERROR_MAX,
 				 "netcli broadcast recv failed: %s", strerror(errno));
 		return -1;
 	}
 
-	if (ntohl(buf.sentinel) == WISPY_NET_SENTINEL) {
+	if (ntohl(buf.sentinel) == SPECTOOL_NET_SENTINEL) {
 		snprintf(ret_url, SPECTOOL_NETCLI_URL_MAX, "tcp://%s:%hu",
 				 inet_ntoa(recv_addr.sin_addr), ntohs(buf.server_port));
 		return 1;

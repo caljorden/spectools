@@ -10,8 +10,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef __WISPY_NET_CLIENT_H__
-#define __WISPY_NET_CLIENT_H__
+#ifndef __SPECTOOL_NET_CLIENT_H__
+#define __SPECTOOL_NET_CLIENT_H__
 
 #include "config.h"
 
@@ -62,7 +62,7 @@ typedef struct _spectool_net_dev {
 	unsigned int num_samples;
 
 	/* Local attributes if we're an activated device */
-	wispy_phy *phydev;
+	spectool_phy *phydev;
 
 	struct _spectool_net_dev *next;
 } spectool_net_dev;
@@ -111,14 +111,14 @@ typedef struct _spectool_server {
 #define SPECTOOL_NET_STATE_CONFIGURED	2
 #define SPECTOOL_NET_STATE_ERROR		255
 
-/* Auxptr struct attached to a wispy_net phydev */
-typedef struct _wispy_net_dev_aux {
+/* Auxptr struct attached to a spectool_net phydev */
+typedef struct _spectool_net_dev_aux {
 	spectool_server *server;
 	spectool_net_dev *netdev;
-	wispy_sample_sweep *sweep;
+	spectool_sample_sweep *sweep;
 	int new_sweep;
 	int spipe[2];
-} wispy_net_dev_aux;
+} spectool_net_dev_aux;
 
 /* Server manipulation commands - one server can have many phydevs linked to it,
  * and an app can conceivably have many servers. */
@@ -134,9 +134,9 @@ void spectool_netcli_setbufferwrite(spectool_server *sr, int buf);
 int spectool_netcli_getwritepend(spectool_server *sr);
 int spectool_netcli_getwritefd(spectool_server *sr);
 int spectool_netcli_poll(spectool_server *sr, char *errstr);
-wispy_phy *spectool_netcli_enabledev(spectool_server *sr, unsigned int dev_id,
+spectool_phy *spectool_netcli_enabledev(spectool_server *sr, unsigned int dev_id,
 									 char *errstr);
-int spectool_netcli_disabledev(spectool_server *sr, wispy_phy *dev);
+int spectool_netcli_disabledev(spectool_server *sr, spectool_phy *dev);
 
 /* Initialize a broadcast listening socket, retval is the socket */
 int spectool_netcli_initbroadcast(short int port, char *errstr);
@@ -154,24 +154,24 @@ int spectool_netcli_pollbroadcast(int sock, char *ret_url, char *errstr);
 #define SPECTOOL_NETCLI_POLL_NEWSWEEPS		4
 
 /* Parsers */
-int spectool_netcli_block_netdev(spectool_server *sr, wispy_fr_header *header,
+int spectool_netcli_block_netdev(spectool_server *sr, spectool_fr_header *header,
 								 char *errstr);
-int spectool_netcli_block_sweep(spectool_server *sr, wispy_fr_header *header,
+int spectool_netcli_block_sweep(spectool_server *sr, spectool_fr_header *header,
 								char *errstr);
 /* Block management */
 int spectool_netcli_append(spectool_server *sr, uint8_t *data, 
 						   int len, char *errstr);
 
 /* Phydev hooks */
-void spectool_net_setcalibration(wispy_phy *phydev, int in_calib);
-int spectool_net_poll(wispy_phy *phydev);
-int spectool_net_getpollfd(wispy_phy *phydev);
-int spectool_net_open(wispy_phy *phydev);
-int spectool_net_close(wispy_phy *phydev);
-wispy_sample_sweep *spectool_net_getsweep(wispy_phy *phydev);
-int spectool_net_setposition(wispy_phy *phydev, int profilenum, int start_khz, 
+void spectool_net_setcalibration(spectool_phy *phydev, int in_calib);
+int spectool_net_poll(spectool_phy *phydev);
+int spectool_net_getpollfd(spectool_phy *phydev);
+int spectool_net_open(spectool_phy *phydev);
+int spectool_net_close(spectool_phy *phydev);
+spectool_sample_sweep *spectool_net_getsweep(spectool_phy *phydev);
+int spectool_net_setposition(spectool_phy *phydev, int profilenum, int start_khz, 
 							 int res_hz);
-wispy_sample_sweep *spectool_net_getsweep(wispy_phy *phydev);
+spectool_sample_sweep *spectool_net_getsweep(spectool_phy *phydev);
 
 #endif
 

@@ -16,8 +16,8 @@
 
 #include "config.h"
 
-#ifndef __WISPY_GTK_H__
-#define __WISPY_GTK_H__
+#ifndef __SPECTOOL_GTK_H__
+#define __SPECTOOL_GTK_H__
 
 #ifdef HAVE_GTK
 
@@ -26,9 +26,9 @@
 #include <gtk/gtk.h>
 #include <libintl.h>
 
-void Wispy_Alert_Dialog(char *text);
+void Spectool_Alert_Dialog(char *text);
 
-void Wispy_Help_Dialog(char *title, char *text);
+void Spectool_Help_Dialog(char *title, char *text);
 
 #endif
 #endif

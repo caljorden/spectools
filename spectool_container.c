@@ -19,57 +19,57 @@
 #include "wispy_hw_24x.h"
 #include "wispy_hw_dbx.h"
 
-int wispy_get_state(wispy_phy *phydev) {
+int spectool_get_state(spectool_phy *phydev) {
 	return phydev->state;
 }
 
-char *wispy_get_error(wispy_phy *phydev) {
+char *spectool_get_error(spectool_phy *phydev) {
 	return phydev->errstr;
 }
 
-char *wispy_phy_getname(wispy_phy *phydev) {
+char *spectool_phy_getname(spectool_phy *phydev) {
 	if (phydev->device_spec == NULL)
 		return NULL;
 
 	return phydev->device_spec->device_name;
 }
 
-int wispy_phy_getdevid(wispy_phy *phydev) {
+int spectool_phy_getdevid(spectool_phy *phydev) {
 	if (phydev->device_spec == NULL)
 		return 0;
 
 	return phydev->device_spec->device_id;
 }
 
-void wispy_phy_setname(wispy_phy *phydev, char *name) {
+void spectool_phy_setname(spectool_phy *phydev, char *name) {
 	if (phydev->device_spec == NULL)
 		return;
 
-	snprintf(phydev->device_spec->device_name, WISPY_PHY_NAME_MAX, "%s", name);
+	snprintf(phydev->device_spec->device_name, SPECTOOL_PHY_NAME_MAX, "%s", name);
 }
 
-int wispy_phy_open(wispy_phy *phydev) {
+int spectool_phy_open(spectool_phy *phydev) {
 	if (phydev->open_func == NULL)
 		return 0;
 
 	return (*(phydev->open_func))(phydev);
 }
 
-int wispy_phy_close(wispy_phy *phydev) {
+int spectool_phy_close(spectool_phy *phydev) {
 	if (phydev->close_func == NULL)
 		return 0;
 
 	return (*(phydev->close_func))(phydev);
 }
 
-int wispy_phy_poll(wispy_phy *phydev) {
+int spectool_phy_poll(spectool_phy *phydev) {
 	if (phydev->poll_func == NULL)
-		return WISPY_POLL_ERROR;
+		return SPECTOOL_POLL_ERROR;
 
 	return (*(phydev->poll_func))(phydev);
 }
 
-int wispy_phy_getpollfd(wispy_phy *phydev) {
+int spectool_phy_getpollfd(spectool_phy *phydev) {
 	if (phydev == NULL)
 		return -1;
 
@@ -79,38 +79,38 @@ int wispy_phy_getpollfd(wispy_phy *phydev) {
 	return (*(phydev->pollfd_func))(phydev);
 }
 
-void wispy_phy_setcalibration(wispy_phy *phydev, int enable) {
+void spectool_phy_setcalibration(spectool_phy *phydev, int enable) {
 	if (phydev->setcalib_func != NULL)
 		return (*(phydev->setcalib_func))(phydev, enable);
 }
 
-int wispy_phy_getflags(wispy_phy *phydev) {
+int spectool_phy_getflags(spectool_phy *phydev) {
 	return phydev->device_spec->device_flags;
 }
 
-int wispy_phy_setposition(wispy_phy *phydev, int in_profile, 
+int spectool_phy_setposition(spectool_phy *phydev, int in_profile, 
 						  int start_khz, int res_hz) {
 	if (phydev->setposition_func != NULL)
 		return (*(phydev->setposition_func))(phydev, in_profile, start_khz, res_hz);
 
-	snprintf(phydev->errstr, WISPY_ERROR_MAX, "Device does not support setting "
+	snprintf(phydev->errstr, SPECTOOL_ERROR_MAX, "Device does not support setting "
 			 "scan position or resolution");
 	return -1;
 }
 
-wispy_sample_sweep *wispy_phy_getsweep(wispy_phy *phydev) {
+spectool_sample_sweep *spectool_phy_getsweep(spectool_phy *phydev) {
 	if (phydev->getsweep_func == NULL)
 		return NULL;
 
 	return (*(phydev->getsweep_func))(phydev);
 }
 
-wispy_sweep_cache *wispy_cache_alloc(int nsweeps, int calc_peak, int calc_avg) {
+spectool_sweep_cache *spectool_cache_alloc(int nsweeps, int calc_peak, int calc_avg) {
 	int x;
-	wispy_sweep_cache *c = (wispy_sweep_cache *) malloc(sizeof(wispy_sweep_cache));
+	spectool_sweep_cache *c = (spectool_sweep_cache *) malloc(sizeof(spectool_sweep_cache));
 
 	c->sweeplist = 
-		(wispy_sample_sweep **) malloc(sizeof(wispy_sample_sweep *) * nsweeps);
+		(spectool_sample_sweep **) malloc(sizeof(spectool_sample_sweep *) * nsweeps);
 	c->avg = NULL;
 	c->peak = NULL;
 	c->latest = NULL;
@@ -129,7 +129,7 @@ wispy_sweep_cache *wispy_cache_alloc(int nsweeps, int calc_peak, int calc_avg) {
 	return c;
 }
 
-void wispy_cache_free(wispy_sweep_cache *c) {
+void spectool_cache_free(spectool_sweep_cache *c) {
 	if (c->avg != NULL)
 		free(c->avg);
 	if (c->peak != NULL)
@@ -137,7 +137,7 @@ void wispy_cache_free(wispy_sweep_cache *c) {
 	free(c->sweeplist);
 }
 
-void wispy_cache_clear(wispy_sweep_cache *c) {
+void spectool_cache_clear(spectool_sweep_cache *c) {
 	if (c->avg != NULL)
 		free(c->avg);
 	c->avg = NULL;
@@ -150,7 +150,7 @@ void wispy_cache_clear(wispy_sweep_cache *c) {
 	c->looped = 0;
 }
 
-void wispy_cache_append(wispy_sweep_cache *c, wispy_sample_sweep *s) {
+void spectool_cache_append(spectool_sweep_cache *c, spectool_sample_sweep *s) {
 	int x, y, sum = 0;
 	int *avgdata, *avgsum;
 	int navg;
@@ -172,15 +172,15 @@ void wispy_cache_append(wispy_sweep_cache *c, wispy_sample_sweep *s) {
 	}
 
 	c->sweeplist[c->pos] = 
-		(wispy_sample_sweep *) malloc(WISPY_SWEEP_SIZE(s->num_samples));
+		(spectool_sample_sweep *) malloc(SPECTOOL_SWEEP_SIZE(s->num_samples));
 
-	memcpy(c->sweeplist[c->pos], s, WISPY_SWEEP_SIZE(s->num_samples));
+	memcpy(c->sweeplist[c->pos], s, SPECTOOL_SWEEP_SIZE(s->num_samples));
 
 	c->latest = c->sweeplist[c->pos];
 
 	if (c->avg == NULL && c->calc_avg) {
-		c->avg = (wispy_sample_sweep *) malloc(WISPY_SWEEP_SIZE(s->num_samples));
-		memcpy(c->avg, s, WISPY_SWEEP_SIZE(s->num_samples));
+		c->avg = (spectool_sample_sweep *) malloc(SPECTOOL_SWEEP_SIZE(s->num_samples));
+		memcpy(c->avg, s, SPECTOOL_SWEEP_SIZE(s->num_samples));
 	} else if (c->calc_avg) {
 		/* Reset average times */
 		c->avg->tm_start.tv_sec = 0;
@@ -239,8 +239,8 @@ void wispy_cache_append(wispy_sweep_cache *c, wispy_sample_sweep *s) {
 
 	/* Allocate or update the peak.  We don't track peak timelines */
 	if (c->peak == NULL && c->calc_peak) {
-		c->peak = (wispy_sample_sweep *) malloc(WISPY_SWEEP_SIZE(s->num_samples));
-		memcpy(c->peak, s, WISPY_SWEEP_SIZE(s->num_samples));
+		c->peak = (spectool_sample_sweep *) malloc(SPECTOOL_SWEEP_SIZE(s->num_samples));
+		memcpy(c->peak, s, SPECTOOL_SWEEP_SIZE(s->num_samples));
 	} else if (c->calc_peak) {
 		for (x = 0; x < c->peak->num_samples; x++) {
 			if (c->peak->sample_data[x] < s->sample_data[x]) {
@@ -250,14 +250,14 @@ void wispy_cache_append(wispy_sweep_cache *c, wispy_sample_sweep *s) {
 	}
 }
 
-void wispy_device_scan_init(wispy_device_list *list) {
-	list->list = (wispy_device_rec *) malloc(sizeof(wispy_device_rec) * MAX_SCAN_RESULT);
+void spectool_device_scan_init(spectool_device_list *list) {
+	list->list = (spectool_device_rec *) malloc(sizeof(spectool_device_rec) * MAX_SCAN_RESULT);
 	list->num_devs = 0;
 	list->max_devs = MAX_SCAN_RESULT;
 }
 
-int wispy_device_scan(wispy_device_list *list) {
-	wispy_device_scan_init(list);
+int spectool_device_scan(spectool_device_list *list) {
+	spectool_device_scan_init(list);
 
 	if (wispy1_usb_device_scan(list) < 0) {
 		return -1;
@@ -274,7 +274,7 @@ int wispy_device_scan(wispy_device_list *list) {
 	return list->num_devs;
 }
 
-void wispy_device_scan_free(wispy_device_list *list) {
+void spectool_device_scan_free(spectool_device_list *list) {
 	int x;
 
 	for (x = 0; x < list->num_devs && x < list->max_devs; x++) {
@@ -289,11 +289,11 @@ void wispy_device_scan_free(wispy_device_list *list) {
 		free(list->list);
 }
 
-int wispy_device_init(wispy_phy *phydev, wispy_device_rec *rec) {
+int spectool_device_init(spectool_phy *phydev, spectool_device_rec *rec) {
 	return (*(rec->init_func))(phydev, rec);
 }
 
-wispy_sample_sweep *wispy_phy_getcurprofile(wispy_phy *phydev) {
+spectool_sample_sweep *spectool_phy_getcurprofile(spectool_phy *phydev) {
 	if (phydev == NULL)
 		return NULL;
 

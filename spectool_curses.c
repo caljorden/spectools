@@ -16,7 +16,7 @@
 #include "spectool_container.h"
 #include "spectool_net_client.h"
 
-wispy_phy *dev = NULL;
+spectool_phy *dev = NULL;
 
 void sighandle(int sig) {
 	int x;
@@ -38,12 +38,12 @@ void Usage(void) {
 }
 
 int main(int argc, char *argv[]) {
-	wispy_device_list list;
+	spectool_device_list list;
 	int x = 0, r = 0, y = 0, ndev = 0;
-	wispy_sample_sweep *sb = NULL;
-	wispy_sweep_cache *sweepcache = NULL;
+	spectool_sample_sweep *sb = NULL;
+	spectool_sweep_cache *sweepcache = NULL;
 	spectool_server sr;
-	char errstr[WISPY_ERROR_MAX];
+	char errstr[SPECTOOL_ERROR_MAX];
 	int ret;
 
 	WINDOW *window;
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
 
 	char *neturl = NULL;
 
-	ndev = wispy_device_scan(&list);
+	ndev = spectool_device_scan(&list);
 
 	while (1) {
 		int o = getopt_long(argc, argv, "n:ld:r:h",
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
 
 	if (list_only) {
 		if (ndev <= 0) {
-			printf("No wispy devices found, bailing\n");
+			printf("No spectool devices found, bailing\n");
 			exit(1);
 		}
 
@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
 				   x, list.list[x].name, list.list[x].device_id);
 
 			for (r = 0; r < list.list[x].num_sweep_ranges; r++) {
-				wispy_sample_sweep *ran = 
+				spectool_sample_sweep *ran = 
 					&(list.list[x].supported_ranges[r]);
 
 				printf("  Range %d: \"%s\" %d%s-%d%s @ %0.2f%s, %d samples\n", r, 
@@ -164,11 +164,11 @@ int main(int argc, char *argv[]) {
 		printf("Connected to server, waiting for device list...\n");
 	} else if (neturl == NULL) {
 		if (ndev <= 0) {
-			printf("No wispy devices found, bailing\n");
+			printf("No spectool devices found, bailing\n");
 			exit(1);
 		}
 
-		printf("Found %d wispy devices...\n", ndev);
+		printf("Found %d spectool devices...\n", ndev);
 
 		if (ndev > 1 && device == -1) {
 			printf("spectool-curses can only display one device, specify one with "
@@ -184,32 +184,32 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		}
 
-		dev = (wispy_phy *) malloc(WISPY_PHY_SIZE);
+		dev = (spectool_phy *) malloc(SPECTOOL_PHY_SIZE);
 		dev->next = NULL;
 
-		if (wispy_device_init(dev, &(list.list[device])) < 0) {
+		if (spectool_device_init(dev, &(list.list[device])) < 0) {
 			printf("Error initializing WiSPY device %s id %u\n",
 				   list.list[device].name, list.list[device].device_id);
-			printf("%s\n", wispy_get_error(dev));
+			printf("%s\n", spectool_get_error(dev));
 			exit(1);
 		}
 
-		if (wispy_phy_open(dev) < 0) {
+		if (spectool_phy_open(dev) < 0) {
 			printf("Error opening WiSPY device %s id %u\n",
 				   list.list[device].name, list.list[device].device_id);
-			printf("%s\n", wispy_get_error(dev));
+			printf("%s\n", spectool_get_error(dev));
 			exit(1);
 		}
 
-		wispy_phy_setcalibration(dev, 1);
+		spectool_phy_setcalibration(dev, 1);
 
 		/* Configure the range */
-		wispy_phy_setposition(dev, range, 0, 0);
+		spectool_phy_setposition(dev, range, 0, 0);
 
-		wispy_device_scan_free(&list); 
+		spectool_device_scan_free(&list); 
 	}
 
-	sweepcache = wispy_cache_alloc(50, 1, 1);
+	sweepcache = spectool_cache_alloc(50, 1, 1);
 
 	/* Fire up curses */
 	initscr();
@@ -244,11 +244,11 @@ int main(int argc, char *argv[]) {
 		FD_ZERO(&rfds);
 		FD_ZERO(&wfds);
 
-		if (wispy_phy_getpollfd(dev) >= 0) {
-			FD_SET(wispy_phy_getpollfd(dev), &rfds);
+		if (spectool_phy_getpollfd(dev) >= 0) {
+			FD_SET(spectool_phy_getpollfd(dev), &rfds);
 
-			if (wispy_phy_getpollfd(dev) > maxfd)
-				maxfd = wispy_phy_getpollfd(dev);
+			if (spectool_phy_getpollfd(dev) > maxfd)
+				maxfd = spectool_phy_getpollfd(dev);
 		}
 
 		if (neturl != NULL) {
@@ -271,7 +271,7 @@ int main(int argc, char *argv[]) {
 		tm.tv_usec = 10000;
 
 		if (select(maxfd + 1, &rfds, &wfds, NULL, &tm) < 0) {
-			printf("wispy_raw select() error: %s\n", strerror(errno));
+			printf("spectool_raw select() error: %s\n", strerror(errno));
 			exit(1);
 		}
 
@@ -301,53 +301,53 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-		if (wispy_phy_getpollfd(dev) < 0) {
-			if (wispy_get_state(dev) == WISPY_STATE_ERROR) {
-				printf("Error polling wispy device %s\n",
-					   wispy_phy_getname(dev));
-				printf("%s\n", wispy_get_error(dev));
+		if (spectool_phy_getpollfd(dev) < 0) {
+			if (spectool_get_state(dev) == SPECTOOL_STATE_ERROR) {
+				printf("Error polling spectool device %s\n",
+					   spectool_phy_getname(dev));
+				printf("%s\n", spectool_get_error(dev));
 				exit(1);
 			}
 		}
 
-		if (FD_ISSET(wispy_phy_getpollfd(dev), &rfds) == 0) {
+		if (FD_ISSET(spectool_phy_getpollfd(dev), &rfds) == 0) {
 			continue;
 		}
 
 		do {
-			r = wispy_phy_poll(dev);
+			r = spectool_phy_poll(dev);
 
-			if ((r & WISPY_POLL_CONFIGURED)) {
-				wispy_sample_sweep *ran = &(dev->device_spec->supported_ranges[0]);
+			if ((r & SPECTOOL_POLL_CONFIGURED)) {
+				spectool_sample_sweep *ran = &(dev->device_spec->supported_ranges[0]);
 
 				amp_offset_mdbm = ran->amp_offset_mdbm;
 				amp_res_mdbm = ran->amp_res_mdbm;
 				base_db_offset =
-					WISPY_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm,
+					SPECTOOL_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm,
 									   ran->rssi_max);
 				min_db_draw =
-					WISPY_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm, 0);
+					SPECTOOL_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm, 0);
 
 				continue;
-			} else if ((r & WISPY_POLL_ERROR)) {
-				printf("Error polling wispy device %s\n",
-					   wispy_phy_getname(dev));
-				printf("%s\n", wispy_get_error(dev));
+			} else if ((r & SPECTOOL_POLL_ERROR)) {
+				printf("Error polling spectool device %s\n",
+					   spectool_phy_getname(dev));
+				printf("%s\n", spectool_get_error(dev));
 				exit(1);
-			} else if ((r & WISPY_POLL_SWEEPCOMPLETE)) {
-				sb = wispy_phy_getsweep(dev);
+			} else if ((r & SPECTOOL_POLL_SWEEPCOMPLETE)) {
+				sb = spectool_phy_getsweep(dev);
 				if (sb == NULL)
 					continue;
 
-				wispy_cache_append(sweepcache, sb);
+				spectool_cache_append(sweepcache, sb);
 
 				min_db_draw =
-					WISPY_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm,
+					SPECTOOL_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm,
 									   sb->min_rssi_seen > 2 ?
 									   sb->min_rssi_seen - 1 : sb->min_rssi_seen);
 
 			}
-		} while ((r & WISPY_POLL_ADDITIONAL));
+		} while ((r & SPECTOOL_POLL_ADDITIONAL));
 
 		/* Redraw the windows */
 		werase(sigwin);
@@ -371,7 +371,7 @@ int main(int argc, char *argv[]) {
 				(float) ((float) (abs(x) + base_db_offset) /
 						 (float) (abs(min_db_draw) + base_db_offset));
 
-			snprintf(errstr, WISPY_ERROR_MAX, "%d", x);
+			snprintf(errstr, SPECTOOL_ERROR_MAX, "%d", x);
 			mvwaddstr(sigwin, py + 1, 0, errstr);
 		}
 
@@ -411,8 +411,8 @@ int main(int argc, char *argv[]) {
 			if (nuse == 0)
 				continue;
 
-			avg = WISPY_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm, (avg / nuse));
-			avgc = WISPY_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm, (avgc / nuse));
+			avg = SPECTOOL_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm, (avg / nuse));
+			avgc = SPECTOOL_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm, (avgc / nuse));
 
 			py = (float) (LINES - 4) *
 				(float) ((float) (abs(avg) + base_db_offset) /
@@ -464,8 +464,8 @@ int main(int argc, char *argv[]) {
 			if (nuse == 0)
 				continue;
 
-			avg = WISPY_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm, (avg / nuse));
-			avgc = WISPY_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm, (avgc / nuse));
+			avg = SPECTOOL_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm, (avg / nuse));
+			avgc = SPECTOOL_RSSI_CONVERT(amp_offset_mdbm, amp_res_mdbm, (avgc / nuse));
 
 			py = (float) (LINES - 4) *
 				(float) ((float) (abs(avg) + base_db_offset) /

@@ -1,4 +1,4 @@
-/* Wispy signal graph
+/* Spectool signal graph
  *
  * GTK widget implementation
  *
@@ -20,8 +20,8 @@
 
 #include "config.h"
 
-#ifndef __WISPY_PLANAR_WIDGET_H__
-#define __WISPY_PLANAR_WIDGET_H__
+#ifndef __SPECTOOL_PLANAR_WIDGET_H__
+#define __SPECTOOL_PLANAR_WIDGET_H__
 
 #ifdef HAVE_GTK
 
@@ -34,35 +34,35 @@
 
 G_BEGIN_DECLS
 
-#define WISPY_TYPE_PLANAR \
-	(wispy_planar_get_type())
-#define WISPY_PLANAR(obj) \
+#define SPECTOOL_TYPE_PLANAR \
+	(spectool_planar_get_type())
+#define SPECTOOL_PLANAR(obj) \
 	(G_TYPE_CHECK_INSTANCE_CAST((obj), \
-	WISPY_TYPE_PLANAR, WispyPlanar))
-#define WISPY_PLANAR_CLASS(klass) \
+	SPECTOOL_TYPE_PLANAR, SpectoolPlanar))
+#define SPECTOOL_PLANAR_CLASS(klass) \
 	(G_TYPE_CHECK_CLASS_CAST((klass), \
-	WISPY_TYPE_PLANAR, WispyPlanarClass))
-#define IS_WISPY_PLANAR(obj) \
+	SPECTOOL_TYPE_PLANAR, SpectoolPlanarClass))
+#define IS_SPECTOOL_PLANAR(obj) \
 	(G_TYPE_CHECK_INSTANCE_TYPE((obj), \
-	WISPY_TYPE_PLANAR))
-#define IS_WISPY_PLANAR_CLASS(klass) \
+	SPECTOOL_TYPE_PLANAR))
+#define IS_SPECTOOL_PLANAR_CLASS(klass) \
 	(G_TYPE_CHECK_CLASS_TYPE((class), \
-	WISPY_TYPE_PLANAR))
+	SPECTOOL_TYPE_PLANAR))
 
-typedef struct _WispyPlanar WispyPlanar;
-typedef struct _WispyPlanarClass WispyPlanarClass;
+typedef struct _SpectoolPlanar SpectoolPlanar;
+typedef struct _SpectoolPlanarClass SpectoolPlanarClass;
 
-#define WISPY_PLANAR_NUM_SAMPLES		250
+#define SPECTOOL_PLANAR_NUM_SAMPLES		250
 
-typedef struct _wispy_planar_marker {
+typedef struct _spectool_planar_marker {
 	double r, g, b;
 	GdkPixbuf *pixbuf;
 	int samp_num;
 	int cur, avg, peak;
-} wispy_planar_marker;
+} spectool_planar_marker;
 
-struct _WispyPlanar {
-	WispyWidget parent;
+struct _SpectoolPlanar {
+	SpectoolWidget parent;
 
 	/* What components do we draw */
 	int draw_markers;
@@ -78,17 +78,17 @@ struct _WispyPlanar {
 	GtkWidget *mkr_treeview;
 	GtkListStore *mkr_treelist;
 	GList *mkr_list;
-	wispy_planar_marker *cur_mkr;
+	spectool_planar_marker *cur_mkr;
 	GtkWidget *mkr_newbutton, *mkr_delbutton;
 };
 
-struct _WispyPlanarClass {
-	WispyWidgetClass parent_class;
+struct _SpectoolPlanarClass {
+	SpectoolWidgetClass parent_class;
 };
 
-GType wispy_planar_get_type(void);
-GtkWidget *wispy_planar_new();
-void wispy_planar_clear(void);
+GType spectool_planar_get_type(void);
+GtkWidget *spectool_planar_new();
+void spectool_planar_clear(void);
 
 G_END_DECLS
 

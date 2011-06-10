@@ -26,7 +26,7 @@ char spectral_help_txt[] =
 "\"Waterfall\" style view over time showing the peak spectrum usage for each "
 "time slice.";
 
-/* Default set of colors inherited from the old wispy_gtk code */
+/* Default set of colors inherited from the old spectool_gtk code */
 float spect_default_colormap[] = {
 	HC2CC(0x00), HC2CC(0x45), HC2CC(0xFE),
 	HC2CC(0x00), HC2CC(0x5C), HC2CC(0xFE),
@@ -117,17 +117,17 @@ float spect_21_colormap[] = {
 };
 int spect_21_colormap_len = 50;
 
-static void wispy_spectral_class_init(WispySpectralClass *class);
-static void wispy_spectral_init(WispySpectral *graph);
-static void wispy_spectral_destroy(GtkObject *object);
+static void spectool_spectral_class_init(SpectoolSpectralClass *class);
+static void spectool_spectral_init(SpectoolSpectral *graph);
+static void spectool_spectral_destroy(GtkObject *object);
 
-static gint wispy_spectral_configure(GtkWidget *widget, 
+static gint spectool_spectral_configure(GtkWidget *widget, 
 									 GdkEventConfigure *event);
 
-G_DEFINE_TYPE(WispySpectral, wispy_spectral, WISPY_TYPE_WIDGET);
+G_DEFINE_TYPE(SpectoolSpectral, spectool_spectral, SPECTOOL_TYPE_WIDGET);
 
-void wispy_spectral_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
-	WispySpectral *spectral;
+void spectool_spectral_draw(GtkWidget *widget, cairo_t *cr, SpectoolWidget *wwidget) {
+	SpectoolSpectral *spectral;
 	int nsamp, pos, sp;
 	int sh, b_s_y;
 	cairo_pattern_t *pattern;
@@ -138,7 +138,7 @@ void wispy_spectral_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 
 	g_return_if_fail(widget != NULL);
 
-	spectral = WISPY_SPECTRAL(wwidget);
+	spectral = SPECTOOL_SPECTRAL(wwidget);
 
 	cairo_save(cr);
 
@@ -173,7 +173,7 @@ void wispy_spectral_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 	pos = 0;
 	while (nsamp != wwidget->sweepcache->pos && 
 		   pos <= wwidget->sweepcache->num_alloc) {
-		wispy_sample_sweep *samp;
+		spectool_sample_sweep *samp;
 
 		/* Loop around the ring */
 		if (nsamp >= wwidget->sweepcache->num_alloc)
@@ -216,7 +216,7 @@ void wispy_spectral_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 			for (sp = 0; sp < samp->num_samples - 1; sp++) {
 				int cpos;
 				int sdb = 
-					WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
+					SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
 									   samp->sample_data[sp]);
 
 				cpos = 
@@ -236,9 +236,9 @@ void wispy_spectral_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 				 * them that way */
 				cairo_pattern_add_color_stop_rgb(pattern,
 								 (float) (sp) / (samp->num_samples - 1),
-								 WISPY_SPECTRAL_COLOR(spectral->colormap, cpos, 0),
-								 WISPY_SPECTRAL_COLOR(spectral->colormap, cpos, 1),
-								 WISPY_SPECTRAL_COLOR(spectral->colormap, cpos, 2));
+								 SPECTOOL_SPECTRAL_COLOR(spectral->colormap, cpos, 0),
+								 SPECTOOL_SPECTRAL_COLOR(spectral->colormap, cpos, 1),
+								 SPECTOOL_SPECTRAL_COLOR(spectral->colormap, cpos, 2));
 			}
 
 			/* Draw a line over our pixmap */
@@ -267,12 +267,12 @@ void wispy_spectral_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 	cairo_restore(cr);
 }
 
-static void wispy_spectral_size_allocate(GtkWidget *widget,
+static void spectool_spectral_size_allocate(GtkWidget *widget,
 										 GtkAllocation *allocation) {
-	WispySpectral *spectral = WISPY_SPECTRAL(widget);
+	SpectoolSpectral *spectral = SPECTOOL_SPECTRAL(widget);
 	int x;
 
-	GTK_WIDGET_CLASS(wispy_spectral_parent_class)->size_allocate(widget, allocation);
+	GTK_WIDGET_CLASS(spectool_spectral_parent_class)->size_allocate(widget, allocation);
 
 	/* Wipe the line cache on resize */
 	if (allocation->width != spectral->oldx ||
@@ -292,7 +292,7 @@ static void wispy_spectral_size_allocate(GtkWidget *widget,
 	}
 }
 
-static void wispy_spectral_class_init(WispySpectralClass *class) {
+static void spectool_spectral_class_init(SpectoolSpectralClass *class) {
 	GObjectClass *gobject_class;
 	GtkObjectClass *object_class;
 	GtkWidgetClass *widget_class;
@@ -301,52 +301,52 @@ static void wispy_spectral_class_init(WispySpectralClass *class) {
 	object_class = GTK_OBJECT_CLASS(class);
 	widget_class = GTK_WIDGET_CLASS(class);
 
-	object_class->destroy = wispy_spectral_destroy;
-	widget_class->size_allocate = wispy_spectral_size_allocate;
+	object_class->destroy = spectool_spectral_destroy;
+	widget_class->size_allocate = spectool_spectral_size_allocate;
 }
 
-static void wispy_spectral_destroy(GtkObject *object) {
-	WispySpectral *spectral = WISPY_SPECTRAL(object);
-	WispyWidget *wwidget;
+static void spectool_spectral_destroy(GtkObject *object) {
+	SpectoolSpectral *spectral = SPECTOOL_SPECTRAL(object);
+	SpectoolWidget *wwidget;
 
-	wwidget = WISPY_WIDGET(spectral);
+	wwidget = SPECTOOL_WIDGET(spectral);
 
-	GTK_OBJECT_CLASS(wispy_spectral_parent_class)->destroy(object);
+	GTK_OBJECT_CLASS(spectool_spectral_parent_class)->destroy(object);
 }
 
-static void wispy_spectral_wdr_devbind(GtkWidget *widget, wispy_device_registry *wdr,
+static void spectool_spectral_wdr_devbind(GtkWidget *widget, spectool_device_registry *wdr,
 									   int slot) {
-	WispySpectral *spectral;
-	WispyWidget *wwidget;
+	SpectoolSpectral *spectral;
+	SpectoolWidget *wwidget;
 
 	g_return_if_fail(widget != NULL);
-	g_return_if_fail(IS_WISPY_SPECTRAL(widget));
-	g_return_if_fail(IS_WISPY_WIDGET(widget));
+	g_return_if_fail(IS_SPECTOOL_SPECTRAL(widget));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(widget));
 
-	spectral = WISPY_SPECTRAL(widget);
-	wwidget = WISPY_WIDGET(widget);
+	spectral = SPECTOOL_SPECTRAL(widget);
+	wwidget = SPECTOOL_WIDGET(widget);
 }
 
-static void wispy_spectral_wdr_sweep(int slot, int mode, 
-									 wispy_sample_sweep *sweep, 
+static void spectool_spectral_wdr_sweep(int slot, int mode, 
+									 spectool_sample_sweep *sweep, 
 									 void *aux) {
-	WispySpectral *spectral;
-	WispyWidget *wwidget;
+	SpectoolSpectral *spectral;
+	SpectoolWidget *wwidget;
 	int x, tout;
-	wispy_phy *pd;
+	spectool_phy *pd;
 
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_SPECTRAL(aux));
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
+	g_return_if_fail(IS_SPECTOOL_SPECTRAL(aux));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
 
-	spectral = WISPY_SPECTRAL(aux);
-	wwidget = WISPY_WIDGET(aux);
+	spectral = SPECTOOL_SPECTRAL(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
 
 	tout = wwidget->draw_timeout;
 
 	/* Update the timer */
 	if (sweep != NULL && sweep->phydev != NULL) {
-		pd = (wispy_phy *) sweep->phydev;
+		pd = (spectool_phy *) sweep->phydev;
 #ifdef HAVE_HILDON
 		tout = 500 * pd->draw_agg_suggestion;
 #else
@@ -359,10 +359,10 @@ static void wispy_spectral_wdr_sweep(int slot, int mode,
 		g_source_remove(wwidget->timeout_ref);
 		wwidget->timeout_ref = 
 			g_timeout_add(wwidget->draw_timeout, 
-						  (GSourceFunc) wispy_widget_timeout, wwidget);
+						  (GSourceFunc) spectool_widget_timeout, wwidget);
 	}
 
-	if ((mode & WISPY_POLL_CONFIGURED)) {
+	if ((mode & SPECTOOL_POLL_CONFIGURED)) {
 		/* Allocate the cache of lines to draw */
 		if (spectral->line_cache != NULL) {
 			for (x = 0; x < spectral->line_cache_len; x++) {
@@ -382,7 +382,7 @@ static void wispy_spectral_wdr_sweep(int slot, int mode,
 		for (x = 0; x < spectral->line_cache_len; x++) {
 			spectral->line_cache[x] = NULL;
 		}
-	} else if ((mode & WISPY_POLL_SWEEPCOMPLETE)) {
+	} else if ((mode & SPECTOOL_POLL_SWEEPCOMPLETE)) {
 		/* Null out this sweep in the cache so we have to recalculate it */
 		if (wwidget->sweepcache->pos >= 0 && 
 			wwidget->sweepcache->pos < spectral->line_cache_len) {
@@ -395,31 +395,31 @@ static void wispy_spectral_wdr_sweep(int slot, int mode,
 	}
 }
 
-GtkWidget *wispy_spectral_new(void) {
-	WispySpectral *spectral;
-	WispyWidget *wwidget;
+GtkWidget *spectool_spectral_new(void) {
+	SpectoolSpectral *spectral;
+	SpectoolWidget *wwidget;
 
-	spectral = gtk_type_new(wispy_spectral_get_type());
+	spectral = gtk_type_new(spectool_spectral_get_type());
 
-	wwidget = WISPY_WIDGET(spectral);
+	wwidget = SPECTOOL_WIDGET(spectral);
 
 	return GTK_WIDGET(spectral);
 }
 
-static gboolean wispy_spectral_legend_expose(GtkWidget *widget,
+static gboolean spectool_spectral_legend_expose(GtkWidget *widget,
 											 GdkEventExpose *event,
 											 gpointer *aux) {
 	cairo_t *cr;
 	int x, y, w, h, dw, dh;
-	WispySpectral *spectral;
+	SpectoolSpectral *spectral;
 	cairo_pattern_t *pattern;
 	int cp;
 
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_SPECTRAL(aux));
+	g_return_if_fail(IS_SPECTOOL_SPECTRAL(aux));
 
-	spectral = WISPY_SPECTRAL(aux);
+	spectral = SPECTOOL_SPECTRAL(aux);
 
 	cr = gdk_cairo_create(widget->window);
 
@@ -446,9 +446,9 @@ static gboolean wispy_spectral_legend_expose(GtkWidget *widget,
 	for (cp = 0; cp < spectral->colormap_len; cp++) {
 		cairo_pattern_add_color_stop_rgb(pattern,
 										 (float) (cp) / (spectral->colormap_len),
-								 WISPY_SPECTRAL_COLOR(spectral->colormap, cp, 0),
-								 WISPY_SPECTRAL_COLOR(spectral->colormap, cp, 1),
-								 WISPY_SPECTRAL_COLOR(spectral->colormap, cp, 2));
+								 SPECTOOL_SPECTRAL_COLOR(spectral->colormap, cp, 0),
+								 SPECTOOL_SPECTRAL_COLOR(spectral->colormap, cp, 1),
+								 SPECTOOL_SPECTRAL_COLOR(spectral->colormap, cp, 2));
 	}
 
 	cairo_set_source(cr, pattern);
@@ -461,21 +461,21 @@ static gboolean wispy_spectral_legend_expose(GtkWidget *widget,
 	return FALSE;
 }
 
-void wispy_spectral_context_help(gpointer *aux) {
-	Wispy_Help_Dialog("Spectral View", spectral_help_txt);
+void spectool_spectral_context_help(gpointer *aux) {
+	Spectool_Help_Dialog("Spectral View", spectral_help_txt);
 }
 
-static void wispy_spectral_init(WispySpectral *spectral) {
-	WispyWidget *wwidget;
+static void spectool_spectral_init(SpectoolSpectral *spectral) {
+	SpectoolWidget *wwidget;
 
 	GtkWidget *temp;
 	GtkWidget *legendv, *legendh;
 	PangoAttrList *attr_list;
 	PangoAttribute *attr;
 
-	wwidget = WISPY_WIDGET(spectral);
+	wwidget = SPECTOOL_WIDGET(spectral);
 
-	wwidget->sweep_num_samples = WISPY_SPECTRAL_NUM_SAMPLES;
+	wwidget->sweep_num_samples = SPECTOOL_SPECTRAL_NUM_SAMPLES;
 	wwidget->sweep_keep_avg = 0;
 	wwidget->sweep_keep_peak = 0;
 
@@ -492,8 +492,8 @@ static void wispy_spectral_init(WispySpectral *spectral) {
 	wwidget->show_dbm = 0;
 	wwidget->show_dbm_lines = 0;
 
-	wwidget->wdr_sweep_func = wispy_spectral_wdr_sweep;
-	wwidget->wdr_devbind_func = wispy_spectral_wdr_devbind;
+	wwidget->wdr_sweep_func = spectool_spectral_wdr_sweep;
+	wwidget->wdr_devbind_func = spectool_spectral_wdr_devbind;
 	wwidget->draw_mouse_move_func = NULL;
 	wwidget->draw_mouse_click_func = NULL;
 #ifdef HAVE_HILDON
@@ -501,19 +501,19 @@ static void wispy_spectral_init(WispySpectral *spectral) {
 #else
 	wwidget->draw_timeout = 500;
 #endif
-	wwidget->draw_func = wispy_spectral_draw;
+	wwidget->draw_func = spectool_spectral_draw;
 
 	wwidget->menu_func = NULL;
-	wwidget->help_func = wispy_spectral_context_help;
+	wwidget->help_func = spectool_spectral_context_help;
 
 	spectral->colormap = spect_21_colormap;
 	spectral->colormap_len = spect_21_colormap_len;
 
 	wwidget->timeout_ref = 
 		g_timeout_add(wwidget->draw_timeout, 
-					  (GSourceFunc) wispy_widget_timeout, wwidget);
+					  (GSourceFunc) spectool_widget_timeout, wwidget);
 
-	wispy_widget_buildgui(wwidget);
+	spectool_widget_buildgui(wwidget);
 
 	temp = gtk_frame_new("Legend");
 	gtk_box_pack_start(GTK_BOX(wwidget->vbox), temp, FALSE, FALSE, 2);
@@ -528,7 +528,7 @@ static void wispy_spectral_init(WispySpectral *spectral) {
 	gtk_box_pack_start(GTK_BOX(legendv), spectral->legend_pix, FALSE, FALSE, 2);
 	gtk_drawing_area_size(GTK_DRAWING_AREA(spectral->legend_pix), -1, 10);
 	gtk_signal_connect(GTK_OBJECT(spectral->legend_pix), "expose_event",
-					   (GtkSignalFunc) wispy_spectral_legend_expose, spectral);
+					   (GtkSignalFunc) spectool_spectral_legend_expose, spectral);
 
 	attr_list = pango_attr_list_new();
 	attr = pango_attr_size_new(7.0 * PANGO_SCALE);

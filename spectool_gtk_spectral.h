@@ -1,4 +1,4 @@
-/* Wispy signal graph
+/* Spectool signal graph
  *
  * GTK widget implementation
  *
@@ -20,8 +20,8 @@
 
 #include "config.h"
 
-#ifndef __WISPY_SPECTRAL_WIDGET_H__
-#define __WISPY_SPECTRAL_WIDGET_H__
+#ifndef __SPECTOOL_SPECTRAL_WIDGET_H__
+#define __SPECTOOL_SPECTRAL_WIDGET_H__
 
 #ifdef HAVE_GTK
 
@@ -34,31 +34,31 @@
 
 G_BEGIN_DECLS
 
-#define WISPY_TYPE_SPECTRAL \
-	(wispy_spectral_get_type())
-#define WISPY_SPECTRAL(obj) \
+#define SPECTOOL_TYPE_SPECTRAL \
+	(spectool_spectral_get_type())
+#define SPECTOOL_SPECTRAL(obj) \
 	(G_TYPE_CHECK_INSTANCE_CAST((obj), \
-	WISPY_TYPE_SPECTRAL, WispySpectral))
-#define WISPY_SPECTRAL_CLASS(klass) \
+	SPECTOOL_TYPE_SPECTRAL, SpectoolSpectral))
+#define SPECTOOL_SPECTRAL_CLASS(klass) \
 	(G_TYPE_CHECK_CLASS_CAST((klass), \
-	WISPY_TYPE_SPECTRAL, WispySpectralClass))
-#define IS_WISPY_SPECTRAL(obj) \
+	SPECTOOL_TYPE_SPECTRAL, SpectoolSpectralClass))
+#define IS_SPECTOOL_SPECTRAL(obj) \
 	(G_TYPE_CHECK_INSTANCE_TYPE((obj), \
-	WISPY_TYPE_SPECTRAL))
-#define IS_WISPY_SPECTRAL_CLASS(klass) \
+	SPECTOOL_TYPE_SPECTRAL))
+#define IS_SPECTOOL_SPECTRAL_CLASS(klass) \
 	(G_TYPE_CHECK_CLASS_TYPE((class), \
-	WISPY_TYPE_SPECTRAL))
+	SPECTOOL_TYPE_SPECTRAL))
 
-typedef struct _WispySpectral WispySpectral;
-typedef struct _WispySpectralClass WispySpectralClass;
+typedef struct _SpectoolSpectral SpectoolSpectral;
+typedef struct _SpectoolSpectralClass SpectoolSpectralClass;
 
-#define WISPY_SPECTRAL_NUM_SAMPLES		100
+#define SPECTOOL_SPECTRAL_NUM_SAMPLES		100
 
 /* Access the color array */
-#define WISPY_SPECTRAL_COLOR(a, b, c)	((a)[((b) * 3) + c])
+#define SPECTOOL_SPECTRAL_COLOR(a, b, c)	((a)[((b) * 3) + c])
 
-struct _WispySpectral {
-	WispyWidget parent;
+struct _SpectoolSpectral {
+	SpectoolWidget parent;
 
 	GtkWidget *sweepinfo;
 
@@ -74,13 +74,13 @@ struct _WispySpectral {
 	int oldx, oldy;
 };
 
-struct _WispySpectralClass {
-	WispyWidgetClass parent_class;
+struct _SpectoolSpectralClass {
+	SpectoolWidgetClass parent_class;
 };
 
-GType wispy_spectral_get_type(void);
-GtkWidget *wispy_spectral_new(void);
-void wispy_spectral_clear(void);
+GType spectool_spectral_get_type(void);
+GtkWidget *spectool_spectral_new(void);
+void spectool_spectral_clear(void);
 
 G_END_DECLS
 

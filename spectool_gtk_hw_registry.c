@@ -21,7 +21,7 @@
 #include "spectool_net.h"
 #include "spectool_net_client.h"
 
-void wdr_init(wispy_device_registry *wdr) {
+void wdr_init(spectool_device_registry *wdr) {
 	int x = 0;
 
 	wdr->max_dev = WDR_MAX_DEV - 1;
@@ -41,7 +41,7 @@ void wdr_init(wispy_device_registry *wdr) {
 	wdr->bcastsock = -1;
 }
 
-void wdr_free(wispy_device_registry *wdr) {
+void wdr_free(spectool_device_registry *wdr) {
 	int x = 0;
 
 	for (x = 0; x < WDR_MAX_DEV; x++) {
@@ -49,7 +49,7 @@ void wdr_free(wispy_device_registry *wdr) {
 			continue;
 
 		/* Close it */
-		wispy_phy_close(wdr->devices[x]->phydev);
+		spectool_phy_close(wdr->devices[x]->phydev);
 
 		g_list_free(wdr->devices[x]->sweep_cb_l);
 
@@ -61,10 +61,10 @@ void wdr_free(wispy_device_registry *wdr) {
 	}
 }
 
-int wdr_open_add(wispy_device_registry *wdr, wispy_device_rec *devrec, int pos,
+int wdr_open_add(spectool_device_registry *wdr, spectool_device_rec *devrec, int pos,
 				 char *errstr) {
 	int x;
-	wispy_phy *phydev;
+	spectool_phy *phydev;
 	wdr_reg_dev *regdev;
 
 	for (x = 0; x < wdr->max_dev; x++) {
@@ -78,32 +78,32 @@ int wdr_open_add(wispy_device_registry *wdr, wispy_device_rec *devrec, int pos,
 	}
 
 	if (wdr->cur_dev >= wdr->max_dev) {
-		snprintf(errstr, WISPY_ERROR_MAX, "WDR registry full");
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "WDR registry full");
 		return -1;
 	}
 
-	phydev = (wispy_phy *) malloc(WISPY_PHY_SIZE);
+	phydev = (spectool_phy *) malloc(SPECTOOL_PHY_SIZE);
 
-	if (wispy_device_init(phydev, devrec) < 0) {
+	if (spectool_device_init(phydev, devrec) < 0) {
 		printf("deug - wdr devinit failed\n");
-		snprintf(errstr, WISPY_ERROR_MAX, "Error initializing WiSPY device %s: %s",
-				 devrec->name, wispy_get_error(phydev));
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "Error initializing WiSPY device %s: %s",
+				 devrec->name, spectool_get_error(phydev));
 		free(phydev);
 		return -1;
 	}
 
-	if (wispy_phy_open(phydev) < 0) {
-		snprintf(errstr, WISPY_ERROR_MAX, "Error opening WiSPY device %s: %s",
-				 devrec->name, wispy_get_error(phydev));
+	if (spectool_phy_open(phydev) < 0) {
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "Error opening WiSPY device %s: %s",
+				 devrec->name, spectool_get_error(phydev));
 		free(phydev);
 		return -1;
 	}
 
 	/* We always want to calibrate it, imho */
-	wispy_phy_setcalibration(phydev, 1);
+	spectool_phy_setcalibration(phydev, 1);
 
 	/* Set the position to 0 for now */
-	wispy_phy_setposition(phydev, pos, 0, 0);
+	spectool_phy_setposition(phydev, pos, 0, 0);
 
 	regdev = (wdr_reg_dev *) malloc(sizeof(wdr_reg_dev));
 	regdev->phydev = phydev;
@@ -116,7 +116,7 @@ int wdr_open_add(wispy_device_registry *wdr, wispy_device_rec *devrec, int pos,
 	regdev->poll_rec = (wdr_poll_rec *) malloc(sizeof(wdr_poll_rec));
 	((wdr_poll_rec *) regdev->poll_rec)->wdr = wdr;
 
-	regdev->poll_tag = gdk_input_add(wispy_phy_getpollfd(phydev), 
+	regdev->poll_tag = gdk_input_add(spectool_phy_getpollfd(phydev), 
 									 GDK_INPUT_READ, 
 									 wdr_poll, regdev->poll_rec);
 
@@ -136,7 +136,7 @@ int wdr_open_add(wispy_device_registry *wdr, wispy_device_rec *devrec, int pos,
 	return x;
 }
 
-int wdr_open_phy(wispy_device_registry *wdr, wispy_phy *phydev, char *errstr) {
+int wdr_open_phy(spectool_device_registry *wdr, spectool_phy *phydev, char *errstr) {
 	int x;
 	wdr_reg_dev *regdev;
 
@@ -145,13 +145,13 @@ int wdr_open_phy(wispy_device_registry *wdr, wispy_phy *phydev, char *errstr) {
 			continue;
 
 		if (wdr->devices[x]->phydev->device_spec->device_id ==
-			wispy_phy_getdevid(phydev)) {
+			spectool_phy_getdevid(phydev)) {
 			return x;
 		}
 	}
 
 	if (wdr->cur_dev >= wdr->max_dev) {
-		snprintf(errstr, WISPY_ERROR_MAX, "WDR registry full");
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "WDR registry full");
 		return -1;
 	}
 
@@ -166,7 +166,7 @@ int wdr_open_phy(wispy_device_registry *wdr, wispy_phy *phydev, char *errstr) {
 	regdev->poll_rec = (wdr_poll_rec *) malloc(sizeof(wdr_poll_rec));
 	((wdr_poll_rec *) regdev->poll_rec)->wdr = wdr;
 
-	regdev->poll_tag = gdk_input_add(wispy_phy_getpollfd(phydev), 
+	regdev->poll_tag = gdk_input_add(spectool_phy_getpollfd(phydev), 
 									 GDK_INPUT_READ, 
 									 wdr_poll, regdev->poll_rec);
 
@@ -186,7 +186,7 @@ int wdr_open_phy(wispy_device_registry *wdr, wispy_phy *phydev, char *errstr) {
 	return x;
 }
 
-int wdr_open_net(wispy_device_registry *wdr, char *url, char *errstr) {
+int wdr_open_net(spectool_device_registry *wdr, char *url, char *errstr) {
 	int x;
 	spectool_server *netptr;
 
@@ -202,7 +202,7 @@ int wdr_open_net(wispy_device_registry *wdr, char *url, char *errstr) {
 	return x;
 }
 
-int wdr_open_netptr(wispy_device_registry *wdr, spectool_server *netptr, 
+int wdr_open_netptr(spectool_device_registry *wdr, spectool_server *netptr, 
 					char *errstr) {
 	int x;
 	wdr_reg_srv *wrs;
@@ -220,7 +220,7 @@ int wdr_open_netptr(wispy_device_registry *wdr, spectool_server *netptr,
 	}
 
 	if (wdr->cur_srv >= wdr->max_srv) {
-		snprintf(errstr, WISPY_ERROR_MAX, "WDR registry full");
+		snprintf(errstr, SPECTOOL_ERROR_MAX, "WDR registry full");
 		return -1;
 	}
 
@@ -262,7 +262,7 @@ int wdr_open_netptr(wispy_device_registry *wdr, spectool_server *netptr,
 	return x;
 }
 
-void wdr_close_net(wispy_device_registry *wdr, int slot) {
+void wdr_close_net(spectool_device_registry *wdr, int slot) {
 	if (slot < 0 || slot > wdr->max_srv)
 		return;
 
@@ -281,8 +281,8 @@ void wdr_close_net(wispy_device_registry *wdr, int slot) {
 	wdr->cur_srv--;
 }
 
-int wdr_enable_bcast(wispy_device_registry *wdr, char *errstr) {
-	if ((wdr->bcastsock = spectool_netcli_initbroadcast(WISPY_NET_DEFAULT_PORT,
+int wdr_enable_bcast(spectool_device_registry *wdr, char *errstr) {
+	if ((wdr->bcastsock = spectool_netcli_initbroadcast(SPECTOOL_NET_DEFAULT_PORT,
 														errstr)) < 0)
 		return -1;
 
@@ -293,7 +293,7 @@ int wdr_enable_bcast(wispy_device_registry *wdr, char *errstr) {
 	return 1;
 }
 
-void wdr_disable_bcast(wispy_device_registry *wdr) {
+void wdr_disable_bcast(spectool_device_registry *wdr) {
 	if (wdr->bcastsock >= 0) {
 		close(wdr->bcastsock);
 
@@ -304,17 +304,17 @@ void wdr_disable_bcast(wispy_device_registry *wdr) {
 }
 
 gboolean wdr_bcpoll(GIOChannel *ioch, GIOCondition cond, gpointer data) {
-	wispy_device_registry *wdr = (wispy_device_registry *) data;
+	spectool_device_registry *wdr = (spectool_device_registry *) data;
 	char bcasturl[SPECTOOL_NETCLI_URL_MAX];
-	char errstr[WISPY_ERROR_MAX];
-	char reperr[WISPY_ERROR_MAX];
+	char errstr[SPECTOOL_ERROR_MAX];
+	char reperr[SPECTOOL_ERROR_MAX];
 	int ret;
 
 	if ((ret = spectool_netcli_pollbroadcast(wdr->bcastsock, 
 											 bcasturl, errstr)) < 0) {
-		snprintf(reperr, WISPY_ERROR_MAX, "Error processing broadcast packet, disabling "
+		snprintf(reperr, SPECTOOL_ERROR_MAX, "Error processing broadcast packet, disabling "
 				 "broadcast detection: %s", errstr);
-		Wispy_Alert_Dialog(reperr);
+		Spectool_Alert_Dialog(reperr);
 		wdr_disable_bcast(wdr);
 		return FALSE;
 	} else if (ret > 0) {
@@ -324,7 +324,7 @@ gboolean wdr_bcpoll(GIOChannel *ioch, GIOCondition cond, gpointer data) {
 	return TRUE;
 }
 
-wispy_phy *wdr_get_phy(wispy_device_registry *wdr, int slot) {
+spectool_phy *wdr_get_phy(spectool_device_registry *wdr, int slot) {
 	if (slot < 0 || slot > wdr->max_dev)
 		return;
 
@@ -334,7 +334,7 @@ wispy_phy *wdr_get_phy(wispy_device_registry *wdr, int slot) {
 	return wdr->devices[slot]->phydev;
 }
 
-void wdr_add_ref(wispy_device_registry *wdr, int slot) {
+void wdr_add_ref(spectool_device_registry *wdr, int slot) {
 	if (slot < 0 || slot > wdr->max_dev)
 		return;
 
@@ -344,7 +344,7 @@ void wdr_add_ref(wispy_device_registry *wdr, int slot) {
 	wdr->devices[slot]->refcount++;
 }
 
-void wdr_del_ref(wispy_device_registry *wdr, int slot) {
+void wdr_del_ref(spectool_device_registry *wdr, int slot) {
 	if (slot < 0 || slot > wdr->max_dev)
 		return;
 
@@ -356,7 +356,7 @@ void wdr_del_ref(wispy_device_registry *wdr, int slot) {
 	if (wdr->devices[slot]->refcount > 0)
 		return;
 
-	wispy_phy_close(wdr->devices[slot]->phydev);
+	spectool_phy_close(wdr->devices[slot]->phydev);
 
 	g_list_free(wdr->devices[slot]->sweep_cb_l);
 
@@ -370,8 +370,8 @@ void wdr_del_ref(wispy_device_registry *wdr, int slot) {
 	wdr->cur_dev--;
 }
 
-void wdr_add_sweepcb(wispy_device_registry *wdr, int slot,
-					 void (*cb)(int, int, wispy_sample_sweep *, void *),
+void wdr_add_sweepcb(spectool_device_registry *wdr, int slot,
+					 void (*cb)(int, int, spectool_sample_sweep *, void *),
 					 int nagg, void *aux) {
 	wdr_reg_sweep_cb *wdrcb;
 
@@ -389,7 +389,7 @@ void wdr_add_sweepcb(wispy_device_registry *wdr, int slot,
 	if (nagg == 0) {
 		wdrcb->agg_sweep = NULL;
 	} else {
-		wdrcb->agg_sweep = wispy_cache_alloc(nagg, 1, 0);
+		wdrcb->agg_sweep = spectool_cache_alloc(nagg, 1, 0);
 	}
 	wdrcb->num_agg = nagg;
 	wdrcb->pos_agg = 0;
@@ -398,8 +398,8 @@ void wdr_add_sweepcb(wispy_device_registry *wdr, int slot,
 		g_list_append(wdr->devices[slot]->sweep_cb_l, wdrcb);
 }
 
-void wdr_del_sweepcb(wispy_device_registry *wdr, int slot,
-					 void (*cb)(int, int, wispy_sample_sweep *, void *),
+void wdr_del_sweepcb(spectool_device_registry *wdr, int slot,
+					 void (*cb)(int, int, spectool_sample_sweep *, void *),
 					 void *aux) {
 	GList *iter;
 
@@ -425,8 +425,8 @@ void wdr_del_sweepcb(wispy_device_registry *wdr, int slot,
 	}
 }
 
-void wdr_sweep_update(wispy_device_registry *wdr, int slot, 
-					  int mode, wispy_sample_sweep *sweep) {
+void wdr_sweep_update(spectool_device_registry *wdr, int slot, 
+					  int mode, spectool_sample_sweep *sweep) {
 	GList *iter;
 	wdr_reg_sweep_cb *scb;
 
@@ -447,12 +447,12 @@ void wdr_sweep_update(wispy_device_registry *wdr, int slot,
 		if (scb->agg_sweep == NULL || sweep == NULL) {
 			(*(scb->cb))(slot, mode, sweep, scb->aux);
 		} else {
-			wispy_cache_append(scb->agg_sweep, sweep);
+			spectool_cache_append(scb->agg_sweep, sweep);
 			scb->pos_agg++;
 
 			if (scb->pos_agg == scb->num_agg) {
 				(*(scb->cb))(slot, mode, scb->agg_sweep->peak, scb->aux);
-				wispy_cache_clear(scb->agg_sweep);
+				spectool_cache_clear(scb->agg_sweep);
 				scb->pos_agg = 0;
 			}
 		}
@@ -464,10 +464,10 @@ void wdr_sweep_update(wispy_device_registry *wdr, int slot,
 
 void wdr_poll(gpointer data, gint source, GdkInputCondition condition) {
 	wdr_poll_rec *wdrpr = (wdr_poll_rec *) data;
-	wispy_phy *phydev;
+	spectool_phy *phydev;
 	int r;
-	char err[WISPY_ERROR_MAX];
-	wispy_sample_sweep *sweep;
+	char err[SPECTOOL_ERROR_MAX];
+	spectool_sample_sweep *sweep;
 
 	if (wdrpr->slot < 0 || wdrpr->slot > wdrpr->wdr->max_dev)
 		return;
@@ -478,30 +478,30 @@ void wdr_poll(gpointer data, gint source, GdkInputCondition condition) {
 	phydev = wdrpr->wdr->devices[wdrpr->slot]->phydev;
 
 	do {
-		r = wispy_phy_poll(phydev);
+		r = spectool_phy_poll(phydev);
 
-		if ((r & WISPY_POLL_ERROR)) {
-			snprintf(err, WISPY_ERROR_MAX, "Error polling WiSPY device %s: %s",
-					 wispy_phy_getname(phydev), wispy_get_error(phydev));
-			/* wispy_phy_close(phydev); */
+		if ((r & SPECTOOL_POLL_ERROR)) {
+			snprintf(err, SPECTOOL_ERROR_MAX, "Error polling WiSPY device %s: %s",
+					 spectool_phy_getname(phydev), spectool_get_error(phydev));
+			/* spectool_phy_close(phydev); */
 
 			/* Push the error, this should result in all the graphs removing
 			 * their references to us */
 			wdr_sweep_update(wdrpr->wdr, wdrpr->slot, r, NULL);
 
 			/* Pop up the error */
-			Wispy_Alert_Dialog(err);
+			Spectool_Alert_Dialog(err);
 
 			/* remove us from being pollable, free our tracker ref.  No-one should
 			 * reference us anymore since we told them there was an error, so we
 			 * can drop out entirely */
 			gdk_input_remove(wdrpr->poll_tag);
 			return;
-		} else if ((r & WISPY_POLL_CONFIGURED)) {
+		} else if ((r & SPECTOOL_POLL_CONFIGURED)) {
 			wdr_sweep_update(wdrpr->wdr, wdrpr->slot, r, NULL);
 			return;
-		} else if ((r & WISPY_POLL_SWEEPCOMPLETE)) {
-			sweep = wispy_phy_getsweep(phydev);
+		} else if ((r & SPECTOOL_POLL_SWEEPCOMPLETE)) {
+			sweep = spectool_phy_getsweep(phydev);
 
 			if (sweep == NULL)
 				continue;
@@ -511,7 +511,7 @@ void wdr_poll(gpointer data, gint source, GdkInputCondition condition) {
 			continue;
 		}
 
-	} while ((r & WISPY_POLL_ADDITIONAL));
+	} while ((r & SPECTOOL_POLL_ADDITIONAL));
 
 	/* We do nothing otherwise, no events for partial polls */
 }
@@ -520,7 +520,7 @@ gboolean wdr_netrpoll(GIOChannel *ioch, GIOCondition cond, gpointer data) {
 	wdr_poll_rec *wdrpr = (wdr_poll_rec *) data;
 	spectool_server *sr;
 	int r;
-	char err[WISPY_ERROR_MAX];
+	char err[SPECTOOL_ERROR_MAX];
 
 	if (wdrpr->slot < 0 || wdrpr->slot > wdrpr->wdr->max_dev)
 		return;
@@ -534,7 +534,7 @@ gboolean wdr_netrpoll(GIOChannel *ioch, GIOCondition cond, gpointer data) {
 		r = spectool_netcli_poll(sr, err);
 
 		if (r < 0) {
-			Wispy_Alert_Dialog(err);
+			Spectool_Alert_Dialog(err);
 
 			wdr_close_net(wdrpr->wdr, wdrpr->slot);
 			return;
@@ -543,7 +543,7 @@ gboolean wdr_netrpoll(GIOChannel *ioch, GIOCondition cond, gpointer data) {
 	} while ((r & SPECTOOL_NETCLI_POLL_ADDITIONAL));
 }
 
-GList *wdr_populate_menu(wispy_device_registry *wdr, GtkWidget *menu,
+GList *wdr_populate_menu(spectool_device_registry *wdr, GtkWidget *menu,
 						 int sep, int fillnodev,
 						 GCallback cb, void *aux) {
 	wdr_menu_rec *r;
@@ -580,7 +580,7 @@ GList *wdr_populate_menu(wispy_device_registry *wdr, GtkWidget *menu,
 		 * no race for devices if a graph is being closed */
 		wdr_add_ref(wdr, x);
 
-		mi = gtk_menu_item_new_with_label(wispy_phy_getname(wdr->devices[x]->phydev));
+		mi = gtk_menu_item_new_with_label(spectool_phy_getname(wdr->devices[x]->phydev));
 		gtk_menu_shell_append(GTK_MENU_SHELL(menu), mi);
 		g_signal_connect_swapped(G_OBJECT(mi), "activate", 
 								 G_CALLBACK(cb), r);
@@ -606,7 +606,7 @@ void wdr_free_menu_fe(gpointer *data, gpointer *user) {
 	free(r);
 }
 
-void wdr_free_menu(wispy_device_registry *wdr, GList *gl) {
+void wdr_free_menu(spectool_device_registry *wdr, GList *gl) {
 	g_list_foreach(gl, (GFunc) wdr_free_menu_fe, NULL);
 	g_list_free(gl);
 }
@@ -616,7 +616,7 @@ void wdr_devpicker_onrowactivated(GtkTreeView *treeview, GtkTreePath *path,
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 	wdr_gtk_devpicker_aux *dpaux = (wdr_gtk_devpicker_aux *) aux;
-	char err[WISPY_ERROR_MAX];
+	char err[SPECTOOL_ERROR_MAX];
 
 	model = gtk_tree_view_get_model(treeview);
 
@@ -631,7 +631,7 @@ void wdr_devpicker_onrowactivated(GtkTreeView *treeview, GtkTreePath *path,
 
 		/* Error alert */
 		if (r < 0) {
-			Wispy_Alert_Dialog(err);
+			Spectool_Alert_Dialog(err);
 		} else {
 			/* Call their callback saying we've picked a device */
 			if (dpaux->pickcb != NULL)
@@ -645,7 +645,7 @@ void wdr_devpicker_onrowactivated(GtkTreeView *treeview, GtkTreePath *path,
 void wdr_devpicker_destroy(GtkWidget *widget, gpointer *aux) {
 	wdr_gtk_devpicker_aux *dpaux = (wdr_gtk_devpicker_aux *) aux;
 
-	wispy_device_scan_free(&(dpaux->devlist));
+	spectool_device_scan_free(&(dpaux->devlist));
 
 	free(aux);
 }
@@ -670,10 +670,10 @@ void wdr_devpicker_populate(wdr_gtk_devpicker_aux *dpaux) {
 
 	dpaux->treemodellist = model;
 
-	wispy_device_scan_free(&(dpaux->devlist));
+	spectool_device_scan_free(&(dpaux->devlist));
 
-	/* Scan for Wispy V1 devices */
-	ndevs = wispy_device_scan(&(dpaux->devlist));
+	/* Scan for Spectool V1 devices */
+	ndevs = spectool_device_scan(&(dpaux->devlist));
 
 	if (ndevs <= 0) {
 		gtk_list_store_append(GTK_LIST_STORE(dpaux->treemodellist), &iter);
@@ -741,7 +741,7 @@ void wdr_devpicker_button(GtkWidget *widget, gpointer *aux) {
 		GtkTreeSelection *selection;
 		GtkTreeModel *model;
 		GtkTreeIter iter;
-		char err[WISPY_ERROR_MAX];
+		char err[SPECTOOL_ERROR_MAX];
 
 		selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(dpaux->treeview));
 		if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
@@ -754,7 +754,7 @@ void wdr_devpicker_button(GtkWidget *widget, gpointer *aux) {
 			r = wdr_open_add(dpaux->wdr, phyptr, p, err);
 
 			if (r < 0) {
-				Wispy_Alert_Dialog(err);
+				Spectool_Alert_Dialog(err);
 			} else {
 				/* Call their callback saying we've picked a device */
 				if (dpaux->pickcb != NULL)
@@ -772,7 +772,7 @@ void wdr_devpicker_button(GtkWidget *widget, gpointer *aux) {
 	}
 }
 
-void wdr_devpicker_spawn(wispy_device_registry *wdr, 
+void wdr_devpicker_spawn(spectool_device_registry *wdr, 
 						 void (*cb)(int, void *), void *aux) {
 	GtkWidget *top_window, *scrolled_window;
 
@@ -791,7 +791,7 @@ void wdr_devpicker_spawn(wispy_device_registry *wdr,
 	dpaux->pickcb = cb;
 	dpaux->cbaux = aux;
 
-	wispy_device_scan_init(&(dpaux->devlist));
+	spectool_device_scan_init(&(dpaux->devlist));
 
 	scrolled_window = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window),
@@ -1135,11 +1135,11 @@ void wdr_netmanager_button(GtkWidget *widget, gpointer *aux) {
 		GtkTreeSelection *selection;
 		GtkTreeModel *model;
 		GtkTreeIter iter;
-		char err[WISPY_ERROR_MAX];
+		char err[SPECTOOL_ERROR_MAX];
 
 		selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(nmaux->treeview));
 		if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-			wispy_phy *phyptr;
+			spectool_phy *phyptr;
 			int srvid;
 			unsigned int devid;
 			int r;
@@ -1155,12 +1155,12 @@ void wdr_netmanager_button(GtkWidget *widget, gpointer *aux) {
 										  devid, err);
 
 			if (phyptr == NULL) {
-				Wispy_Alert_Dialog(err);
+				Spectool_Alert_Dialog(err);
 			} else {
 				r = wdr_open_phy(nmaux->wdr, phyptr, err);
 
 				if (r < 0) {
-					Wispy_Alert_Dialog(err);
+					Spectool_Alert_Dialog(err);
 				} else {
 					/* Call their callback saying we've picked a device */
 					if (nmaux->pickcb != NULL)
@@ -1181,7 +1181,7 @@ void wdr_netmanager_onrowactivated(GtkTreeView *treeview, GtkTreePath *path,
 	wdr_netmanager_button(nmaux->openbutton, aux);
 }
 
-void wdr_netmanager_spawn(wispy_device_registry *wdr,
+void wdr_netmanager_spawn(spectool_device_registry *wdr,
 						 void (*cb)(int, void *),
 						 void *aux) {
 	GtkWidget *top_window, *scrolled_window;
@@ -1197,7 +1197,7 @@ void wdr_netmanager_spawn(wispy_device_registry *wdr,
 	int x, ndevs;
 
 	char url[1024];
-	char err[WISPY_ERROR_MAX];
+	char err[SPECTOOL_ERROR_MAX];
 
 	wdr_gtk_netmanager_aux *nmaux = 
 		(wdr_gtk_netmanager_aux *) malloc(sizeof(wdr_gtk_netmanager_aux));
@@ -1298,7 +1298,7 @@ void wdr_netmanager_spawn(wispy_device_registry *wdr,
 									 (GSourceFunc) wdr_netmanager_populate,
 									 nmaux);
 
-	snprintf(url, 1024, "tcp://localhost:%d", WISPY_NET_DEFAULT_PORT);
+	snprintf(url, 1024, "tcp://localhost:%d", SPECTOOL_NET_DEFAULT_PORT);
 
 	if (wdr_open_net(wdr, url, err) >= 0) {
 		wdr_netmanager_populate(wdr->netmanager);
@@ -1320,7 +1320,7 @@ void wdr_netentry_button(GtkWidget *widget, gpointer *aux) {
 	}
 
 	if (widget == npaux->okbutton) {
-		char err[WISPY_ERROR_MAX];
+		char err[SPECTOOL_ERROR_MAX];
 		char url[1024];
 		int r;
 
@@ -1329,7 +1329,7 @@ void wdr_netentry_button(GtkWidget *widget, gpointer *aux) {
 				 gtk_entry_get_text(GTK_ENTRY(npaux->portentry)));
 
 		if (wdr_open_net(npaux->wdr, url, err) < 0) {
-			Wispy_Alert_Dialog(err);
+			Spectool_Alert_Dialog(err);
 		}
 
 		wdr_netmanager_populate(npaux->wdr->netmanager);
@@ -1339,7 +1339,7 @@ void wdr_netentry_button(GtkWidget *widget, gpointer *aux) {
 	}
 }
 
-void wdr_netentry_spawn(wispy_device_registry *wdr) {
+void wdr_netentry_spawn(spectool_device_registry *wdr) {
 	GtkWidget *top_window;
 
 	GtkWidget *vbox, *hbox;
@@ -1382,7 +1382,7 @@ void wdr_netentry_spawn(wispy_device_registry *wdr) {
 	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 2);
 
 	npaux->portentry = gtk_entry_new();
-	snprintf(port, 16, "%hd", WISPY_NET_DEFAULT_PORT);
+	snprintf(port, 16, "%hd", SPECTOOL_NET_DEFAULT_PORT);
 	gtk_entry_set_text(GTK_ENTRY(npaux->portentry), port);
 	gtk_entry_set_editable(GTK_ENTRY(npaux->portentry), 1);
 	gtk_widget_show(npaux->portentry);

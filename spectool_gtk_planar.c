@@ -29,26 +29,26 @@ char planar_help_txt[] =
 "Channels may be highlighted by selecting the channel number from the listen "
 "channels at the bottom of the graph.";
 
-static void wispy_planar_class_init(WispyPlanarClass *class);
-static void wispy_planar_init(WispyPlanar *graph);
-static void wispy_planar_destroy(GtkObject *object);
+static void spectool_planar_class_init(SpectoolPlanarClass *class);
+static void spectool_planar_init(SpectoolPlanar *graph);
+static void spectool_planar_destroy(GtkObject *object);
 
-static gint wispy_planar_configure(GtkWidget *widget, 
+static gint spectool_planar_configure(GtkWidget *widget, 
 									 GdkEventConfigure *event);
-static gboolean wispy_planar_expose(GtkWidget *widget, 
+static gboolean spectool_planar_expose(GtkWidget *widget, 
 									  GdkEventExpose *event,
 									  gpointer *aux);
-static gboolean wispy_planar_button_press(GtkWidget *widget,
+static gboolean spectool_planar_button_press(GtkWidget *widget,
 											GdkEventButton *event,
 											gpointer *aux);
-static gboolean wispy_planar_mouse_move(GtkWidget *widget,
+static gboolean spectool_planar_mouse_move(GtkWidget *widget,
 										GdkEventMotion *event,
 										gpointer *aux);
 
-G_DEFINE_TYPE(WispyPlanar, wispy_planar, WISPY_TYPE_WIDGET);
+G_DEFINE_TYPE(SpectoolPlanar, spectool_planar, SPECTOOL_TYPE_WIDGET);
 
-void wispy_planar_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
-	WispyPlanar *planar;
+void spectool_planar_draw(GtkWidget *widget, cairo_t *cr, SpectoolWidget *wwidget) {
+	SpectoolPlanar *planar;
 	cairo_text_extents_t extents;
 	int x, chpix, maxcw;
 	const double dash_onoff[] = {2, 4};
@@ -59,11 +59,11 @@ void wispy_planar_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 	int chanmod;
 
 	GList *mkr_iter;
-	wispy_planar_marker *mkr;
+	spectool_planar_marker *mkr;
 
 	g_return_if_fail(widget != NULL);
 
-	planar = WISPY_PLANAR(wwidget);
+	planar = SPECTOOL_PLANAR(wwidget);
 
 	cairo_save(cr);
 
@@ -74,7 +74,7 @@ void wispy_planar_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 		cairo_move_to(cr, wwidget->g_start_x + 0.5, wwidget->g_end_y - 0.5);
 		for (x = 0; x < wwidget->sweepcache->avg->num_samples; x++) {
 			int px, py;
-			int sdb = WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
+			int sdb = SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
 										 wwidget->sweepcache->peak->sample_data[x]);
 
 			chpix = x * wwidget->wbar;
@@ -117,7 +117,7 @@ void wispy_planar_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 		cairo_move_to(cr, wwidget->g_start_x + 0.5, wwidget->g_end_y - 0.5);
 		for (x = 0; x < wwidget->sweepcache->avg->num_samples; x++) {
 			int px, py;
-			int sdb = WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
+			int sdb = SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
 										 wwidget->sweepcache->avg->sample_data[x]);
 			chpix = x * wwidget->wbar;
 
@@ -158,7 +158,7 @@ void wispy_planar_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 		cairo_move_to(cr, wwidget->g_start_x + 0.5, wwidget->g_end_y - 0.5);
 		for (x = 0; x < wwidget->sweepcache->avg->num_samples; x++) {
 			int px, py;
-			int sdb = WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
+			int sdb = SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
 				wwidget->sweepcache->latest->sample_data[x]);
 			chpix = x * wwidget->wbar;
 
@@ -193,7 +193,7 @@ void wispy_planar_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 	while (mkr_iter != NULL && planar->draw_markers) {
 		int px, py;
 		int sdb;
-		mkr = (wispy_planar_marker *) mkr_iter->data;
+		mkr = (spectool_planar_marker *) mkr_iter->data;
 
 		if (mkr->samp_num < 0 || 
 			mkr->samp_num > wwidget->sweepcache->latest->num_samples) {
@@ -203,7 +203,7 @@ void wispy_planar_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 			
 		chpix = mkr->samp_num * wwidget->wbar;
 
-		sdb = WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
+		sdb = SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
 					wwidget->sweepcache->latest->sample_data[mkr->samp_num]);
 
 		px = wwidget->g_start_x + chpix;
@@ -229,37 +229,37 @@ void wispy_planar_draw(GtkWidget *widget, cairo_t *cr, WispyWidget *wwidget) {
 	cairo_restore(cr);
 }
 
-static void wispy_planar_wdr_devbind(GtkWidget *widget, wispy_device_registry *wdr, int slot) {
-	WispyPlanar *planar;
-	WispyWidget *wwidget;
+static void spectool_planar_wdr_devbind(GtkWidget *widget, spectool_device_registry *wdr, int slot) {
+	SpectoolPlanar *planar;
+	SpectoolWidget *wwidget;
 
 	g_return_if_fail(widget != NULL);
-	g_return_if_fail(IS_WISPY_PLANAR(widget));
-	g_return_if_fail(IS_WISPY_WIDGET(widget));
+	g_return_if_fail(IS_SPECTOOL_PLANAR(widget));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(widget));
 
-	planar = WISPY_PLANAR(widget);
-	wwidget = WISPY_WIDGET(widget);
+	planar = SPECTOOL_PLANAR(widget);
+	wwidget = SPECTOOL_WIDGET(widget);
 }
 
-static void wispy_planar_wdr_sweep(int slot, int mode,
-								   wispy_sample_sweep *sweep, void *aux) {
-	WispyPlanar *planar;
-	WispyWidget *wwidget;
-	wispy_phy *pd;
+static void spectool_planar_wdr_sweep(int slot, int mode,
+								   spectool_sample_sweep *sweep, void *aux) {
+	SpectoolPlanar *planar;
+	SpectoolWidget *wwidget;
+	spectool_phy *pd;
 	int tout = 0;
 
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_PLANAR(aux));
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
+	g_return_if_fail(IS_SPECTOOL_PLANAR(aux));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
 
-	planar = WISPY_PLANAR(aux);
-	wwidget = WISPY_WIDGET(aux);
+	planar = SPECTOOL_PLANAR(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
 
 	tout = wwidget->draw_timeout;
 
 	/* Update the timer */
 	if (sweep != NULL && sweep->phydev != NULL) {
-		pd = (wispy_phy *) sweep->phydev;
+		pd = (spectool_phy *) sweep->phydev;
 #ifdef HAVE_HILDON
 		tout = 300 * pd->draw_agg_suggestion;
 #else
@@ -272,23 +272,23 @@ static void wispy_planar_wdr_sweep(int slot, int mode,
 		g_source_remove(wwidget->timeout_ref);
 		wwidget->timeout_ref = 
 			g_timeout_add(wwidget->draw_timeout, 
-						  (GSourceFunc) wispy_widget_timeout, wwidget);
+						  (GSourceFunc) spectool_widget_timeout, wwidget);
 	}
 }
 
-static gint wispy_planar_button_press(GtkWidget *widget, 
+static gint spectool_planar_button_press(GtkWidget *widget, 
 									  GdkEventButton *event,
 									  gpointer *aux) {
-	WispyPlanar *planar;
-	WispyWidget *wwidget;
+	SpectoolPlanar *planar;
+	SpectoolWidget *wwidget;
 	int ch;
 
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_PLANAR(aux));
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
+	g_return_if_fail(IS_SPECTOOL_PLANAR(aux));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
 
-	planar = WISPY_PLANAR(aux);
-	wwidget = WISPY_WIDGET(aux);
+	planar = SPECTOOL_PLANAR(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
 
 	g_return_if_fail(wwidget->sweepcache != NULL);
 	g_return_if_fail(wwidget->sweepcache->avg != NULL);
@@ -296,27 +296,27 @@ static gint wispy_planar_button_press(GtkWidget *widget,
 	if (event->button != 1)
 		return TRUE;
 
-	wispy_widget_graphics_update(wwidget);
-	wispy_widget_update(GTK_WIDGET(wwidget));
+	spectool_widget_graphics_update(wwidget);
+	spectool_widget_update(GTK_WIDGET(wwidget));
 
 	return TRUE;
 }
 
-static gboolean wispy_planar_mouse_move(GtkWidget *widget,
+static gboolean spectool_planar_mouse_move(GtkWidget *widget,
 										GdkEventMotion *event,
 										gpointer *aux) {
 	int x, y;
 	int ch;
 	GdkModifierType state;
-	WispyPlanar *planar;
-	WispyWidget *wwidget;
+	SpectoolPlanar *planar;
+	SpectoolWidget *wwidget;
 
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_PLANAR(aux));
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
+	g_return_if_fail(IS_SPECTOOL_PLANAR(aux));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
 
-	planar = WISPY_PLANAR(aux);
-	wwidget = WISPY_WIDGET(aux);
+	planar = SPECTOOL_PLANAR(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
 
 	g_return_if_fail(wwidget->sweepcache != NULL);
 	g_return_if_fail(wwidget->sweepcache->avg != NULL);
@@ -342,8 +342,8 @@ static gboolean wispy_planar_mouse_move(GtkWidget *widget,
 			planar->cur_mkr->samp_num = -1;
 		}
 
-		wispy_widget_graphics_update(wwidget);
-		wispy_widget_update(GTK_WIDGET(wwidget));
+		spectool_widget_graphics_update(wwidget);
+		spectool_widget_update(GTK_WIDGET(wwidget));
 	} else if ((state & GDK_BUTTON1_MASK)) {
 		GtkTreeIter iter;
 		GtkTreeSelection *selection;
@@ -367,21 +367,21 @@ static gboolean wispy_planar_mouse_move(GtkWidget *widget,
 	return TRUE;
 }
 
-void wispy_planar_update(GtkWidget *widget) {
-	WispyWidget *wwidget;
-	WispyPlanar *planar;
+void spectool_planar_update(GtkWidget *widget) {
+	SpectoolWidget *wwidget;
+	SpectoolPlanar *planar;
 	GtkTreeIter iter;
 	GtkTreeModel *model;
 	gboolean valid;
 	char freqt[6], curt[6], avgt[6], maxt[6];
-	wispy_planar_marker *mkr;
+	spectool_planar_marker *mkr;
 
 	g_return_if_fail(widget != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(widget));
-	g_return_if_fail(IS_WISPY_PLANAR(widget));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(widget));
+	g_return_if_fail(IS_SPECTOOL_PLANAR(widget));
 
-	wwidget = WISPY_WIDGET(widget);
-	planar = WISPY_PLANAR(widget);
+	wwidget = SPECTOOL_WIDGET(widget);
+	planar = SPECTOOL_PLANAR(widget);
 
 	g_return_if_fail(wwidget->draw != NULL);
 
@@ -418,13 +418,13 @@ void wispy_planar_update(GtkWidget *widget) {
 			snprintf(freqt, 6, "%4d", freq);
 
 			snprintf(avgt, 6, "%d", 
-					 WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
+					 SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
 										wwidget->sweepcache->avg->sample_data[mkr->samp_num]));
 			snprintf(maxt, 6, "%d",
-					 WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
+					 SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
 										wwidget->sweepcache->peak->sample_data[mkr->samp_num]));
 			snprintf(curt, 6, "%d",
-					 WISPY_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
+					 SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
 										wwidget->sweepcache->latest->sample_data[mkr->samp_num]));
 
 			gtk_list_store_set(GTK_LIST_STORE(model), &iter,
@@ -442,20 +442,20 @@ void wispy_planar_update(GtkWidget *widget) {
 	}
 }
 
-void wispy_planar_context_help(gpointer *aux) {
-	Wispy_Help_Dialog("Planar View", planar_help_txt);
+void spectool_planar_context_help(gpointer *aux) {
+	Spectool_Help_Dialog("Planar View", planar_help_txt);
 }
 
-void wispy_planar_context_markers(gpointer *aux) {
-	WispyWidget *wwidget;
-	WispyPlanar *planar;
+void spectool_planar_context_markers(gpointer *aux) {
+	SpectoolWidget *wwidget;
+	SpectoolPlanar *planar;
 
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
-	g_return_if_fail(IS_WISPY_PLANAR(aux));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
+	g_return_if_fail(IS_SPECTOOL_PLANAR(aux));
 
-	wwidget = WISPY_WIDGET(aux);
-	planar = WISPY_PLANAR(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
+	planar = SPECTOOL_PLANAR(aux);
 
 	if (planar->draw_markers) {
 		planar->draw_markers = 0;
@@ -464,20 +464,20 @@ void wispy_planar_context_markers(gpointer *aux) {
 	}
 
 	gtk_widget_set_sensitive(planar->mkr_treeview, planar->draw_markers);
-	wispy_widget_graphics_update(wwidget);
-	wispy_widget_update(GTK_WIDGET(wwidget));
+	spectool_widget_graphics_update(wwidget);
+	spectool_widget_update(GTK_WIDGET(wwidget));
 }
 
-void wispy_planar_context_peak(gpointer *aux) {
-	WispyWidget *wwidget;
-	WispyPlanar *planar;
+void spectool_planar_context_peak(gpointer *aux) {
+	SpectoolWidget *wwidget;
+	SpectoolPlanar *planar;
 
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
-	g_return_if_fail(IS_WISPY_PLANAR(aux));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
+	g_return_if_fail(IS_SPECTOOL_PLANAR(aux));
 
-	wwidget = WISPY_WIDGET(aux);
-	planar = WISPY_PLANAR(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
+	planar = SPECTOOL_PLANAR(aux);
 
 	if (planar->draw_peak) {
 		planar->draw_peak = 0;
@@ -485,20 +485,20 @@ void wispy_planar_context_peak(gpointer *aux) {
 		planar->draw_peak = 1;
 	}
 
-	wispy_widget_graphics_update(wwidget);
-	wispy_widget_update(GTK_WIDGET(wwidget));
+	spectool_widget_graphics_update(wwidget);
+	spectool_widget_update(GTK_WIDGET(wwidget));
 }
 
-void wispy_planar_context_avg(gpointer *aux) {
-	WispyWidget *wwidget;
-	WispyPlanar *planar;
+void spectool_planar_context_avg(gpointer *aux) {
+	SpectoolWidget *wwidget;
+	SpectoolPlanar *planar;
 
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
-	g_return_if_fail(IS_WISPY_PLANAR(aux));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
+	g_return_if_fail(IS_SPECTOOL_PLANAR(aux));
 
-	wwidget = WISPY_WIDGET(aux);
-	planar = WISPY_PLANAR(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
+	planar = SPECTOOL_PLANAR(aux);
 
 	if (planar->draw_avg) {
 		planar->draw_avg = 0;
@@ -506,20 +506,20 @@ void wispy_planar_context_avg(gpointer *aux) {
 		planar->draw_avg = 1;
 	}
 
-	wispy_widget_graphics_update(wwidget);
-	wispy_widget_update(GTK_WIDGET(wwidget));
+	spectool_widget_graphics_update(wwidget);
+	spectool_widget_update(GTK_WIDGET(wwidget));
 }
 
-void wispy_planar_context_cur(gpointer *aux) {
-	WispyWidget *wwidget;
-	WispyPlanar *planar;
+void spectool_planar_context_cur(gpointer *aux) {
+	SpectoolWidget *wwidget;
+	SpectoolPlanar *planar;
 
 	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(aux));
-	g_return_if_fail(IS_WISPY_PLANAR(aux));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
+	g_return_if_fail(IS_SPECTOOL_PLANAR(aux));
 
-	wwidget = WISPY_WIDGET(aux);
-	planar = WISPY_PLANAR(aux);
+	wwidget = SPECTOOL_WIDGET(aux);
+	planar = SPECTOOL_PLANAR(aux);
 
 	if (planar->draw_cur) {
 		planar->draw_cur = 0;
@@ -527,28 +527,28 @@ void wispy_planar_context_cur(gpointer *aux) {
 		planar->draw_cur = 1;
 	}
 
-	wispy_widget_graphics_update(wwidget);
-	wispy_widget_update(GTK_WIDGET(wwidget));
+	spectool_widget_graphics_update(wwidget);
+	spectool_widget_update(GTK_WIDGET(wwidget));
 }
 
-void wispy_planar_context_menu(GtkWidget *widget, GtkWidget *menu) {
-	WispyWidget *wwidget;
-	WispyPlanar *planar;
+void spectool_planar_context_menu(GtkWidget *widget, GtkWidget *menu) {
+	SpectoolWidget *wwidget;
+	SpectoolPlanar *planar;
 	GtkWidget *mi;
 
 	g_return_if_fail(widget != NULL);
-	g_return_if_fail(IS_WISPY_WIDGET(widget));
-	g_return_if_fail(IS_WISPY_PLANAR(widget));
+	g_return_if_fail(IS_SPECTOOL_WIDGET(widget));
+	g_return_if_fail(IS_SPECTOOL_PLANAR(widget));
 
-	wwidget = WISPY_WIDGET(widget);
-	planar = WISPY_PLANAR(widget);
+	wwidget = SPECTOOL_WIDGET(widget);
+	planar = SPECTOOL_PLANAR(widget);
 
 	mi = gtk_check_menu_item_new_with_label("Show dBm scale");
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), mi);
 	gtk_widget_set_sensitive(mi, (wwidget->wdr_slot >= 0));
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(mi), wwidget->show_dbm);
 	g_signal_connect_swapped(G_OBJECT(mi), "activate",
-							 G_CALLBACK(wispy_widget_context_dbm),
+							 G_CALLBACK(spectool_widget_context_dbm),
 							 widget);
 	gtk_widget_show(mi);
 
@@ -557,7 +557,7 @@ void wispy_planar_context_menu(GtkWidget *widget, GtkWidget *menu) {
 	gtk_widget_set_sensitive(mi, (wwidget->wdr_slot >= 0));
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(mi), wwidget->show_dbm_lines);
 	g_signal_connect_swapped(G_OBJECT(mi), "activate",
-							 G_CALLBACK(wispy_widget_context_dbmlines),
+							 G_CALLBACK(spectool_widget_context_dbmlines),
 							 widget);
 	gtk_widget_show(mi);
 
@@ -571,7 +571,7 @@ void wispy_planar_context_menu(GtkWidget *widget, GtkWidget *menu) {
 	gtk_widget_set_sensitive(mi, (wwidget->wdr_slot >= 0));
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(mi), planar->draw_markers);
 	g_signal_connect_swapped(G_OBJECT(mi), "activate",
-							 G_CALLBACK(wispy_planar_context_markers),
+							 G_CALLBACK(spectool_planar_context_markers),
 							 widget);
 	gtk_widget_show(mi);
 
@@ -580,7 +580,7 @@ void wispy_planar_context_menu(GtkWidget *widget, GtkWidget *menu) {
 	gtk_widget_set_sensitive(mi, (wwidget->wdr_slot >= 0));
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(mi), planar->draw_peak);
 	g_signal_connect_swapped(G_OBJECT(mi), "activate",
-							 G_CALLBACK(wispy_planar_context_peak),
+							 G_CALLBACK(spectool_planar_context_peak),
 							 widget);
 	gtk_widget_show(mi);
 
@@ -589,7 +589,7 @@ void wispy_planar_context_menu(GtkWidget *widget, GtkWidget *menu) {
 	gtk_widget_set_sensitive(mi, (wwidget->wdr_slot >= 0));
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(mi), planar->draw_avg);
 	g_signal_connect_swapped(G_OBJECT(mi), "activate",
-							 G_CALLBACK(wispy_planar_context_avg),
+							 G_CALLBACK(spectool_planar_context_avg),
 							 widget);
 	gtk_widget_show(mi);
 
@@ -598,12 +598,12 @@ void wispy_planar_context_menu(GtkWidget *widget, GtkWidget *menu) {
 	gtk_widget_set_sensitive(mi, (wwidget->wdr_slot >= 0));
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(mi), planar->draw_cur);
 	g_signal_connect_swapped(G_OBJECT(mi), "activate",
-							 G_CALLBACK(wispy_planar_context_cur),
+							 G_CALLBACK(spectool_planar_context_cur),
 							 widget);
 	gtk_widget_show(mi);
 }
 
-static void wispy_planar_class_init(WispyPlanarClass *class) {
+static void spectool_planar_class_init(SpectoolPlanarClass *class) {
 	GObjectClass *gobject_class;
 	GtkObjectClass *object_class;
 	GtkWidgetClass *widget_class;
@@ -612,33 +612,33 @@ static void wispy_planar_class_init(WispyPlanarClass *class) {
 	object_class = GTK_OBJECT_CLASS(class);
 	widget_class = GTK_WIDGET_CLASS(class);
 
-	object_class->destroy = wispy_planar_destroy;
+	object_class->destroy = spectool_planar_destroy;
 }
 
-static void wispy_planar_destroy(GtkObject *object) {
-	WispyPlanar *planar = WISPY_PLANAR(object);
-	WispyWidget *wwidget;
+static void spectool_planar_destroy(GtkObject *object) {
+	SpectoolPlanar *planar = SPECTOOL_PLANAR(object);
+	SpectoolWidget *wwidget;
 
-	wwidget = WISPY_WIDGET(planar);
+	wwidget = SPECTOOL_WIDGET(planar);
 
-	GTK_OBJECT_CLASS(wispy_planar_parent_class)->destroy(object);
+	GTK_OBJECT_CLASS(spectool_planar_parent_class)->destroy(object);
 }
 
-GtkWidget *wispy_planar_new() {
-	WispyPlanar *planar;
-	WispyWidget *wwidget;
+GtkWidget *spectool_planar_new() {
+	SpectoolPlanar *planar;
+	SpectoolWidget *wwidget;
 
-	planar = gtk_type_new(wispy_planar_get_type());
+	planar = gtk_type_new(spectool_planar_get_type());
 
-	wwidget = WISPY_WIDGET(planar);
+	wwidget = SPECTOOL_WIDGET(planar);
 
 	return GTK_WIDGET(planar);
 }
 
-wispy_planar_marker *wispy_planar_marker_new(GtkWidget *widget, 
+spectool_planar_marker *spectool_planar_marker_new(GtkWidget *widget, 
 											 double r, double g, double b,
 											 int samp) {
-	wispy_planar_marker *mkr = malloc(sizeof(wispy_planar_marker));
+	spectool_planar_marker *mkr = malloc(sizeof(spectool_planar_marker));
 	cairo_t *cr;
 	GdkPixmap *pixmap;
 	GdkColormap *cmap;
@@ -670,8 +670,8 @@ wispy_planar_marker *wispy_planar_marker_new(GtkWidget *widget,
 	return mkr;
 }
 
-static void wispy_planar_init(WispyPlanar *planar) {
-	WispyWidget *wwidget;
+static void spectool_planar_init(SpectoolPlanar *planar) {
+	SpectoolWidget *wwidget;
 	GtkWidget *scrollwindow;
 	
 	GtkCellRenderer *cell;
@@ -688,11 +688,11 @@ static void wispy_planar_init(WispyPlanar *planar) {
 	GdkColor c;
 	GtkStyle *style;
 
-	wispy_planar_marker *mkr;
+	spectool_planar_marker *mkr;
 
-	wwidget = WISPY_WIDGET(planar);
+	wwidget = SPECTOOL_WIDGET(planar);
 
-	wwidget->sweep_num_samples = WISPY_PLANAR_NUM_SAMPLES;
+	wwidget->sweep_num_samples = SPECTOOL_PLANAR_NUM_SAMPLES;
 	wwidget->sweep_keep_avg = 1;
 	wwidget->sweep_keep_peak = 1;
 
@@ -709,27 +709,27 @@ static void wispy_planar_init(WispyPlanar *planar) {
 	wwidget->show_dbm = 1;
 	wwidget->show_dbm_lines = 1;
 
-	wwidget->wdr_sweep_func = wispy_planar_wdr_sweep;
-	wwidget->wdr_devbind_func = wispy_planar_wdr_devbind;
-	wwidget->draw_mouse_move_func = wispy_planar_mouse_move;
-	wwidget->draw_mouse_click_func = wispy_planar_button_press;
+	wwidget->wdr_sweep_func = spectool_planar_wdr_sweep;
+	wwidget->wdr_devbind_func = spectool_planar_wdr_devbind;
+	wwidget->draw_mouse_move_func = spectool_planar_mouse_move;
+	wwidget->draw_mouse_click_func = spectool_planar_button_press;
 
 #ifdef HAVE_HILDON
 	wwidget->draw_timeout = 1500;
 #else
 	wwidget->draw_timeout = 500;
 #endif
-	wwidget->draw_func = wispy_planar_draw;
-	wwidget->update_func = wispy_planar_update;
+	wwidget->draw_func = spectool_planar_draw;
+	wwidget->update_func = spectool_planar_update;
 
-	wwidget->menu_func = wispy_planar_context_menu;
-	wwidget->help_func = wispy_planar_context_help;
+	wwidget->menu_func = spectool_planar_context_menu;
+	wwidget->help_func = spectool_planar_context_help;
 
 	wwidget->timeout_ref = 
 		g_timeout_add(wwidget->draw_timeout, 
-					  (GSourceFunc) wispy_widget_timeout, wwidget);
+					  (GSourceFunc) spectool_widget_timeout, wwidget);
 
-	wispy_widget_buildgui(wwidget);
+	spectool_widget_buildgui(wwidget);
 
 	planar->mkr_list = NULL;
 	planar->cur_mkr = NULL;
@@ -853,7 +853,7 @@ static void wispy_planar_init(WispyPlanar *planar) {
 	g_object_unref(planar->mkr_treelist);
 	pango_attr_list_unref(attr_lst);
 
-	mkr = wispy_planar_marker_new(GTK_WIDGET(planar), 1, 0, 0, -1);
+	mkr = spectool_planar_marker_new(GTK_WIDGET(planar), 1, 0, 0, -1);
 	planar->mkr_list = g_list_append(planar->mkr_list, mkr);
 	gtk_list_store_append(GTK_LIST_STORE(planar->mkr_treelist), &iter);
 	gtk_list_store_set(GTK_LIST_STORE(planar->mkr_treelist), &iter,
@@ -865,7 +865,7 @@ static void wispy_planar_init(WispyPlanar *planar) {
 					   5, mkr,
 					   -1);
 
-	mkr = wispy_planar_marker_new(GTK_WIDGET(planar), 0, 1, 0, -1);
+	mkr = spectool_planar_marker_new(GTK_WIDGET(planar), 0, 1, 0, -1);
 	planar->mkr_list = g_list_append(planar->mkr_list, mkr);
 	gtk_list_store_append(GTK_LIST_STORE(planar->mkr_treelist), &iter);
 	gtk_list_store_set(GTK_LIST_STORE(planar->mkr_treelist), &iter,
@@ -877,7 +877,7 @@ static void wispy_planar_init(WispyPlanar *planar) {
 					   5, mkr,
 					   -1);
 
-	mkr = wispy_planar_marker_new(GTK_WIDGET(planar), 0, 0, 1, -1);
+	mkr = spectool_planar_marker_new(GTK_WIDGET(planar), 0, 0, 1, -1);
 	planar->mkr_list = g_list_append(planar->mkr_list, mkr);
 	gtk_list_store_append(GTK_LIST_STORE(planar->mkr_treelist), &iter);
 	gtk_list_store_set(GTK_LIST_STORE(planar->mkr_treelist), &iter,
@@ -889,7 +889,7 @@ static void wispy_planar_init(WispyPlanar *planar) {
 					   5, mkr,
 					   -1);
 
-	mkr = wispy_planar_marker_new(GTK_WIDGET(planar), 1, 1, 0, -1);
+	mkr = spectool_planar_marker_new(GTK_WIDGET(planar), 1, 1, 0, -1);
 	planar->mkr_list = g_list_append(planar->mkr_list, mkr);
 	gtk_list_store_append(GTK_LIST_STORE(planar->mkr_treelist), &iter);
 	gtk_list_store_set(GTK_LIST_STORE(planar->mkr_treelist), &iter,

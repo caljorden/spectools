@@ -36,7 +36,7 @@
 #define GETTEXT_PACKAGE	"spectool_gtk"
 #define LOCALEDIR		"/usr/share/locale/spectool_gtk"
 
-void Wispy_Alert_Dialog(char *text) {
+void Spectool_Alert_Dialog(char *text) {
 	GtkWidget *dialog, *okbutton, *label;
 
 	label = gtk_label_new(text);
@@ -54,7 +54,7 @@ void Wispy_Alert_Dialog(char *text) {
 	gtk_widget_show_all(dialog);
 }
 
-void Wispy_Help_Dialog(char *title, char *text) {
+void Spectool_Help_Dialog(char *title, char *text) {
 	GtkWidget *dialog, *scroll, *okbutton, *label;
 
 	label = gtk_label_new(NULL);
@@ -74,7 +74,7 @@ void Wispy_Help_Dialog(char *title, char *text) {
 }
 
 typedef struct _wg_aux {
-	wispy_device_registry *wdr;
+	spectool_device_registry *wdr;
 	GtkWidget *main_vbox;
 	GtkWidget *main_window;
 	GtkWidget *notebook;
@@ -87,13 +87,13 @@ typedef struct _nb_aux {
 	wg_aux *auxptr;
 
 	GtkWidget *planar, *spectral, *topo, *channel;
-	WispyWidgetController *p_con, *s_con, *t_con;
+	SpectoolWidgetController *p_con, *s_con, *t_con;
 
 	gint pagenum;
 
-	WispyChannelOpts *chanopts;
+	SpectoolChannelOpts *chanopts;
 
-	wispy_phy *phydev;
+	spectool_phy *phydev;
 	int wdr_slot;
 	GList *wdr_menu;
 } nb_aux;
@@ -106,14 +106,14 @@ static void main_devopen(int slot, void *aux) {
 
 	g_return_if_fail(aux != NULL);
 
-	wispy_widget_bind_dev(nbaux->planar, nbaux->auxptr->wdr, slot);
-	wispy_widget_bind_dev(nbaux->topo, nbaux->auxptr->wdr, slot);
-	wispy_widget_bind_dev(nbaux->spectral, nbaux->auxptr->wdr, slot);
-	wispy_widget_bind_dev(nbaux->channel, nbaux->auxptr->wdr, slot);
+	spectool_widget_bind_dev(nbaux->planar, nbaux->auxptr->wdr, slot);
+	spectool_widget_bind_dev(nbaux->topo, nbaux->auxptr->wdr, slot);
+	spectool_widget_bind_dev(nbaux->spectral, nbaux->auxptr->wdr, slot);
+	spectool_widget_bind_dev(nbaux->channel, nbaux->auxptr->wdr, slot);
 
 	nbaux->phydev = wdr_get_phy(nbaux->auxptr->wdr, slot);
 
-	gtk_label_set_text(GTK_LABEL(nbaux->nblabel), wispy_phy_getname(nbaux->phydev));
+	gtk_label_set_text(GTK_LABEL(nbaux->nblabel), spectool_phy_getname(nbaux->phydev));
 
 	gtk_widget_hide(nbaux->nodev_vbox);
 
@@ -321,34 +321,34 @@ static nb_aux *build_nb_page(GtkWidget *notebook, wg_aux *auxptr) {
 	gtk_widget_show(nbaux->nblabel);
 
 	/* Make the inactive devices */
-	nbaux->chanopts = (WispyChannelOpts *) malloc(sizeof(WispyChannelOpts));
-	wispychannelopts_init(nbaux->chanopts);
+	nbaux->chanopts = (SpectoolChannelOpts *) malloc(sizeof(SpectoolChannelOpts));
+	spectoolchannelopts_init(nbaux->chanopts);
 
-	nbaux->channel = wispy_channel_new();
-	wispy_widget_link_channel(nbaux->channel, nbaux->chanopts);
+	nbaux->channel = spectool_channel_new();
+	spectool_widget_link_channel(nbaux->channel, nbaux->chanopts);
 	gtk_box_pack_end(GTK_BOX(nbaux->nbvbox), nbaux->channel, FALSE, FALSE, 0);
 
-	nbaux->planar = wispy_planar_new();
-	wispy_widget_link_channel(nbaux->planar, nbaux->chanopts);
-	nbaux->p_con = wispy_widget_buildcontroller(GTK_WIDGET(nbaux->planar));
+	nbaux->planar = spectool_planar_new();
+	spectool_widget_link_channel(nbaux->planar, nbaux->chanopts);
+	nbaux->p_con = spectool_widget_buildcontroller(GTK_WIDGET(nbaux->planar));
 	gtk_box_pack_end(GTK_BOX(nbaux->nbvbox), nbaux->planar, TRUE, TRUE, 0);
 	gtk_box_pack_end(GTK_BOX(nbaux->nbvbox), nbaux->p_con->evbox, FALSE, FALSE, 2);
 
-	nbaux->topo = wispy_topo_new();
-	wispy_widget_link_channel(nbaux->topo, nbaux->chanopts);
-	nbaux->t_con = wispy_widget_buildcontroller(GTK_WIDGET(nbaux->topo));
+	nbaux->topo = spectool_topo_new();
+	spectool_widget_link_channel(nbaux->topo, nbaux->chanopts);
+	nbaux->t_con = spectool_widget_buildcontroller(GTK_WIDGET(nbaux->topo));
 	gtk_box_pack_end(GTK_BOX(nbaux->nbvbox), nbaux->topo, TRUE, TRUE, 0);
 	gtk_box_pack_end(GTK_BOX(nbaux->nbvbox), nbaux->t_con->evbox, FALSE, FALSE, 2);
 
-	nbaux->spectral = wispy_spectral_new();
-	wispy_widget_link_channel(nbaux->spectral, nbaux->chanopts);
-	nbaux->s_con = wispy_widget_buildcontroller(GTK_WIDGET(nbaux->spectral));
+	nbaux->spectral = spectool_spectral_new();
+	spectool_widget_link_channel(nbaux->spectral, nbaux->chanopts);
+	nbaux->s_con = spectool_widget_buildcontroller(GTK_WIDGET(nbaux->spectral));
 	gtk_box_pack_end(GTK_BOX(nbaux->nbvbox), nbaux->spectral, TRUE, TRUE, 0);
 	gtk_box_pack_end(GTK_BOX(nbaux->nbvbox), nbaux->s_con->evbox, FALSE, FALSE, 2);
 
-	wispy_channel_append_update(nbaux->channel, nbaux->planar);
-	wispy_channel_append_update(nbaux->channel, nbaux->topo);
-	wispy_channel_append_update(nbaux->channel, nbaux->spectral);
+	spectool_channel_append_update(nbaux->channel, nbaux->planar);
+	spectool_channel_append_update(nbaux->channel, nbaux->topo);
+	spectool_channel_append_update(nbaux->channel, nbaux->spectral);
 
 	gtk_widget_show(nbaux->nbvbox);
 
@@ -379,7 +379,7 @@ int main(int argc, char *argv[]) {
 	nb_aux *nbfirst;
 
 #if 0
-	GtkWidget *menubar, *menu, *mn_wispy, *menuitem;
+	GtkWidget *menubar, *menu, *mn_spectool, *menuitem;
 #endif
 
 	GtkWidget *menubar;
@@ -387,11 +387,11 @@ int main(int argc, char *argv[]) {
 	GtkItemFactory *item_factory;
 	GtkAccelGroup *accel_group;
 
-	wispy_device_registry wdr;
+	spectool_device_registry wdr;
 
 	int x;
 
-	char errstr[WISPY_ERROR_MAX];
+	char errstr[SPECTOOL_ERROR_MAX];
 
 	setlocale(LC_ALL, "");
 	bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
@@ -404,7 +404,7 @@ int main(int argc, char *argv[]) {
 
 	/* Turn on broadcast autodetection */
 	if (wdr_enable_bcast(&wdr, errstr) < 0) {
-		Wispy_Alert_Dialog(errstr);
+		Spectool_Alert_Dialog(errstr);
 	}
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
