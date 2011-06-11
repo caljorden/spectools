@@ -46,7 +46,7 @@ typedef struct _spectool_sample_sweep {
 	/* RSSI conversion information in mdbm
 	 * db = (rssi * (amp_res_mdbm / 1000)) - (amp_offset_mdbm / 1000) */
 	int amp_offset_mdbm;
-	unsigned int amp_res_mdbm;
+	int amp_res_mdbm;
 	unsigned int rssi_max;
 
 	/* Lowest RSSI seen by the device */

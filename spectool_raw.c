@@ -394,6 +394,7 @@ int main(int argc, char *argv[]) {
 						continue;
 					printf("%s: ", spectool_phy_getname(di));
 					for (r = 0; r < sb->num_samples; r++) {
+						// printf("[%d %d %d %d] ", sb->sample_data[r], sb->amp_offset_mdbm, sb->amp_res_mdbm, sb->sample_data[r] * (sb->amp_res_mdbm / 1000) + (sb->amp_offset_mdbm / 1000));
 						printf("%d ", 
 							SPECTOOL_RSSI_CONVERT(sb->amp_offset_mdbm, sb->amp_res_mdbm,
 											   sb->sample_data[r]));

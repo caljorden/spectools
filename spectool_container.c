@@ -18,6 +18,7 @@
 #include "wispy_hw_gen1.h"
 #include "wispy_hw_24x.h"
 #include "wispy_hw_dbx.h"
+#include "ubertooth_hw_u1.h"
 
 int spectool_get_state(spectool_phy *phydev) {
 	return phydev->state;
@@ -268,6 +269,10 @@ int spectool_device_scan(spectool_device_list *list) {
 	}
 
 	if (wispydbx_usb_device_scan(list) < 0) {
+		return -1;
+	}
+
+	if (ubertooth_u1_device_scan(list) < 0) {
 		return -1;
 	}
 
