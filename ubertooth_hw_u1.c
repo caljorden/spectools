@@ -66,7 +66,7 @@
 /* Default # of samples */
 #define UBERTOOTH_U1_NUM_SAMPLES		79
 
-#define UBERTOOTH_U1_OFFSET_MDBM		-106000
+#define UBERTOOTH_U1_OFFSET_MDBM		-109000
 #define UBERTOOTH_U1_RES_MDBM			1000
 #define UBERTOOTH_U1_RSSI_MAX			58
 
@@ -687,9 +687,9 @@ int ubertooth_u1_poll(spectool_phy *phydev) {
 
 		freq = freq - (auxptr->sweepbuf->start_khz / 1000);
 
-		rssi = (report->data[x].rssi + 52);
+		rssi = (report->data[x].rssi + 55);
 
-		// printf("%u = %d\n", freq, rssi);
+		// printf("%u = %d ", freq, rssi);
 
 		if (freq < 0 || freq >= auxptr->sweepbuf->num_samples) {
 			printf("debug - sample freq %d not in range\n", freq);
