@@ -104,8 +104,10 @@ void spectool_topo_draw(GtkWidget *widget, cairo_t *cr, SpectoolWidget *wwidget)
 
 	topo = SPECTOOL_TOPO(wwidget);
 
-	if (topo->sch == 0 || topo->scw == 0)
+	if (topo->sch == 0 || topo->scw == 0) {
+		printf("debug - sch or scw 0?  %d %d\n", topo->sch, topo->scw);
 		return;
+	}
 
 	cairo_save(cr);
 
@@ -290,7 +292,6 @@ static void spectool_topo_wdr_sweep(int slot, int mode,
 			max = wwidget->sweepcache->num_alloc;
 
 		for (s = 0; s < max; s++) {
-
 			/* Copy the aggregate sweep (ie our peak data) over... */
 			for (x = 0; x < topo->scw && x < 
 				 wwidget->sweepcache->sweeplist[s]->num_samples; x++) {
@@ -311,8 +312,10 @@ static void spectool_topo_wdr_sweep(int slot, int mode,
 				sc = ++(topo->sample_counts[(x * topo->sch) + ndb]);
 
 				/* Record the max peak count for easy math later */
-				if (sc > topo->sweep_peak_max)
+				if (sc > topo->sweep_peak_max) {
+					// printf("debug - sweep peak %d\n", sc);
 					topo->sweep_peak_max = sc;
+				}
 
 			}
 
@@ -432,7 +435,7 @@ static void spectool_topo_init(SpectoolTopo *topo) {
 
 	wwidget = SPECTOOL_WIDGET(topo);
 
-	wwidget->sweep_num_samples = 60;
+	wwidget->sweep_num_samples = 200;
 
 	wwidget->sweep_keep_avg = 0;
 	wwidget->sweep_keep_peak = 0;

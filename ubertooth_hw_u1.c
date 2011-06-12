@@ -66,9 +66,9 @@
 /* Default # of samples */
 #define UBERTOOTH_U1_NUM_SAMPLES		79
 
-#define UBERTOOTH_U1_OFFSET_MDBM		0
+#define UBERTOOTH_U1_OFFSET_MDBM		-54000
 #define UBERTOOTH_U1_RES_MDBM			-1000
-#define UBERTOOTH_U1_RSSI_MAX			222
+#define UBERTOOTH_U1_RSSI_MAX			250
 
 #define UBERTOOTH_U1_DEF_H_MINKHZ		2402000
 #define UBERTOOTH_U1_DEF_H_RESHZ		1000000
@@ -139,8 +139,8 @@ typedef struct _ubertooth_u1_aux {
 
 	int sweepbase;
 
-	/* Save last freq for restarting sweep */
-	int last_freq;
+	/* Primed - we don't start at 1 */
+	int primed;
 
 	spectool_phy *phydev;
 } ubertooth_u1_aux;
@@ -397,6 +397,7 @@ int ubertooth_u1_init_path(spectool_phy *phydev, char *buspath, char *devpath) {
 	phydev->auxptr = auxptr;
 
 	auxptr->configured = 0;
+	auxptr->primed = 0;
 
 	auxptr->dev = dev;
 	auxptr->devhdl = NULL;
@@ -686,12 +687,14 @@ int ubertooth_u1_poll(spectool_phy *phydev) {
 
 		freq = freq - (auxptr->sweepbuf->start_khz / 1000);
 
-		rssi = (report->data[x].rssi - 54) * -1;
+		rssi = (report->data[x].rssi) * -1;
 
 		// printf("%u = %d\n", freq, rssi);
 
-		if (freq < 0 || freq > auxptr->sweepbuf->num_samples)
+		if (freq < 0 || freq >= auxptr->sweepbuf->num_samples) {
+			printf("debug - sample freq %d not in range\n", freq);
 			continue;
+		}
 
 		auxptr->sweepbuf->sample_data[freq] = rssi;
 
@@ -699,6 +702,12 @@ int ubertooth_u1_poll(spectool_phy *phydev) {
 			phydev->min_rssi_seen = rssi;
 
 		if (freq == 0) {
+			if (auxptr->primed == 0) {
+				// printf("debug - u1 primed\n");
+				auxptr->primed = 1;
+				continue;
+			}
+
 			auxptr->sweepbuf_initialized = 1;
 			auxptr->num_sweeps++;
 
@@ -715,10 +724,13 @@ int ubertooth_u1_poll(spectool_phy *phydev) {
 			gettimeofday(&(auxptr->sweepbuf->tm_start), NULL);
 
 			full = 1;
+
+			// printf("debug - u1 - sweep complete, freq %d\n", freq);
 		}
 	}
 
-	if (full) {
+	if (full == 1) {
+		// printf("debug - returning sc\n");
 		return SPECTOOL_POLL_SWEEPCOMPLETE;
 	}
 
