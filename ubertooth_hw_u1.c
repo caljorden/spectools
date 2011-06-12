@@ -64,7 +64,7 @@
 #define UBERTOOTH_U1_PID		0x0004
 
 /* # of samples to average */
-#define UBERTOOTH_U1_AVG_SAMPLES		5
+#define UBERTOOTH_U1_AVG_SAMPLES		3
 
 /* Default # of samples */
 #define UBERTOOTH_U1_NUM_SAMPLES		79

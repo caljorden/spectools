@@ -162,6 +162,7 @@ void spectool_cache_append(spectool_sweep_cache *c, spectool_sample_sweep *s) {
 	int x, y, sum = 0;
 	int *avgdata, *avgsum;
 	int navg;
+	int nsampled;
 
 	/* Make sure we don't overflow and crash, should be sufficient
 	 * to make sure that the new sweep is reasonable */
@@ -179,6 +180,11 @@ void spectool_cache_append(spectool_sweep_cache *c, spectool_sample_sweep *s) {
 	if (c->sweeplist[c->pos] != NULL) {
 		free(c->sweeplist[c->pos]);
 	}
+
+	if (c->looped)
+		nsampled = c->num_alloc;
+	else
+		nsampled = c->pos;
 
 	c->sweeplist[c->pos] = 
 		(spectool_sample_sweep *) malloc(SPECTOOL_SWEEP_SIZE(s->num_samples));
@@ -206,7 +212,8 @@ void spectool_cache_append(spectool_sweep_cache *c, spectool_sample_sweep *s) {
 		}
 
 		/* Sum them up */
-		for (x = 0; x < c->num_alloc; x++) {
+
+		for (x = 0; x < nsampled; x++) {
 			if (c->sweeplist[x] == NULL)
 				continue;
 
@@ -255,14 +262,20 @@ void spectool_cache_append(spectool_sweep_cache *c, spectool_sample_sweep *s) {
 		c->roll_peak = (spectool_sample_sweep *) malloc(SPECTOOL_SWEEP_SIZE(s->num_samples));
 		memcpy(c->roll_peak, s, SPECTOOL_SWEEP_SIZE(s->num_samples));
 	} else if (c->calc_peak) {
-		memcpy(c->roll_peak, s, SPECTOOL_SWEEP_SIZE(s->num_samples));
 
 		for (x = 0; x < c->peak->num_samples; x++) {
 			if (c->peak->sample_data[x] < s->sample_data[x]) {
 				c->peak->sample_data[x] = s->sample_data[x];
 			}
-			if (c->roll_peak->sample_data[x] < s->sample_data[x]) {
-				c->roll_peak->sample_data[x] = s->sample_data[x];
+		}
+
+		memcpy(c->roll_peak, s, SPECTOOL_SWEEP_SIZE(s->num_samples));
+		for (x = 0; x < nsampled; x++) {
+			for (y = 0; y < c->roll_peak->num_samples; y++) {
+				// printf("debug - compare sampled %d pos %d loop %d set %d sample %d\n", nsampled, c->pos, c->looped, x, y);
+				if (c->roll_peak->sample_data[y] < c->sweeplist[x]->sample_data[y]) {
+					c->roll_peak->sample_data[y] = c->sweeplist[x]->sample_data[y];
+				}
 			}
 		}
 
