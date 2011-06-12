@@ -114,6 +114,7 @@ spectool_sweep_cache *spectool_cache_alloc(int nsweeps, int calc_peak, int calc_
 		(spectool_sample_sweep **) malloc(sizeof(spectool_sample_sweep *) * nsweeps);
 	c->avg = NULL;
 	c->peak = NULL;
+	c->roll_peak = NULL;
 	c->latest = NULL;
 
 	for (x = 0; x < nsweeps; x++) {
@@ -147,6 +148,10 @@ void spectool_cache_clear(spectool_sweep_cache *c) {
 	if (c->peak != NULL)
 		free(c->peak);
 	c->peak = NULL;
+
+	if (c->roll_peak != NULL)
+		free(c->roll_peak);
+	c->roll_peak = NULL;
 
 	c->pos = 0;
 	c->looped = 0;
@@ -245,12 +250,22 @@ void spectool_cache_append(spectool_sweep_cache *c, spectool_sample_sweep *s) {
 	if (c->peak == NULL && c->calc_peak) {
 		c->peak = (spectool_sample_sweep *) malloc(SPECTOOL_SWEEP_SIZE(s->num_samples));
 		memcpy(c->peak, s, SPECTOOL_SWEEP_SIZE(s->num_samples));
+	
+		/* This will never be allocated if peak is not */
+		c->roll_peak = (spectool_sample_sweep *) malloc(SPECTOOL_SWEEP_SIZE(s->num_samples));
+		memcpy(c->roll_peak, s, SPECTOOL_SWEEP_SIZE(s->num_samples));
 	} else if (c->calc_peak) {
+		memcpy(c->roll_peak, s, SPECTOOL_SWEEP_SIZE(s->num_samples));
+
 		for (x = 0; x < c->peak->num_samples; x++) {
 			if (c->peak->sample_data[x] < s->sample_data[x]) {
 				c->peak->sample_data[x] = s->sample_data[x];
 			}
+			if (c->roll_peak->sample_data[x] < s->sample_data[x]) {
+				c->roll_peak->sample_data[x] = s->sample_data[x];
+			}
 		}
+
 	}
 }
 

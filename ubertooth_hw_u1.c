@@ -635,7 +635,7 @@ spectool_sample_sweep *ubertooth_u1_getsweep(spectool_phy *phydev) {
 	ubertooth_u1_aux *auxptr = (ubertooth_u1_aux *) phydev->auxptr;
 
 	// return auxptr->full_sweepbuf;
-	return auxptr->peak_cache->peak;
+	return auxptr->peak_cache->roll_peak;
 }
 
 void ubertooth_u1_setcalibration(spectool_phy *phydev, int in_calib) {
@@ -688,7 +688,7 @@ int ubertooth_u1_poll(spectool_phy *phydev) {
 
 	// If we're full entering a read we need to wipe out
 	if (auxptr->peak_cache->num_used >= UBERTOOTH_U1_AVG_SAMPLES) {
-		spectool_cache_clear(auxptr->peak_cache);
+		// spectool_cache_clear(auxptr->peak_cache);
 		// printf("debug - clearing peak cache\n");
 	}
 

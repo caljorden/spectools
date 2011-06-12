@@ -82,6 +82,7 @@ typedef struct _spectool_sweep_cache {
 	spectool_sample_sweep **sweeplist;
 	spectool_sample_sweep *avg;
 	spectool_sample_sweep *peak;
+	spectool_sample_sweep *roll_peak;
 	spectool_sample_sweep *latest;
 	int num_alloc, pos, looped;
 	int calc_peak, calc_avg;
