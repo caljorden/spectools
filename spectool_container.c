@@ -123,6 +123,7 @@ spectool_sweep_cache *spectool_cache_alloc(int nsweeps, int calc_peak, int calc_
 	c->num_alloc = nsweeps;
 	c->pos = -1;
 	c->looped = 0;
+	c->num_used = 0;
 
 	c->calc_peak = calc_peak;
 	c->calc_avg = calc_avg;
@@ -149,6 +150,7 @@ void spectool_cache_clear(spectool_sweep_cache *c) {
 
 	c->pos = 0;
 	c->looped = 0;
+	c->num_used = 0;
 }
 
 void spectool_cache_append(spectool_sweep_cache *c, spectool_sample_sweep *s) {
@@ -166,6 +168,7 @@ void spectool_cache_append(spectool_sweep_cache *c, spectool_sample_sweep *s) {
 		c->pos = 0;
 	} else {
 		c->pos++;
+		c->num_used++;
 	}
 
 	if (c->sweeplist[c->pos] != NULL) {

@@ -85,6 +85,7 @@ typedef struct _spectool_sweep_cache {
 	spectool_sample_sweep *latest;
 	int num_alloc, pos, looped;
 	int calc_peak, calc_avg;
+	int num_used;
 	uint32_t device_id;
 } spectool_sweep_cache;
 

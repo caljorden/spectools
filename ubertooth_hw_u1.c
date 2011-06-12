@@ -63,6 +63,9 @@
 #define UBERTOOTH_U1_VID		0xffff
 #define UBERTOOTH_U1_PID		0x0004
 
+/* # of samples to average */
+#define UBERTOOTH_U1_AVG_SAMPLES		5
+
 /* Default # of samples */
 #define UBERTOOTH_U1_NUM_SAMPLES		79
 
@@ -134,6 +137,9 @@ typedef struct _ubertooth_u1_aux {
 	spectool_sample_sweep *sweepbuf;
 	/* Sweep buffer we return */
 	spectool_sample_sweep *full_sweepbuf;
+
+	/* peak samples */
+	spectool_sweep_cache *peak_cache;
 
 	int sockpair[2];
 
@@ -410,6 +416,8 @@ int ubertooth_u1_init_path(spectool_phy *phydev, char *buspath, char *devpath) {
 	auxptr->sweepbuf = NULL;
 	auxptr->full_sweepbuf = NULL;
 
+	auxptr->peak_cache = spectool_cache_alloc(UBERTOOTH_U1_AVG_SAMPLES, 1, 0);
+
 	phydev->open_func = &ubertooth_u1_open;
 	phydev->close_func = &ubertooth_u1_close;
 	phydev->poll_func = &ubertooth_u1_poll;
@@ -626,7 +634,8 @@ int ubertooth_u1_close(spectool_phy *phydev) {
 spectool_sample_sweep *ubertooth_u1_getsweep(spectool_phy *phydev) {
 	ubertooth_u1_aux *auxptr = (ubertooth_u1_aux *) phydev->auxptr;
 
-	return auxptr->full_sweepbuf;
+	// return auxptr->full_sweepbuf;
+	return auxptr->peak_cache->peak;
 }
 
 void ubertooth_u1_setcalibration(spectool_phy *phydev, int in_calib) {
@@ -677,6 +686,12 @@ int ubertooth_u1_poll(spectool_phy *phydev) {
 		return SPECTOOL_POLL_NONE;
 	}
 
+	// If we're full entering a read we need to wipe out
+	if (auxptr->peak_cache->num_used >= UBERTOOTH_U1_AVG_SAMPLES) {
+		spectool_cache_clear(auxptr->peak_cache);
+		// printf("debug - clearing peak cache\n");
+	}
+
 	for (x = 0; x < 16; x++) {
 		// printf("%u %d\n", endian_swap16(report->data[x].be_freq), report->data[x].rssi);
 #ifdef WORDS_BIGENDIAN
@@ -714,16 +729,23 @@ int ubertooth_u1_poll(spectool_phy *phydev) {
 			gettimeofday(&(auxptr->sweepbuf->tm_end), NULL);
 			auxptr->sweepbuf->min_rssi_seen = phydev->min_rssi_seen;
 
+			/*
 			if (auxptr->full_sweepbuf != NULL) {
 				free(auxptr->full_sweepbuf);
 			}
 
 			auxptr->full_sweepbuf = auxptr->sweepbuf;
+			*/
 
-			auxptr->sweepbuf = ubertooth_u1_build_sweepbuf(phydev);
+			// auxptr->sweepbuf = ubertooth_u1_build_sweepbuf(phydev);
+
+			spectool_cache_append(auxptr->peak_cache, auxptr->sweepbuf);
+
+			if (auxptr->peak_cache->num_used >= UBERTOOTH_U1_AVG_SAMPLES) {
+				full = 1;
+			}
+
 			gettimeofday(&(auxptr->sweepbuf->tm_start), NULL);
-
-			full = 1;
 
 			// printf("debug - u1 - sweep complete, freq %d\n", freq);
 		}
