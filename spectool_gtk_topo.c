@@ -435,7 +435,7 @@ static void spectool_topo_init(SpectoolTopo *topo) {
 
 	wwidget = SPECTOOL_WIDGET(topo);
 
-	wwidget->sweep_num_samples = 200;
+	wwidget->sweep_num_samples = 60;
 
 	wwidget->sweep_keep_avg = 0;
 	wwidget->sweep_keep_peak = 0;
