@@ -69,6 +69,7 @@ struct _SpectoolPlanar {
 	int draw_peak;
 	int draw_avg;
 	int draw_cur;
+	int draw_history;
 
 	/* is the mouse down during an event? */
 	int mouse_down;
@@ -80,6 +81,8 @@ struct _SpectoolPlanar {
 	GList *mkr_list;
 	spectool_planar_marker *cur_mkr;
 	GtkWidget *mkr_newbutton, *mkr_delbutton;
+
+	spectool_sweep_cache *agecache;
 };
 
 struct _SpectoolPlanarClass {

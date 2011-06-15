@@ -174,7 +174,9 @@ void spectool_cache_append(spectool_sweep_cache *c, spectool_sample_sweep *s) {
 		c->pos = 0;
 	} else {
 		c->pos++;
-		c->num_used++;
+
+		if (c->num_used < c->num_alloc)
+			c->num_used++;
 	}
 
 	if (c->sweeplist[c->pos] != NULL) {
@@ -280,6 +282,34 @@ void spectool_cache_append(spectool_sweep_cache *c, spectool_sample_sweep *s) {
 		}
 
 	}
+}
+
+void spectool_cache_itr_init(spectool_sweep_cache *c, spectool_sweep_cache_itr *i) {
+	i->pos_start = c->pos;
+	i->pos_cur = c->pos + 1;
+	i->looped_start = 0;
+}
+
+spectool_sample_sweep *spectool_cache_itr_next(spectool_sweep_cache *c, spectool_sweep_cache_itr *i) {
+	// if we've covered it all, punt
+	if (i->pos_cur == i->pos_start) {
+		if (i->looped_start == 0)
+			i->looped_start = 1;
+		else
+			return NULL;
+	}
+
+	// 'next' is actually backwards
+	i->pos_cur--;
+
+	// if we've hit the bottom but we're looped, go to the max filled slot
+	if (i->pos_cur < 0 && c->looped) i->pos_cur = c->num_used - 1;
+	// Or we're done
+	if (i->pos_cur < 0) return NULL;
+	// safety
+	if (i->pos_cur >= c->num_used) return NULL;
+
+	return c->sweeplist[i->pos_cur];
 }
 
 void spectool_device_scan_init(spectool_device_list *list) {

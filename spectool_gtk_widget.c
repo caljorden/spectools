@@ -455,6 +455,9 @@ static void spectool_widget_size_allocate(GtkWidget *widget,
 		wwidget->old_width = allocation->width;
 		wwidget->old_height = allocation->height;
 	}
+
+	if (wwidget->sizechange_func != NULL)
+		(*(wwidget->sizechange_func))(widget, allocation);
 }
 
 static void spectool_widget_size_request (GtkWidget *widget, GtkRequisition *requisition) {

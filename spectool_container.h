@@ -90,11 +90,20 @@ typedef struct _spectool_sweep_cache {
 	uint32_t device_id;
 } spectool_sweep_cache;
 
+typedef struct _spectool_sweep_cache_itr {
+	int pos_start;
+	int pos_cur;
+	int looped_start;
+} spectool_sweep_cache_itr;
+
 /* Allocate and manipulate sweep caches */
 spectool_sweep_cache *spectool_cache_alloc(int nsweeps, int calc_peak, int calc_avg);
 void spectool_cache_append(spectool_sweep_cache *c, spectool_sample_sweep *s);
 void spectool_cache_clear(spectool_sweep_cache *c);
 void spectool_cache_free(spectool_sweep_cache *c);
+
+void spectool_cache_itr_init(spectool_sweep_cache *c, spectool_sweep_cache_itr *i);
+spectool_sample_sweep *spectool_cache_itr_next(spectool_sweep_cache *c, spectool_sweep_cache_itr *i);
 
 #define SPECTOOL_ERROR_MAX			512
 #define SPECTOOL_PHY_NAME_MAX		256

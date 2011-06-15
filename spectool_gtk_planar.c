@@ -151,8 +151,16 @@ void spectool_planar_draw(GtkWidget *widget, cairo_t *cr, SpectoolWidget *wwidge
 		cairo_restore(cr);
 	}
 
+#if 0
 	/* Render the latest points */
 	if (planar->draw_cur) {
+		spectool_sweep_cache_itr sci;
+		spectool_sample_sweep *sweep;
+
+		spectool_cache_itr_init(planar->agecache, &sci);
+
+		while ((sweep = spectool_cache_itr_next(planar->agecache, &sci)) != NULL) {	
+
 		cairo_save(cr);
 		cairo_new_path(cr);
 		cairo_move_to(cr, wwidget->g_start_x + 0.5, wwidget->g_end_y - 0.5);
@@ -188,6 +196,60 @@ void spectool_planar_draw(GtkWidget *widget, cairo_t *cr, SpectoolWidget *wwidge
 		cairo_stroke(cr);
 		cairo_restore(cr);
 	}
+#endif
+
+	/* Render the latest points */
+		if (planar->draw_cur) {
+			spectool_sweep_cache_itr sci;
+			spectool_sample_sweep *sweep;
+			float n = 0;
+			float alpha;
+
+			spectool_cache_itr_init(planar->agecache, &sci);
+
+			while ((sweep = spectool_cache_itr_next(planar->agecache, &sci)) != NULL) {	
+
+				cairo_save(cr);
+				cairo_new_path(cr);
+				cairo_move_to(cr, wwidget->g_start_x + 0.5, wwidget->g_end_y - 0.5);
+				for (x = 0; x < sweep->num_samples; x++) {
+					int px, py;
+					int sdb = SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
+													sweep->sample_data[x]);
+					chpix = x * wwidget->wbar;
+
+					px = wwidget->g_start_x + chpix;
+					py = (float) wwidget->g_len_y * 
+						(float) ((float) (abs(sdb) + wwidget->base_db_offset) /
+								 (float) (abs(wwidget->min_db_draw) + 
+										  wwidget->base_db_offset));
+
+					if (px < wwidget->g_start_x)
+						px = wwidget->g_start_x;
+					if (px > wwidget->g_end_x)
+						px = wwidget->g_end_x;
+
+					if (py < wwidget->g_start_y)
+						py = wwidget->g_start_y;
+					if (py > wwidget->g_end_y)
+						py = wwidget->g_end_y;
+
+					cairo_line_to(cr, px + 0.5, py + 0.5);
+				}
+				cairo_line_to(cr, wwidget->g_end_x - 0.5, wwidget->g_end_y - 0.5);
+				cairo_close_path(cr);
+				/* Plot it */
+				cairo_set_line_width(cr, 2);
+
+				alpha = 1.0f * (n / planar->agecache->num_used);
+
+				cairo_set_source_rgba(cr, HC2CC(0xFF), HC2CC(0xFF), HC2CC(0x00), alpha);
+				cairo_stroke(cr);
+				cairo_restore(cr);
+
+				n = n + 1;
+			}
+		}
 
 	mkr_iter = planar->mkr_list;
 	while (mkr_iter != NULL && planar->draw_markers) {
@@ -265,6 +327,8 @@ static void spectool_planar_wdr_sweep(int slot, int mode,
 #else
 		tout = 100 * pd->draw_agg_suggestion;
 #endif
+
+		spectool_cache_append(planar->agecache, sweep);
 	}
 
 	if (tout != wwidget->draw_timeout) {
@@ -730,6 +794,8 @@ static void spectool_planar_init(SpectoolPlanar *planar) {
 					  (GSourceFunc) spectool_widget_timeout, wwidget);
 
 	spectool_widget_buildgui(wwidget);
+
+	planar->agecache = spectool_cache_alloc(10, 0, 0);
 
 	planar->mkr_list = NULL;
 	planar->cur_mkr = NULL;

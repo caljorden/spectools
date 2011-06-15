@@ -138,6 +138,9 @@ struct _SpectoolWidget {
 	int draw_timeout;
 	void (* draw_func)(GtkWidget *, cairo_t *, SpectoolWidget *);
 
+	/* Callbacks on size change */
+	void (* sizechange_func)(GtkWidget *, GtkAllocation *);
+
 	/* Plot channels on the bottom */
 	int show_channels;
 	/* Show DBM */
