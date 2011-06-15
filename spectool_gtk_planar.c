@@ -239,9 +239,13 @@ void spectool_planar_draw(GtkWidget *widget, cairo_t *cr, SpectoolWidget *wwidge
 				cairo_line_to(cr, wwidget->g_end_x - 0.5, wwidget->g_end_y - 0.5);
 				cairo_close_path(cr);
 				/* Plot it */
-				cairo_set_line_width(cr, 2);
 
-				alpha = 1.0f * (n / planar->agecache->num_used);
+				if (n == 0)
+					cairo_set_line_width(cr, 2);
+				else
+					cairo_set_line_width(cr, 1);
+
+				alpha = 1.0f - (1.0f * (n / planar->agecache->num_used));
 
 				cairo_set_source_rgba(cr, HC2CC(0xFF), HC2CC(0xFF), HC2CC(0x00), alpha);
 				cairo_stroke(cr);
