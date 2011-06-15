@@ -247,7 +247,7 @@ void spectool_planar_draw(GtkWidget *widget, cairo_t *cr, SpectoolWidget *wwidge
 
 				alpha = 1.0f - (1.0f * (n / planar->agecache->num_used));
 
-				cairo_set_source_rgba(cr, HC2CC(0xFF), HC2CC(0xFF), HC2CC(0x00), alpha);
+				cairo_set_source_rgba(cr, HC2CC(0xFF * alpha), HC2CC(0xFF), HC2CC(0x00), alpha);
 				cairo_stroke(cr);
 				cairo_restore(cr);
 

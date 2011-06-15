@@ -18,14 +18,10 @@
 
 spectool_phy *dev = NULL;
 
+void fatal_error(int, const char *, ...);
+
 void sighandle(int sig) {
-	int x;
-
-	endwin();
-
-	printf("Dying %d from signal %d\n", getpid(), sig);
-
-	exit(1);
+	fatal_error(1, "Dying %d from signal %d\n", getpid(), sig);
 }
 
 void Usage(void) {
@@ -35,6 +31,17 @@ void Usage(void) {
 		   " -r / --range #               Use device range #\n"
 		   " -d / --device #              Use device #\n");
 	return;
+}
+
+void fatal_error(int code, const char *format, ...) {
+	va_list args;
+
+	endwin();
+	
+	va_start(args, format);
+	vprintf(format, args);
+
+	exit(code);
 }
 
 int main(int argc, char *argv[]) {
@@ -223,6 +230,9 @@ int main(int argc, char *argv[]) {
 	init_pair(4, COLOR_YELLOW, COLOR_BLACK);
 	init_pair(5, COLOR_YELLOW, COLOR_BLUE);
 	init_pair(6, COLOR_YELLOW, COLOR_GREEN);
+	init_pair(7, COLOR_BLACK, COLOR_RED);
+
+	nodelay(stdscr, TRUE);
 
 	window = subwin(stdscr, LINES - 2, COLS - 5, 0, 5);
 	sigwin = subwin(stdscr, LINES - 2, 5, 0, 0);
@@ -235,11 +245,33 @@ int main(int argc, char *argv[]) {
 	refresh();
 
 	/* Naive poll that doesn't use select() to find pending data */
-	while (1) {
+	int do_main_loop = TRUE;
+	int is_paused    = FALSE;
+	while (do_main_loop == TRUE) {
 		fd_set rfds;
 		fd_set wfds;
 		int maxfd = 0;
 		struct timeval tm;
+
+		switch (getch()) {
+			case 0x71:	// 'q'
+				do_main_loop = FALSE;
+				continue;
+			case 0x70:	// 'p'
+				if (is_paused == TRUE)
+					is_paused = FALSE;
+				else {
+					is_paused = TRUE;
+					wcolor_set(window, 7, NULL);
+					mvwaddstr(window, 1, 1, "Paused !");
+					wrefresh(window);
+				}
+				break;
+			case ERR:	// no key pressed
+				break;
+			default:
+				break;
+		}
 
 		FD_ZERO(&rfds);
 		FD_ZERO(&wfds);
@@ -270,17 +302,13 @@ int main(int argc, char *argv[]) {
 		tm.tv_sec = 0;
 		tm.tv_usec = 10000;
 
-		if (select(maxfd + 1, &rfds, &wfds, NULL, &tm) < 0) {
-			printf("spectool_raw select() error: %s\n", strerror(errno));
-			exit(1);
-		}
+		if (select(maxfd + 1, &rfds, &wfds, NULL, &tm) < 0)
+			fatal_error(1, "spectool_raw select() error: %s\n", strerror(errno));
 
 		if (spectool_netcli_getwritefd(&sr) >= 0 &&
 			FD_ISSET(spectool_netcli_getwritefd(&sr), &wfds)) {
-			if (spectool_netcli_writepoll(&sr, errstr) < 0) {
-				printf("Error write-polling network server %s\n", errstr);
-				exit(1);
-			}
+			if (spectool_netcli_writepoll(&sr, errstr) < 0)
+				fatal_error(1, "Error write-polling network server %s\n", errstr);
 		}
 
 		ret = SPECTOOL_NETCLI_POLL_ADDITIONAL;
@@ -288,10 +316,8 @@ int main(int argc, char *argv[]) {
 			   FD_ISSET(spectool_netcli_getpollfd(&sr), &rfds) &&
 			   (ret & SPECTOOL_NETCLI_POLL_ADDITIONAL)) {
 
-			if ((ret = spectool_netcli_poll(&sr, errstr)) < 0) {
-				printf("Error polling network server %s\n", errstr);
-				exit(1);
-			}
+			if ((ret = spectool_netcli_poll(&sr, errstr)) < 0)
+				fatal_error(1, "Error polling network server %s\n", errstr);
 
 			if ((ret & SPECTOOL_NETCLI_POLL_NEWDEVS)) {
 				/* Only enable the first device */
@@ -302,12 +328,10 @@ int main(int argc, char *argv[]) {
 		}
 
 		if (spectool_phy_getpollfd(dev) < 0) {
-			if (spectool_get_state(dev) == SPECTOOL_STATE_ERROR) {
-				printf("Error polling spectool device %s\n",
-					   spectool_phy_getname(dev));
-				printf("%s\n", spectool_get_error(dev));
-				exit(1);
-			}
+			if (spectool_get_state(dev) == SPECTOOL_STATE_ERROR)
+				fatal_error(1, "Error polling spectool device %s\n%s\n",
+					spectool_phy_getname(dev),
+					spectool_get_error(dev));
 		}
 
 		if (FD_ISSET(spectool_phy_getpollfd(dev), &rfds) == 0) {
@@ -330,10 +354,9 @@ int main(int argc, char *argv[]) {
 
 				continue;
 			} else if ((r & SPECTOOL_POLL_ERROR)) {
-				printf("Error polling spectool device %s\n",
-					   spectool_phy_getname(dev));
-				printf("%s\n", spectool_get_error(dev));
-				exit(1);
+				fatal_error(1, "Error polling spectool device %s\n%s\n",
+					   spectool_phy_getname(dev),
+					   spectool_get_error(dev));
 			} else if ((r & SPECTOOL_POLL_SWEEPCOMPLETE)) {
 				sb = spectool_phy_getsweep(dev);
 				if (sb == NULL)
@@ -348,6 +371,11 @@ int main(int argc, char *argv[]) {
 
 			}
 		} while ((r & SPECTOOL_POLL_ADDITIONAL));
+
+		// TODO: allow pausing without polling.
+		//		currently this would cause a timeout
+		if (is_paused == TRUE)
+			continue;
 
 		/* Redraw the windows */
 		werase(sigwin);

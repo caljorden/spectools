@@ -415,6 +415,8 @@ int main(int argc, char *argv[]) {
 
 	g_signal_connect(G_OBJECT (window), "delete_event",
 					 G_CALLBACK (gtk_main_quit), NULL);
+	g_signal_connect(G_OBJECT (window), "destroy",
+					 G_CALLBACK (gtk_main_quit), NULL);
 
 	accel_group = gtk_accel_group_new();
 
