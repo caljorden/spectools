@@ -63,6 +63,9 @@
 #define UBERTOOTH_U1_VID		0xffff
 #define UBERTOOTH_U1_PID		0x0004
 
+#define UBERTOOTH_U1_NEW_VID		0x1d50
+#define UBERTOOTH_U1_NEW_PID		0x6002
+
 /* # of samples to average */
 #define UBERTOOTH_U1_AVG_SAMPLES		3
 
@@ -243,8 +246,9 @@ int ubertooth_u1_device_scan(spectool_device_list *list) {
 	for (bus = usb_busses; bus; bus = bus->next) {
 		for (dev = bus->devices; dev; dev = dev->next) {
 			if (((dev->descriptor.idVendor == UBERTOOTH_U1_VID) &&
-				 (dev->descriptor.idProduct == UBERTOOTH_U1_PID))) {
-
+				 (dev->descriptor.idProduct == UBERTOOTH_U1_PID)) ||
+                            ((dev->descriptor.idVendor == UBERTOOTH_U1_NEW_VID) &&
+				 (dev->descriptor.idProduct == UBERTOOTH_U1_NEW_PID))) {
 				/* If we're full up, break */
 				if (list->num_devs == list->max_devs - 1)
 					break;
@@ -340,7 +344,9 @@ int ubertooth_u1_init_path(spectool_phy *phydev, char *buspath, char *devpath) {
 				continue;
 
 			if (((dev->descriptor.idVendor == UBERTOOTH_U1_VID) &&
-				 (dev->descriptor.idProduct == UBERTOOTH_U1_PID))) {
+				 (dev->descriptor.idProduct == UBERTOOTH_U1_PID)) ||
+                            ((dev->descriptor.idVendor == UBERTOOTH_U1_NEW_VID) &&
+                                 (dev->descriptor.idProduct == UBERTOOTH_U1_NEW_PID))) {
 				usb_dev_chosen = dev;
 				break;
 			} else {
