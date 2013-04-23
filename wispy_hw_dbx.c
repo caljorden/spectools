@@ -67,6 +67,9 @@
 #define METAGEEK_WISPYDBx_V2_VID	0x1dd5
 #define METAGEEK_WISPYDBx_V2_PID	0x5001
 
+#define METAGEEK_WISPYDBx_V3_VID	0x1dd5
+#define METAGEEK_WISPYDBx_V3_PID	0x5002
+
 #define METAGEEK_WISPY24I_VID		0x1dd5
 #define METAGEEK_WISPY24I_PID		0x2400
 
@@ -458,6 +461,8 @@ int wispydbx_usb_device_scan(spectool_device_list *list) {
 				 (dev->descriptor.idProduct == METAGEEK_WISPYDBx_PID)) ||
 				((dev->descriptor.idVendor == METAGEEK_WISPYDBx_V2_VID) &&
 				 (dev->descriptor.idProduct == METAGEEK_WISPYDBx_V2_PID)) ||
+				((dev->descriptor.idVendor == METAGEEK_WISPYDBx_V3_VID) &&
+				 (dev->descriptor.idProduct == METAGEEK_WISPYDBx_V3_PID)) ||
 				((dev->descriptor.idVendor == METAGEEK_WISPY24I_VID) &&
 				 (dev->descriptor.idProduct == METAGEEK_WISPY24I_PID)) ||
 				((dev->descriptor.idVendor == METAGEEK_WISPY24x_V2_VID) &&
@@ -493,6 +498,10 @@ int wispydbx_usb_device_scan(spectool_device_list *list) {
 				} else if (dev->descriptor.idProduct == METAGEEK_WISPYDBx_V2_PID) {
 					snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
 							 "Wi-Spy %s USB %u", "DBx2", list->list[list->num_devs].device_id);
+					model = 3;
+				} else if (dev->descriptor.idProduct == METAGEEK_WISPYDBx_V3_PID) {
+					snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
+							 "Wi-Spy %s USB %u", "DBx3", list->list[list->num_devs].device_id);
 					model = 3;
 				} else if (dev->descriptor.idProduct == METAGEEK_WISPY24x_V2_PID) {
 					snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
