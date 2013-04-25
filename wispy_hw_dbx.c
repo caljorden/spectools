@@ -586,6 +586,8 @@ int wispydbx_usb_init_path(spectool_phy *phydev, char *buspath, char *devpath) {
 				 (dev->descriptor.idProduct == METAGEEK_WISPYDBx_PID)) ||
 				((dev->descriptor.idVendor == METAGEEK_WISPYDBx_V2_VID) &&
 				 (dev->descriptor.idProduct == METAGEEK_WISPYDBx_V2_PID)) ||
+				((dev->descriptor.idVendor == METAGEEK_WISPYDBx_V3_VID) &&
+				 (dev->descriptor.idProduct == METAGEEK_WISPYDBx_V3_PID)) ||
 				((dev->descriptor.idVendor == METAGEEK_WISPY24I_VID) &&
 				 (dev->descriptor.idProduct == METAGEEK_WISPY24I_PID)) ||
 				((dev->descriptor.idVendor == METAGEEK_WISPY24x_V2_VID) &&
@@ -617,6 +619,8 @@ int wispydbx_usb_init_path(spectool_phy *phydev, char *buspath, char *devpath) {
 	else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPY900x_PID)
 		model = 2;
 	else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPYDBx_V2_PID)
+		model = 3;
+	else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPYDBx_V3_PID)
 		model = 3;
 	else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPY24x_V2_PID)
 		model = 4;
