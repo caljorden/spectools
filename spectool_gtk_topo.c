@@ -19,6 +19,8 @@
 
 #include "spectool_gtk_topo.h"
 
+#define KLUGE_NOISE_FLOOR -90
+
 char topo_help_txt[] = 
 "<b>Topographic View</b>\n\n"
 "2d historical view of peak values of sweep data.  Each point "
@@ -298,6 +300,9 @@ static void spectool_topo_wdr_sweep(int slot, int mode,
 				int sdb = SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, 
 											 wwidget->amp_res_mdbm, 
 								wwidget->sweepcache->sweeplist[s]->sample_data[x]);
+
+				if (sdb < KLUGE_NOISE_FLOOR)
+					continue;
 
 				int ndb = abs(sdb); 
 				if (ndb < 0) {
