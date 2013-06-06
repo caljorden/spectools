@@ -554,6 +554,8 @@ spectool_phy *spectool_netcli_enabledev(spectool_server *sr, unsigned int dev_id
 	phyret->getsweep_func = &spectool_net_getsweep;
 	phyret->setposition_func = &spectool_net_setposition;
 
+	phyret->draw_agg_suggestion = 1;
+
 	snprintf(phyret->device_spec->device_name, SPECTOOL_PHY_NAME_MAX, 
 			 "%s", sni->device_name);
 
