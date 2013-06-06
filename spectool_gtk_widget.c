@@ -122,14 +122,17 @@ static void spectool_widget_wdr_sweep(int slot, int mode,
 							   spectool_phy_getcurprofile(wwidget->phydev)->rssi_max);
 		// wwidget->min_db_draw = SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm, 0);
 		// printf("debug - min db draw %d\n", wwidget->min_db_draw);
-		wwidget->min_db_draw = -99;
+		wwidget->min_db_draw = -95;
 
 	} else if (wwidget->sweepcache != NULL && sweep != NULL) {
 		spectool_cache_append(wwidget->sweepcache, sweep);
+		/*
 		wwidget->min_db_draw = 
 			SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm, 
 							   sweep->min_rssi_seen > 2 ? 
 							   sweep->min_rssi_seen - 2: sweep->min_rssi_seen);
+							   */
+		wwidget->min_db_draw = -95;
 	}
 
 	/* Call the secondary sweep handler */
