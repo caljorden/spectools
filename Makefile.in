@@ -1,5 +1,7 @@
 # spectrum-tools
 
+DEBUG=-D_DEBUG
+
 prefix = @prefix@
 exec_prefix = @exec_prefix@
 ETC	= ${DESTDIR}@sysconfdir@
@@ -15,7 +17,7 @@ LIBS = @LIBS@
 CURSLIBS = @CURSLIBS@
 GTKLIBS = @GTKLIBS@
 HILDLIBS = @HILDLIBS@
-CFLAGS = -I./ @CFLAGS@
+CFLAGS = ${DEBUG} -I./ @CFLAGS@
 CPPFLAGS = @CPPFLAGS@
 
 GTK_CONFIG=@GTK_CONFIG@

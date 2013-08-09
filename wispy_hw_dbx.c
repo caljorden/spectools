@@ -76,6 +76,7 @@
 #define METAGEEK_WISPY24x_V2_VID	0x1dd5
 #define METAGEEK_WISPY24x_V2_PID	0x2410
 
+// 900x v2 uses the same vid/pid, we detect via bcdDevice
 #define METAGEEK_WISPY900x_VID		0x1dd5
 #define METAGEEK_WISPY900x_PID		0x0900
 
@@ -172,7 +173,7 @@ typedef struct _wispydbx_usb_aux {
 
 	spectool_phy *phydev;
 
-	// Model - 0 = dbx, 1 = 24i, 2 = 900x, 3 = dbxV2, 4 = 24xv2, 5 = 950
+	// Model - 0 = dbx, 1 = 24i, 2 = 900x, 3 = dbxV2, 4 = 24xv2, 5 = 950, 6 = 900x v2
 	int model;
 
 	// Protocol - v1 or v2
@@ -488,9 +489,18 @@ int wispydbx_usb_device_scan(spectool_device_list *list) {
 							 "Wi-Spy %s USB %u", "24i", list->list[list->num_devs].device_id);
 					model = 1;
 				} else if (dev->descriptor.idProduct == METAGEEK_WISPY900x_PID) {
-					snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
-							 "Wi-Spy %s USB %u", "900x", list->list[list->num_devs].device_id);
-					model = 2;
+#ifdef _DEBUG
+					fprintf(stderr, "debug - bcd %x\n", dev->descriptor.bcdDevice);
+#endif
+					if (dev->descriptor.bcdDevice == 0x100) {
+						snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
+								 "Wi-Spy %s USB %u", "900x", list->list[list->num_devs].device_id);
+						model = 2;
+					} else {
+						snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
+								 "Wi-Spy %s USB %u", "900x2", list->list[list->num_devs].device_id);
+						model = 6;
+					}
 				} else if (dev->descriptor.idProduct == METAGEEK_WISPY950x_PID) {
 					snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
 							 "Wi-Spy %s USB %u", "950x", list->list[list->num_devs].device_id);
@@ -526,7 +536,7 @@ int wispydbx_usb_device_scan(spectool_device_list *list) {
 					wispy24i_add_supportedranges(
 							 &(list->list[list->num_devs].num_sweep_ranges),
 							 &(list->list[list->num_devs].supported_ranges));
-				else if (model == 2 || model == 5)
+				else if (model == 2 || model == 5 || model == 6)
 					wispy900x_add_supportedranges(
 							 &(list->list[list->num_devs].num_sweep_ranges),
 							 &(list->list[list->num_devs].supported_ranges));
@@ -616,9 +626,13 @@ int wispydbx_usb_init_path(spectool_phy *phydev, char *buspath, char *devpath) {
 
 	if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPY24I_PID)
 		model = 1;
-	else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPY900x_PID)
-		model = 2;
-	else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPYDBx_V2_PID)
+	else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPY900x_PID) {
+		if (dev->descriptor.bcdDevice == 0x100) {
+			model = 2;
+		} else {
+			model = 6;
+		}
+	} else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPYDBx_V2_PID)
 		model = 3;
 	else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPYDBx_V3_PID)
 		model = 3;
@@ -655,6 +669,10 @@ int wispydbx_usb_init_path(spectool_phy *phydev, char *buspath, char *devpath) {
 			snprintf(phydev->device_spec->device_name, SPECTOOL_PHY_NAME_MAX,
 					 "Wi-Spy %s USB %u", "950x", cid);
 			break;
+		case 6:
+			snprintf(phydev->device_spec->device_name, SPECTOOL_PHY_NAME_MAX,
+					 "Wi-Spy %s USB %u", "900x2", cid);
+			break;
 		default:
 			snprintf(phydev->device_spec->device_name, SPECTOOL_PHY_NAME_MAX,
 					 "Wi-Spy %s USB %u", "DBx", cid);
@@ -677,7 +695,7 @@ int wispydbx_usb_init_path(spectool_phy *phydev, char *buspath, char *devpath) {
 		// 24i and 24xv2
 		wispy24i_add_supportedranges(&phydev->device_spec->num_sweep_ranges,
 									 &phydev->device_spec->supported_ranges);
-	} else if (model == 2 || model == 5) {
+	} else if (model == 2 || model == 5 || model == 6) {
 		// 900 and 950x
 		wispy900x_add_supportedranges(&phydev->device_spec->num_sweep_ranges,
 									  &phydev->device_spec->supported_ranges);
@@ -695,11 +713,11 @@ int wispydbx_usb_init_path(spectool_phy *phydev, char *buspath, char *devpath) {
 
 	auxptr->model = model;
 
-	// Set the protocol version
-	if (model == 3 || model == 4)
-		auxptr->protocol = 2;
-	else
+	// Set the protocol version; only a few old devices are v1 now so default to v2
+	if (model == 1 || model == 2 || model == 5)
 		auxptr->protocol = 1;
+	else
+		auxptr->protocol = 2;
 
 	auxptr->configured = 0;
 
@@ -763,7 +781,9 @@ void *wispydbx_usb_servicethread(void *aux) {
 	sigfillset(&signal_set);
 	pthread_sigmask(SIG_BLOCK, &signal_set, NULL);
 
-	// fprintf(stderr, "debug - servicethread started\n");
+#ifdef _DEBUG
+	fprintf(stderr, "debug - servicethread started\n");
+#endif
 
 	while (1) {
 		/* wait until we're able to write out to the IPC socket, go into a blocking
@@ -771,6 +791,9 @@ void *wispydbx_usb_servicethread(void *aux) {
 		FD_ZERO(&wset);
 		FD_SET(sock, &wset);
 
+#ifdef _DEBUG
+		fprintf(stderr, "debug - about to enter blocking select\n");
+#endif
 		if (select(sock + 1, NULL, &wset, NULL, NULL) < 0) {
 			snprintf(auxptr->phydev->errstr, SPECTOOL_ERROR_MAX,
 					 "wispydbx_usb poller failed on IPC write select(): %s",
@@ -780,7 +803,14 @@ void *wispydbx_usb_servicethread(void *aux) {
 			pthread_exit(NULL);
 		}
 
+#ifdef _DEBUG
+		fprintf(stderr, "debug - blocking select completed\n");
+#endif
+
 		if (auxptr->usb_thread_alive == 0) {
+#ifdef _DEBUG
+			fprintf(stderr, "debug - usb thread no longer alive?\n");
+#endif
 			auxptr->phydev->state = SPECTOOL_STATE_ERROR;
 			pthread_exit(NULL);
 		}
@@ -794,17 +824,22 @@ void *wispydbx_usb_servicethread(void *aux) {
 			int len = 0;
 			memset(buf, 0, bufsz);
 
-			// fprintf(stderr, "debug - running, poll\n");
-
+#ifdef _DEBUG
+			fprintf(stderr, "debug - usb_interrupt_read\n");
+#endif
 			if ((len = usb_interrupt_read(wispy, 0x82, buf, 
 								   bufsz, TIMEOUT)) <= 0) {
 				if (errno == EAGAIN) {
-					// fprintf(stderr, "debug - eagain on usb_interrupt_read\n");
+#ifdef _DEBUG
+					fprintf(stderr, "debug - eagain on usb_interrupt_read\n");
+#endif
 					continue;
 				}
 
-				// fprintf(stderr, "debug - failed - %s\n", strerror(errno));
-				// fprintf(stderr, "debug - %s\n", usb_strerror());
+#ifdef _DEBUG
+				fprintf(stderr, "debug - failed - %s\n", strerror(errno));
+				fprintf(stderr, "debug - %s\n", usb_strerror());
+#endif
 
 				snprintf(auxptr->phydev->errstr, SPECTOOL_ERROR_MAX,
 						 "wispydbx_usb poller failed to read USB data: %s",
@@ -814,7 +849,9 @@ void *wispydbx_usb_servicethread(void *aux) {
 				pthread_exit(NULL);
 			}
 
-			// printf("debug - usb read return %d\n", len);
+#ifdef _DEBUG
+			fprintf(stderr, "debug - usb read return %d\n", len);
+#endif
 
 			/* Send it to the IPC remote, re-queue on enobufs */
 			if (send(sock, buf, bufsz, 0) < 0) {
@@ -933,7 +970,10 @@ int wispydbx_usb_open(spectool_phy *phydev) {
 
 	wispy = auxptr->devhdl;
 
-	// fprintf(stderr, "debug - writing usb start control msg\n");
+#ifdef _DEBUG
+	fprintf(stderr, "debug - writing usb start control msg\n");
+#endif
+
 	if (usb_control_msg(wispy, 
 						USB_ENDPOINT_OUT + USB_TYPE_CLASS + USB_RECIP_INTERFACE,
 						HID_SET_REPORT, 
@@ -949,7 +989,9 @@ int wispydbx_usb_open(spectool_phy *phydev) {
 		return -1;
 	}
 
-	// fprintf(stderr, "debug - finished writing usb control msg\n");
+#ifdef _DEBUG
+	fprintf(stderr, "debug - finished writing usb control msg\n");
+#endif
 
 	return 1;
 }
@@ -1018,6 +1060,10 @@ int wispydbx_usb_poll(spectool_phy *phydev) {
 	uint16_t packet_index;
 	uint8_t *data;
 	unsigned int nsamples;
+
+#ifdef _DEBUG
+	fprintf(stderr, "debug - dbx_usb_poll\n");
+#endif
 
 	if (auxptr->protocol == 2) {
 		bufsz = sizeof(wispydbx_report_v2);
@@ -1102,6 +1148,9 @@ int wispydbx_usb_poll(spectool_phy *phydev) {
 		base = auxptr->sweepbase;
 
 	if (base < 0 || base > auxptr->sweepbuf->num_samples) {
+#ifdef _DEBUG
+		fprintf(stderr, "debug - bunk data, base %d\n", base);
+#endif
 		/* Bunk data, throw it out */
 		return SPECTOOL_POLL_NONE;
 	}
@@ -1116,8 +1165,15 @@ int wispydbx_usb_poll(spectool_phy *phydev) {
 		/* Init the timestamp for sweep begin */
 		gettimeofday(&(auxptr->sweepbuf->tm_start), NULL);
 	} else if (auxptr->sweepbuf_initialized == 0) {
+#ifdef _DEBUG
+		fprintf(stderr, "debug - sweepbuf unitialized\n");
+#endif
 		return SPECTOOL_POLL_NONE;
 	}
+
+#ifdef _DEBUG
+	fprintf(stderr, "debug - got %d samples\n", nsamples);
+#endif
 
 	for (x = 0; x < nsamples; x++) {
 		if (base + x >= auxptr->sweepbuf->num_samples) {
@@ -1162,7 +1218,9 @@ int wispydbx_usb_setposition(spectool_phy *phydev, int in_profile,
 	uint16_t points_per_sweep;
 	uint8_t samples_per_point;
 
-	// printf("debug - setposition %d %d\n", start_khz, res_hz);
+#ifdef _DEBUG
+	fprintf(stderr, "debug - setposition profile %d %d %d\n", in_profile, start_khz, res_hz);
+#endif
 
 	// Todo - add support for setting arbitrary ranges
 	if (in_profile < 0 || in_profile > (int) phydev->device_spec->num_sweep_ranges) {
@@ -1235,7 +1293,10 @@ int wispydbx_usb_setposition(spectool_phy *phydev, int in_profile,
 
 	wispy = auxptr->devhdl;
 
-	// printf("debug - writing usb control msg %d\n", 0x02 + (0x03 << 8));
+#ifdef _DEBUG
+	fprintf(stderr, "debug - writing usb control msg %d\n", 0x02 + (0x03 << 8));
+#endif
+
 	if (usb_control_msg(wispy, 
 						USB_ENDPOINT_OUT + USB_TYPE_CLASS + USB_RECIP_INTERFACE,
 						HID_SET_REPORT, 
@@ -1250,7 +1311,9 @@ int wispydbx_usb_setposition(spectool_phy *phydev, int in_profile,
 		phydev->state = SPECTOOL_STATE_ERROR;
 		return -1;
 	}
-	// printf("debug - finished wrting usb control\n");
+#ifdef _DEBUG
+	fprintf(stderr, "debug - finished wrting usb control\n");
+#endif
 
 #if 0
 	memset(use_rfset, 0, rfset_len);

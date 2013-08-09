@@ -206,6 +206,9 @@ int main(int argc, char *argv[]) {
 			pi->next = devs;
 			devs = pi;
 
+#ifdef _DEBUG
+			fprintf(stderr, "debug - spectool_device_init\n");
+#endif
 			if (spectool_device_init(pi, &(list.list[x])) < 0) {
 				printf("Error initializing WiSPY device %s id %u\n",
 					   list.list[x].name, list.list[x].device_id);
@@ -213,6 +216,9 @@ int main(int argc, char *argv[]) {
 				exit(1);
 			}
 
+#ifdef _DEBUG
+			fprintf(stderr, "debug - spectool_phy_open\n");
+#endif
 			if (spectool_phy_open(pi) < 0) {
 				printf("Error opening WiSPY device %s id %u\n",
 					   list.list[x].name, list.list[x].device_id);
@@ -220,15 +226,24 @@ int main(int argc, char *argv[]) {
 				exit(1);
 			}
 
+#ifdef _DEBUG
+			fprintf(stderr, "debug - spectool_phy_setcalibration\n");
+#endif
 			spectool_phy_setcalibration(pi, 1);
 
 			/* configure the default sweep block */
+#ifdef _DEBUG
+			fprintf(stderr, "debug - spectool_phy_setposition\n");
+#endif
 			spectool_phy_setposition(pi, rangeset[x], 0, 0);
 		}
 
 		spectool_device_scan_free(&list); 
 	}
 
+#ifdef _DEBUG
+			fprintf(stderr, "debug - entering polling\n");
+#endif
 	/* Naive poll that doesn't use select() to find pending data */
 	while (1) {
 		fd_set rfds;
