@@ -767,7 +767,7 @@ static void spectool_planar_init(SpectoolPlanar *planar) {
 	wwidget->sweep_num_aggregate = 2;
 
 	wwidget->hlines = 8;
-	wwidget->base_db_offset = 0;
+	wwidget->base_db_offset = -50;
 
 	wwidget->graph_title = "<b>Planar View</b>";
 	wwidget->graph_title_bg = "#00CC00";

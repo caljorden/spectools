@@ -117,9 +117,12 @@ static void spectool_widget_wdr_sweep(int slot, int mode,
 		wwidget->amp_res_mdbm = 
 			spectool_phy_getcurprofile(wwidget->phydev)->amp_res_mdbm;
 
+		/*
 		wwidget->base_db_offset =
 			SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm,
 							   spectool_phy_getcurprofile(wwidget->phydev)->rssi_max);
+							   */
+		wwidget->base_db_offset = -50;
 		// wwidget->min_db_draw = SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, wwidget->amp_res_mdbm, 0);
 		// printf("debug - min db draw %d\n", wwidget->min_db_draw);
 		wwidget->min_db_draw = -95;

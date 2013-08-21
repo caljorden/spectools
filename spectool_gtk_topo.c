@@ -115,20 +115,30 @@ void spectool_topo_draw(GtkWidget *widget, cairo_t *cr, SpectoolWidget *wwidget)
 
 	// Find a representative line to get our maximum
 	// 2/3rds down, up a bit to dodge noise floor
-	int avg_line = ((abs(wwidget->min_db_draw) / 3) * 2) - 3;
-	int avg_peak = 0;
+	// int avg_db = (((abs(wwidget->min_db_draw) - abs(wwidget->base_db_offset)) / 3) * 2) - 3 - abs(wwidget->base_db_offset);;
+	// int avg_db = ((abs(wwidget->min_db_draw) / 3) * 2) - abs(wwidget->base_db_offset);
+	int mindb = SPECTOOL_RSSI_CONVERT(wwidget->amp_offset_mdbm, 
+									wwidget->amp_res_mdbm, 
+									wwidget->phydev->min_rssi_seen);
+	int avg_db = ((abs(mindb) / 3) * 2) - abs(wwidget->base_db_offset);
+	int avg_peak = 1;
 
+	// printf("row %d, db %d\n", avg_db, avg_db + abs(wwidget->base_db_offset));
 	for (samp = 0; samp < topo->scw; samp++) {
 		int z;
-		if ((z = (topo->sample_counts[(samp * topo->sch) + avg_line])) > avg_peak) 
+		if ((z = (topo->sample_counts[(avg_db * topo->scw) + samp])) > avg_peak) {
+			// printf("new peak %d\n", z);
 			avg_peak = z;
+		}
 	}
+	
+	// printf("peak %d\n", avg_peak);
 
 	/* Figure out the height based on the dbm range */
-	sh = (double) wwidget->g_len_y / abs(wwidget->min_db_draw);
+	sh = (double) wwidget->g_len_y / (abs(wwidget->min_db_draw) - abs(wwidget->base_db_offset));
 
 	/* Plot along all the normalized DB ranges  */
-	for (db = 0; db < abs(wwidget->min_db_draw); db++) {
+	for (db = 0; db < (abs(wwidget->min_db_draw) - abs(wwidget->base_db_offset)); db++) {
 		/* Make a pattern to draw our levels to, scaled to the graph and db
 		 * position so we don't matrix it */
 		pattern =
@@ -141,14 +151,17 @@ void spectool_topo_draw(GtkWidget *widget, cairo_t *cr, SpectoolWidget *wwidget)
 		for (samp = 0; samp < topo->scw; samp++) {
 			int cpos;
 
+			/*
+				printf("[%d,%d] %f ", samp, db,
+				((float) (topo->sample_counts[(db * topo->scw) + samp])));
+				*/
+
 			cpos = (float) (topo->colormap_len - 1) *
-				((float) (topo->sample_counts[(samp * topo->sch) + db]) /
+				((float) (topo->sample_counts[(db * topo->scw) + samp]) /
 				 (float) avg_peak);
 
 			if (cpos < 0) cpos = 0;
 			if (cpos > topo->colormap_len) cpos = topo->colormap_len - 1;
-
-			// printf("debug - pos %f color %d\n", (float) (samp) / (topo->scw), cpos);
 
 			cairo_pattern_add_color_stop_rgb(pattern,
 					(float) (samp) / (topo->scw),
@@ -275,11 +288,9 @@ static void spectool_topo_wdr_sweep(int slot, int mode,
 			free(topo->sample_counts);
 		}
 
-		topo->sch = abs(wwidget->min_db_draw);
-		/*
-		topo->scw = 
-			wwidget->phydev->device_spec->supported_ranges[0].num_samples;
-		*/
+		// 2d plot; #samples wide, normalized dbrange high
+		topo->sch = abs(wwidget->min_db_draw) - abs(wwidget->base_db_offset);
+
 		topo->scw =
 			spectool_phy_getcurprofile(wwidget->phydev)->num_samples;
 
@@ -317,17 +328,17 @@ static void spectool_topo_wdr_sweep(int slot, int mode,
 					continue;
 #endif
 
-				int ndb = abs(sdb); 
-				if (ndb < 0) {
-					ndb = 0;
-				}
+				// Normalize it into our base offset as an int
+				int ndb = abs(sdb) - abs(wwidget->base_db_offset); 
 
-				if (ndb > topo->sch) {
+				if (ndb < 0) 
 					ndb = 0;
-				}
+				if (ndb >= topo->sch) 
+					ndb = topo->sch - 1;
 
 				/* Increment that position */
-				sc = ++(topo->sample_counts[(x * topo->sch) + ndb]);
+				sc = ++(topo->sample_counts[(ndb * topo->scw) + x]);
+				// sc = ++(topo->sample_counts[(x * topo->sch) + ndb]);
 
 				/* Record the max peak count for easy math later */
 				if (sc > topo->sweep_peak_max) {
@@ -462,7 +473,7 @@ static void spectool_topo_init(SpectoolTopo *topo) {
 	wwidget->sweep_num_aggregate = 1;
 
 	wwidget->hlines = 8;
-	wwidget->base_db_offset = 0;
+	wwidget->base_db_offset = -50;
 
 	wwidget->graph_title = strdup("<b>Topo View</b>");
 	wwidget->graph_title_bg = strdup("#CC00CC");
