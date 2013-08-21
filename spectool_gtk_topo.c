@@ -113,6 +113,17 @@ void spectool_topo_draw(GtkWidget *widget, cairo_t *cr, SpectoolWidget *wwidget)
 
 	cairo_save(cr);
 
+	// Find a representative line to get our maximum
+	// 2/3rds down, up a bit to dodge noise floor
+	int avg_line = ((abs(wwidget->min_db_draw) / 3) * 2) - 3;
+	int avg_peak = 0;
+
+	for (samp = 0; samp < topo->scw; samp++) {
+		int z;
+		if ((z = (topo->sample_counts[(samp * topo->sch) + avg_line])) > avg_peak) 
+			avg_peak = z;
+	}
+
 	/* Figure out the height based on the dbm range */
 	sh = (double) wwidget->g_len_y / abs(wwidget->min_db_draw);
 
@@ -131,8 +142,8 @@ void spectool_topo_draw(GtkWidget *widget, cairo_t *cr, SpectoolWidget *wwidget)
 			int cpos;
 
 			cpos = (float) (topo->colormap_len - 1) *
-				((float) (topo->sample_counts[(samp * topo->sch) + db] * 1.5f) /
-				 (float) topo->sweep_peak_max);
+				((float) (topo->sample_counts[(samp * topo->sch) + db]) /
+				 (float) avg_peak);
 
 			if (cpos < 0) cpos = 0;
 			if (cpos > topo->colormap_len) cpos = topo->colormap_len - 1;
@@ -301,8 +312,10 @@ static void spectool_topo_wdr_sweep(int slot, int mode,
 											 wwidget->amp_res_mdbm, 
 								wwidget->sweepcache->sweeplist[s]->sample_data[x]);
 
+#if 0
 				if (sdb < KLUGE_NOISE_FLOOR)
 					continue;
+#endif
 
 				int ndb = abs(sdb); 
 				if (ndb < 0) {
