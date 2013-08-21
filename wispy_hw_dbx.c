@@ -74,7 +74,7 @@
 #define METAGEEK_WISPY24I_PID		0x2400
 
 #define METAGEEK_WISPY24x_V2_VID	0x1dd5
-#define METAGEEK_WISPY24x_V2_PID	0x2420
+#define METAGEEK_WISPY24x_V2_PID	0x2410
 
 // 900x v2 uses the same vid/pid, we detect via bcdDevice
 #define METAGEEK_WISPY900x_VID		0x1dd5
