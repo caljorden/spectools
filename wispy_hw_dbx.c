@@ -74,7 +74,7 @@
 #define METAGEEK_WISPY24I_PID		0x2400
 
 #define METAGEEK_WISPY24x_V2_VID	0x1dd5
-#define METAGEEK_WISPY24x_V2_PID	0x2410
+#define METAGEEK_WISPY24x_V2_PID	0x2420
 
 // 900x v2 uses the same vid/pid, we detect via bcdDevice
 #define METAGEEK_WISPY900x_VID		0x1dd5
@@ -122,6 +122,15 @@
 #define WISPYDBx_USB_OFFSET_MDBM		-134000
 #define WISPYDBx_USB_RES_MDBM			500
 #define WISPYDBx_USB_RSSI_MAX			222
+
+#define WISPYDBx_MODEL_DBxV1	0
+#define WISPYDBx_MODEL_24i		1
+#define WISPYDBx_MODEL_900x		2
+#define WISPYDBx_MODEL_DBxV2	3
+#define WISPYDBx_MODEL_24xV2	4
+#define WISPYDBx_MODEL_950x		5
+#define WISPYDBx_MODEL_900xV2	6
+#define WISPYDBx_MODEL_DBxV3	7
 
 #include "spectool_container.h"
 #include "wispy_hw_dbx.h"
@@ -173,7 +182,6 @@ typedef struct _wispydbx_usb_aux {
 
 	spectool_phy *phydev;
 
-	// Model - 0 = dbx, 1 = 24i, 2 = 900x, 3 = dbxV2, 4 = 24xv2, 5 = 950, 6 = 900x v2
 	int model;
 
 	// Protocol - v1 or v2
@@ -296,130 +304,121 @@ void wispydbx_usb_setcalibration(spectool_phy *, int);
 int wispydbx_usb_setposition(spectool_phy *, int, int, int);
 spectool_sample_sweep *wispydbx_usb_getsweep(spectool_phy *);
 
-void wispy24i_add_supportedranges(int *num_ranges, spectool_sample_sweep **ranges) {
-	*ranges = (spectool_sample_sweep *) malloc(sizeof(spectool_sample_sweep) * 2);
+void wispydbx_create_settings_from_preset(spectool_sample_sweep *range, 
+										  char *name,
+										  float startFrequencyMHz,
+										  float stopFrequencyMHz,
+										  float frequencyResolutionkHz,
+										  float filterBandwidthkHz,
+										  int model) {
+	// Dwell/sample-per-point shared
+	int dwellTime;
 
-	*num_ranges = 2;
+	// If we're a v1 device set the samples per point based on filter,
+	// otherwise use a fixed dwelltime on v2+ devices
+	if (model == WISPYDBx_MODEL_DBxV1 ||
+		model == WISPYDBx_MODEL_900x ||
+		model == WISPYDBx_MODEL_950x) {
+		dwellTime = 8;
 
-	(*ranges)[0].name = strdup("2.4GHz ISM");
-	(*ranges)[0].num_samples = WISPYDBx_USB_NUM_SAMPLES_24;
+		if (filterBandwidthkHz > 75)
+			dwellTime = 6;
 
-	(*ranges)[0].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
-	(*ranges)[0].amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
-	(*ranges)[0].rssi_max = WISPYDBx_USB_RSSI_MAX;
+		if (filterBandwidthkHz > 125)
+			dwellTime = 4;
+	} else {
+		dwellTime = 100;
+	}
 
-	(*ranges)[0].start_khz = WISPYDBx_USB_DEF_STARTKHZ_24;
-	(*ranges)[0].end_khz = 
-		WISPYDBx_USB_DEF_STARTKHZ_24 + ((WISPYDBx_USB_NUM_SAMPLES_24 *
-										 WISPYDBx_USB_DEF_RESHZ_24) / 1000);
-	(*ranges)[0].res_hz = WISPYDBx_USB_DEF_RESHZ_24;
-	(*ranges)[0].samples_per_point = WISPYDBx_USB_DEF_SAMPLESPOINT_24;
-	(*ranges)[0].filter_bw_hz = WISPYDBx_USB_DEF_FILTERHZ_24;
+	range->name = strdup(name);
+	range->num_samples = (((stopFrequencyMHz * 1000) - (startFrequencyMHz * 1000)) / (frequencyResolutionkHz));
+	range->amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
+	range->amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
+	range->rssi_max = WISPYDBx_USB_RSSI_MAX;
+	range->start_khz = (startFrequencyMHz * 1000);
+	range->end_khz = (stopFrequencyMHz * 1000);
+	range->res_hz = (frequencyResolutionkHz * 1000);
+	range->samples_per_point = dwellTime;
+	range->filter_bw_hz = filterBandwidthkHz * 1000;
 
-	(*ranges)[1].name = strdup("2.4GHz ISM FAST");
-	(*ranges)[1].num_samples = WISPYDBx_USB_NUM_SAMPLES_24_FAST;
-
-	(*ranges)[1].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
-	(*ranges)[1].amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
-	(*ranges)[1].rssi_max = WISPYDBx_USB_RSSI_MAX;
-
-	(*ranges)[1].start_khz = WISPYDBx_USB_DEF_STARTKHZ_24_FAST;
-	(*ranges)[1].end_khz = 
-		WISPYDBx_USB_DEF_STARTKHZ_24_FAST + 
-		((WISPYDBx_USB_NUM_SAMPLES_24_FAST *
-		  WISPYDBx_USB_DEF_RESHZ_24_FAST) / 1000);
-	(*ranges)[1].res_hz = WISPYDBx_USB_DEF_RESHZ_24_FAST;
-	(*ranges)[1].samples_per_point = WISPYDBx_USB_DEF_SAMPLESPOINT_24_FAST;
-	(*ranges)[1].filter_bw_hz = WISPYDBx_USB_DEF_FILTERHZ_24_FAST;
+	return;
 }
 
-void wispy900x_add_supportedranges(int *num_ranges, spectool_sample_sweep **ranges) {
-	*ranges = (spectool_sample_sweep *) malloc(sizeof(spectool_sample_sweep) * 1);
+/* Unified channel range adder */
+void wispydbx_add_supportedranges(int *num_ranges, spectool_sample_sweep **ranges, int model) {
+	*num_ranges = 0;
 
-	*num_ranges = 1;
+	if (model == WISPYDBx_MODEL_DBxV1 ||
+		model == WISPYDBx_MODEL_DBxV2 ||
+		model == WISPYDBx_MODEL_DBxV3) {
+		// DBX devices get 2.4, 2.4 turbo, 5, 5-1, 5-2, 5-3
+		*num_ranges = 6; 
+	} else if (model == WISPYDBx_MODEL_24i ||
+			   model == WISPYDBx_MODEL_24xV2) {
+		// 24i and x are 2.4 only, and get just the 2.4 and 2.4 turbo
+		*num_ranges = 2;
+	} else if (model == WISPYDBx_MODEL_900x ||
+			   model == WISPYDBx_MODEL_900xV2) {
+		// 900x series gets 2 900mhz-ish ranges
+		*num_ranges = 2;
+	} else if (model == WISPYDBx_MODEL_950x) {
+		// 950x only does one range
+		*num_ranges = 1;
+	} else {
+		// We've failed somehow
+		fprintf(stderr, "FAILURE: Couldn't determine device model\n");
+		return;
+	}
 
-	(*ranges)[0].name = strdup("900MHz ISM");
-	(*ranges)[0].num_samples = WISPY900x_USB_NUM_SAMPLES;
+	*ranges = (spectool_sample_sweep *) malloc(sizeof(spectool_sample_sweep) * *num_ranges);
 
-	/* common */
-	(*ranges)[0].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
-	(*ranges)[0].amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
-	(*ranges)[0].rssi_max = WISPYDBx_USB_RSSI_MAX;
+	if (model == WISPYDBx_MODEL_DBxV1 ||
+		model == WISPYDBx_MODEL_DBxV2 ||
+		model == WISPYDBx_MODEL_DBxV3 ||
+		model == WISPYDBx_MODEL_24i ||
+		model == WISPYDBx_MODEL_24xV2) {
 
-	(*ranges)[0].start_khz = WISPY900x_USB_DEF_STARTKHZ;
-	(*ranges)[0].end_khz = 
-		WISPY900x_USB_DEF_STARTKHZ + ((WISPY900x_USB_NUM_SAMPLES *
-									   WISPY900x_USB_DEF_RESHZ) / 1000);
-	(*ranges)[0].res_hz = WISPY900x_USB_DEF_RESHZ;
-	(*ranges)[0].samples_per_point = WISPY900x_USB_DEF_SAMPLESPOINT;
-	(*ranges)[0].filter_bw_hz = WISPY900x_USB_DEF_FILTERHZ;
-}
+		wispydbx_create_settings_from_preset(&((*ranges)[0]),
+											 "Full 2.4GHz Band", 2400.0f, 2495.0f, 
+											 333.3f, 200, model);
+		wispydbx_create_settings_from_preset(&((*ranges)[1]),
+											 "Full 2.4GHz Band (Turbo)", 2400.0f, 2495.0f, 
+											 1000.0f, 500, model);
+	}
 
-void wispydbx_add_supportedranges(int *num_ranges, spectool_sample_sweep **ranges) {
-	*ranges = (spectool_sample_sweep *) malloc(sizeof(spectool_sample_sweep) * 4);
+	if (model == WISPYDBx_MODEL_DBxV1 ||
+		model == WISPYDBx_MODEL_DBxV2 ||
+		model == WISPYDBx_MODEL_DBxV3) {
+		wispydbx_create_settings_from_preset(&((*ranges)[2]),
+											 "Full 5GHz Band", 5150.0f, 5836.0f, 
+											 1497.070f, 428, model);
+		wispydbx_create_settings_from_preset(&((*ranges)[3]),
+											 "UNII Low/Mid (ch. 36-64)", 5150.0f, 5350.0f, 
+											 748.535f, 428, model);
+		wispydbx_create_settings_from_preset(&((*ranges)[4]),
+											 "UNII Low/Mid (ch. 100-140)", 5470.0f, 5725.0f, 
+											 1122.070f, 428, model);
+		wispydbx_create_settings_from_preset(&((*ranges)[5]),
+											 "UNII Low/Mid (ch. 149-165)", 5725.0f, 5836.0f, 
+											 375.0f, 428, model);
+	}
 
-	*num_ranges = 4;
+	if (model == WISPYDBx_MODEL_900x ||
+		model == WISPYDBx_MODEL_900xV2) {
+		wispydbx_create_settings_from_preset(&((*ranges)[0]),
+											 "902-928 MHz Band", 902, 928, 
+											 102.0f, 125, model);
+		wispydbx_create_settings_from_preset(&((*ranges)[1]),
+											 "862-870 MHz Band", 862, 870.2f, 
+											 38.0f, 53.4f, model);
+	}
 
-	(*ranges)[0].name = strdup("2.4GHz ISM");
-	(*ranges)[0].num_samples = WISPYDBx_USB_NUM_SAMPLES_24;
+	if (model == WISPYDBx_MODEL_950x) {
+		wispydbx_create_settings_from_preset(&((*ranges)[0]),
+											 "950 MHz Band", 945, 964, 
+											 75.0f, 90, model);
+	}
 
-	(*ranges)[0].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
-	(*ranges)[0].amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
-	(*ranges)[0].rssi_max = WISPYDBx_USB_RSSI_MAX;
-
-	(*ranges)[0].start_khz = WISPYDBx_USB_DEF_STARTKHZ_24;
-	(*ranges)[0].end_khz = 
-		WISPYDBx_USB_DEF_STARTKHZ_24 + ((WISPYDBx_USB_NUM_SAMPLES_24 *
-										 WISPYDBx_USB_DEF_RESHZ_24) / 1000);
-	(*ranges)[0].res_hz = WISPYDBx_USB_DEF_RESHZ_24;
-	(*ranges)[0].samples_per_point = WISPYDBx_USB_DEF_SAMPLESPOINT_24;
-	(*ranges)[0].filter_bw_hz = WISPYDBx_USB_DEF_FILTERHZ_24;
-
-	(*ranges)[1].name = strdup("2.4GHz ISM FAST");
-	(*ranges)[1].num_samples = WISPYDBx_USB_NUM_SAMPLES_24_FAST;
-
-	(*ranges)[1].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
-	(*ranges)[1].amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
-	(*ranges)[1].rssi_max = WISPYDBx_USB_RSSI_MAX;
-
-	(*ranges)[1].start_khz = WISPYDBx_USB_DEF_STARTKHZ_24_FAST;
-	(*ranges)[1].end_khz = 
-		WISPYDBx_USB_DEF_STARTKHZ_24_FAST + 
-		((WISPYDBx_USB_NUM_SAMPLES_24_FAST *
-		  WISPYDBx_USB_DEF_RESHZ_24_FAST) / 1000);
-	(*ranges)[1].res_hz = WISPYDBx_USB_DEF_RESHZ_24_FAST;
-	(*ranges)[1].samples_per_point = WISPYDBx_USB_DEF_SAMPLESPOINT_24_FAST;
-	(*ranges)[1].filter_bw_hz = WISPYDBx_USB_DEF_FILTERHZ_24_FAST;
-
-	(*ranges)[2].name = strdup("5GHz");
-	(*ranges)[2].num_samples = WISPYDBx_USB_NUM_SAMPLES_58;
-
-	(*ranges)[2].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
-	(*ranges)[2].amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
-	(*ranges)[2].rssi_max = WISPYDBx_USB_RSSI_MAX;
-
-	(*ranges)[2].start_khz = WISPYDBx_USB_STARTKHZ_58;
-	(*ranges)[2].end_khz = 
-		WISPYDBx_USB_STARTKHZ_58 + ((WISPYDBx_USB_NUM_SAMPLES_58 *
-									 WISPYDBx_USB_RESHZ_58) / 1000);
-	(*ranges)[2].res_hz = WISPYDBx_USB_RESHZ_58;
-	(*ranges)[2].samples_per_point = WISPYDBx_USB_SAMPLESPOINT_58;
-	(*ranges)[2].filter_bw_hz = WISPYDBx_USB_FILTERHZ_58;
-
-	(*ranges)[3].name = strdup("5GHz UN-II");
-	(*ranges)[3].num_samples = WISPYDBx_USB_NUM_SAMPLES_58_UNL;
-
-	(*ranges)[3].amp_offset_mdbm = WISPYDBx_USB_OFFSET_MDBM;
-	(*ranges)[3].amp_res_mdbm = WISPYDBx_USB_RES_MDBM;
-	(*ranges)[3].rssi_max = WISPYDBx_USB_RSSI_MAX;
-
-	(*ranges)[3].start_khz = WISPYDBx_USB_STARTKHZ_58_UNL;
-	(*ranges)[3].end_khz = 
-		WISPYDBx_USB_STARTKHZ_58_UNL + ((WISPYDBx_USB_NUM_SAMPLES_58_UNL *
-										 WISPYDBx_USB_RESHZ_58_UNL) / 1000);
-	(*ranges)[3].res_hz = WISPYDBx_USB_RESHZ_58_UNL;
-	(*ranges)[3].samples_per_point = WISPYDBx_USB_SAMPLESPOINT_58_UNL;
-	(*ranges)[3].filter_bw_hz = WISPYDBx_USB_FILTERHZ_58_UNL;
 }
 
 uint32_t wispydbx_adler_checksum(const char *buf1, int len) {
@@ -487,7 +486,7 @@ int wispydbx_usb_device_scan(spectool_device_list *list) {
 				if (dev->descriptor.idProduct == METAGEEK_WISPY24I_PID) {
 					snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
 							 "Wi-Spy %s USB %u", "24i", list->list[list->num_devs].device_id);
-					model = 1;
+					model = WISPYDBx_MODEL_DBxV1;
 				} else if (dev->descriptor.idProduct == METAGEEK_WISPY900x_PID) {
 #ifdef _DEBUG
 					fprintf(stderr, "debug - bcd %x\n", dev->descriptor.bcdDevice);
@@ -495,31 +494,32 @@ int wispydbx_usb_device_scan(spectool_device_list *list) {
 					if (dev->descriptor.bcdDevice == 0x100) {
 						snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
 								 "Wi-Spy %s USB %u", "900x", list->list[list->num_devs].device_id);
-						model = 2;
+						model = WISPYDBx_MODEL_900x;
 					} else {
 						snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
 								 "Wi-Spy %s USB %u", "900x2", list->list[list->num_devs].device_id);
-						model = 6;
+						model = WISPYDBx_MODEL_900xV2;
 					}
 				} else if (dev->descriptor.idProduct == METAGEEK_WISPY950x_PID) {
 					snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
 							 "Wi-Spy %s USB %u", "950x", list->list[list->num_devs].device_id);
-					model = 2;
+					model = WISPYDBx_MODEL_950x;
 				} else if (dev->descriptor.idProduct == METAGEEK_WISPYDBx_V2_PID) {
 					snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
 							 "Wi-Spy %s USB %u", "DBx2", list->list[list->num_devs].device_id);
-					model = 3;
+					model = WISPYDBx_MODEL_DBxV2;
 				} else if (dev->descriptor.idProduct == METAGEEK_WISPYDBx_V3_PID) {
 					snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
 							 "Wi-Spy %s USB %u", "DBx3", list->list[list->num_devs].device_id);
-					model = 3;
+					model = WISPYDBx_MODEL_DBxV3;
 				} else if (dev->descriptor.idProduct == METAGEEK_WISPY24x_V2_PID) {
 					snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
 							 "Wi-Spy %s USB %u", "24x2", list->list[list->num_devs].device_id);
-					model = 4;
+					model = WISPYDBx_MODEL_24xV2;
 				} else {
 					snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
 							 "Wi-Spy %s USB %u", "DBx", list->list[list->num_devs].device_id);
+					model = WISPYDBx_MODEL_DBxV1;
 				}
 
 				/* Fill in the list elements */
@@ -528,6 +528,11 @@ int wispydbx_usb_device_scan(spectool_device_list *list) {
 				list->list[list->num_devs].init_func = wispydbx_usb_init;
 				list->list[list->num_devs].hw_rec = auxpair;
 
+				wispydbx_add_supportedranges(&(list->list[list->num_devs].num_sweep_ranges),
+											 &(list->list[list->num_devs].supported_ranges),
+											 model);
+
+#if 0
 				if (model == 0 || model == 3)
 					wispydbx_add_supportedranges(
 							 &(list->list[list->num_devs].num_sweep_ranges),
@@ -540,6 +545,7 @@ int wispydbx_usb_device_scan(spectool_device_list *list) {
 					wispy900x_add_supportedranges(
 							 &(list->list[list->num_devs].num_sweep_ranges),
 							 &(list->list[list->num_devs].supported_ranges));
+#endif
 
 				list->num_devs++;
 
@@ -625,21 +631,23 @@ int wispydbx_usb_init_path(spectool_phy *phydev, char *buspath, char *devpath) {
 	}
 
 	if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPY24I_PID)
-		model = 1;
+		model = WISPYDBx_MODEL_24i;
 	else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPY900x_PID) {
 		if (dev->descriptor.bcdDevice == 0x100) {
-			model = 2;
+			model = WISPYDBx_MODEL_900x;
 		} else {
-			model = 6;
+			model = WISPYDBx_MODEL_900xV2;
 		}
 	} else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPYDBx_V2_PID)
-		model = 3;
+		model = WISPYDBx_MODEL_DBxV2;
 	else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPYDBx_V3_PID)
-		model = 3;
+		model = WISPYDBx_MODEL_DBxV3;
 	else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPY24x_V2_PID)
-		model = 4;
+		model = WISPYDBx_MODEL_24xV2;
 	else if (usb_dev_chosen->descriptor.idProduct == METAGEEK_WISPY950x_PID)
-		model = 5;
+		model = WISPYDBx_MODEL_900xV2;
+	else
+		model = WISPYDBx_MODEL_DBxV1;
 
 	/* Build the device record with appropriate sweep capabilities */
 	phydev->device_spec = (spectool_dev_spec *) malloc(sizeof(spectool_dev_spec));
@@ -649,27 +657,27 @@ int wispydbx_usb_init_path(spectool_phy *phydev, char *buspath, char *devpath) {
 	/* Default the name to the buspath */
 
 	switch (model) {
-		case 1:
+		case WISPYDBx_MODEL_24i:
 			snprintf(phydev->device_spec->device_name, SPECTOOL_PHY_NAME_MAX,
 					 "Wi-Spy %s USB %u", "24i", cid);
 			break;
-		case 2:
+		case WISPYDBx_MODEL_900x:
 			snprintf(phydev->device_spec->device_name, SPECTOOL_PHY_NAME_MAX,
 					 "Wi-Spy %s USB %u", "900x", cid);
 			break;
-		case 3:
+		case WISPYDBx_MODEL_DBxV2:
 			snprintf(phydev->device_spec->device_name, SPECTOOL_PHY_NAME_MAX,
 					 "Wi-Spy %s USB %u", "DBx2", cid);
 			break;
-		case 4:
+		case WISPYDBx_MODEL_24xV2:
 			snprintf(phydev->device_spec->device_name, SPECTOOL_PHY_NAME_MAX,
 					 "Wi-Spy %s USB %u", "24x2", cid);
 			break;
-		case 5:
+		case WISPYDBx_MODEL_950x:
 			snprintf(phydev->device_spec->device_name, SPECTOOL_PHY_NAME_MAX,
 					 "Wi-Spy %s USB %u", "950x", cid);
 			break;
-		case 6:
+		case WISPYDBx_MODEL_900xV2:
 			snprintf(phydev->device_spec->device_name, SPECTOOL_PHY_NAME_MAX,
 					 "Wi-Spy %s USB %u", "900x2", cid);
 			break;
@@ -687,6 +695,10 @@ int wispydbx_usb_init_path(spectool_phy *phydev, char *buspath, char *devpath) {
 	phydev->device_spec->device_version = 0x03;
 	phydev->device_spec->device_flags = SPECTOOL_DEV_FL_VAR_SWEEP;
 
+
+	wispydbx_add_supportedranges(&phydev->device_spec->num_sweep_ranges,
+								 &phydev->device_spec->supported_ranges, model);
+#if 0
 	if (model == 0 || model == 3) {
 		// DBX v1 and V2
 		wispydbx_add_supportedranges(&phydev->device_spec->num_sweep_ranges,
@@ -700,7 +712,7 @@ int wispydbx_usb_init_path(spectool_phy *phydev, char *buspath, char *devpath) {
 		wispy900x_add_supportedranges(&phydev->device_spec->num_sweep_ranges,
 									  &phydev->device_spec->supported_ranges);
 	}
-
+#endif
 
 	phydev->device_spec->cur_profile = 0;
 
@@ -714,10 +726,20 @@ int wispydbx_usb_init_path(spectool_phy *phydev, char *buspath, char *devpath) {
 	auxptr->model = model;
 
 	// Set the protocol version; only a few old devices are v1 now so default to v2
+	if (model == WISPYDBx_MODEL_DBxV1 ||
+		model == WISPYDBx_MODEL_900x ||
+		model == WISPYDBx_MODEL_950x) {
+		auxptr->protocol = 1;
+	} else {
+		auxptr->protocol = 2;
+	}
+
+#if 0
 	if (model == 1 || model == 2 || model == 5)
 		auxptr->protocol = 1;
 	else
 		auxptr->protocol = 2;
+#endif
 
 	auxptr->configured = 0;
 
@@ -1259,7 +1281,8 @@ int wispydbx_usb_setposition(spectool_phy *phydev, int in_profile,
 		rfset2.filter_bw_hz = filter_bw_hz;
 		rfset2.points_per_sweep = points_per_sweep;
 #endif
-		rfset2.dwell_time = 100;
+		// Re-use samples per point as dwelltime in v2+
+		rfset2.dwell_time = samples_per_point;
 		rfset2.dither_steps = 1;
 		rfset2.reserved = 0;
 
