@@ -16,7 +16,6 @@ LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@ 
 CURSLIBS = @CURSLIBS@
 GTKLIBS = @GTKLIBS@
-HILDLIBS = @HILDLIBS@
 CFLAGS = ${DEBUG} -I./ @CFLAGS@
 CPPFLAGS = @CPPFLAGS@
 
@@ -43,16 +42,6 @@ GTKOBJS = spectool_container.o ${DRIVERS} \
 	spectool_gtk.o
 GTKBIN = spectool_gtk
 
-HILDOBJS = spectool_container.o wispy_hw_gen1.o wispy_hw_24x.o wispy_hw_dbx.o \
-	spectool_net_client.o \
-	spectool_gtk_hw_registry.o spectool_gtk_widget.o spectool_gtk_channel.o \
-	spectool_gtk_planar.o spectool_gtk_spectral.o spectool_gtk_topo.o \
-	spectool_hildon.o
-HILDBIN = spectool_hildon
-
-HILDUSBOBJS = maemo_usb_helper.o
-HILDUSBBIN = usbcontrol
-
 DEPEND	= .depend
 
 all:	$(DEPEND) @TARGETS@
@@ -69,23 +58,16 @@ $(NETBIN):	$(NETOBJS)
 $(GTKBIN):	$(GTKOBJS)
 	$(CC) $^ -o $(GTKBIN) $(LDFLAGS) $(GTKLIBS)
 
-$(HILDUSBBIN):	$(HILDUSBOBJS)
-	$(CC) $^ -o $(HILDUSBBIN) $(LDFLAGS)
-
-$(HILDBIN):	$(HILDOBJS) $(HILDUSBBIN)
-	$(CC) $(HILDOBJS) -o $(HILDBIN) $(LDFLAGS) $(GTKLIBS) $(HILDLIBS)
-
 install:	@TARGETS@
 	install -d -m 755 $(BIN)
 	if [ -e $(RAWBIN) ]; then install -m 755 $(RAWBIN) $(BIN)/$(RAWBIN); fi
 	if [ -e $(NETBIN) ]; then install -m 755 $(NETBIN) $(BIN)/$(NETBIN); fi
 	if [ -e $(GTKBIN) ]; then install -m 755 $(GTKBIN) $(BIN)/$(GTKBIN); fi
 	if [ -e $(CURSBIN) ]; then install -m 755 $(CURSBIN) $(BIN)/$(CURSBIN); fi
-	# No make install for hildon binaries, they should be packaged
 
 clean:
 	@-rm *.o
-	@-rm $(RAWBIN) $(GTKBIN) $(NETBIN) $(CURSBIN) $(HILDBIN) $(HILDUSBBIN)
+	@-rm $(RAWBIN) $(GTKBIN) $(NETBIN) $(CURSBIN)
 
 distclean:
 	@-make clean

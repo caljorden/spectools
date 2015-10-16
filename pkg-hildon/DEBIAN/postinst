@@ -1,9 +1,0 @@
-#!/bin/sh -e
-
-gtk-update-icon-cache -f /usr/share/icons/hicolor
-
-chown root /usr/libexec/usbcontrol
-chmod 4755 /usr/libexec/usbcontrol
-
-exit 0
-
