@@ -283,6 +283,32 @@ static char *chan_text_5[] = {
 	"149", "153", "157", "161", "165"
 };
 
+static int chan_freqs_5_low[] = {
+	5180000, 5200000, 5220000, 5240000, 5260000, 5280000, 5300000, 5320000
+};
+
+static char *chan_text_5_low[] = {
+	"36", "40", "44", "48", "52", "56", "60", "64"
+};
+
+static int chan_freqs_5_mid[] = {
+	5500000, 5520000, 5540000, 5560000, 5580000, 5600000, 5620000, 5640000,
+	5660000, 5680000, 5700000
+};
+
+static char *chan_text_5_mid[] = {
+	"100", "104", "108", "112", "116", "120", "124", "128", "132", "136", "140"
+};
+
+static int chan_freqs_5_high[] = {
+	5745000, 5765000, 5785000, 5805000, 5825000
+};
+
+static char *chan_text_5_high[] = {
+	"149", "153", "157", "161", "165"
+};
+
+
 static int chan_freqs_900[] = {
 	905000, 910000, 915000, 920000, 925000
 };
@@ -295,8 +321,10 @@ static char *chan_text_900[] = {
 static struct spectool_channels channel_list[] = {
 	{ "802.11b/g", 2400000, 2483000, 14, chan_freqs_24, 22000, chan_text_24 },
 	{ "802.11b/g", 2402000, 2480000, 14, chan_freqs_24, 22000, chan_text_24 },
-	{ "802.11a", 5100000, 5832000, 24, chan_freqs_5, 20000, chan_text_5 },
-	{ "802.11a UN-II", 5100000, 5483000, 14, chan_freqs_5, 20000, chan_text_5 },
+	{ "802.11a", 5170000, 5835000, 24, chan_freqs_5, 20000, chan_text_5 },
+	{ "802.11a Low", 5170000, 5330000, 8, chan_freqs_5_low, 20000, chan_text_5_low },
+	{ "802.11a Medium", 5490000, 5710000, 11, chan_freqs_5_mid, 20000, chan_text_5_mid },
+	{ "802.11a High", 5735000, 5835000, 5, chan_freqs_5_high, 20000, chan_text_5_high },
 	{ "900 ISM", 902000, 927000, 5, chan_freqs_900, 5000, chan_text_900 },
 	{ NULL, 0, 0, 0, NULL, 0, NULL }
 };

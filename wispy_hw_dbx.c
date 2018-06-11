@@ -393,13 +393,13 @@ void wispydbx_add_supportedranges(int *num_ranges, spectool_sample_sweep **range
 											 "Full 5GHz Band", 5150.0f, 5836.0f, 
 											 1497.070f, 428, model);
 		wispydbx_create_settings_from_preset(&((*ranges)[3]),
-											 "UNII Low/Mid (ch. 36-64)", 5150.0f, 5350.0f, 
+											 "UNII Low (ch. 36-64)", 5150.0f, 5350.0f, 
 											 748.535f, 428, model);
 		wispydbx_create_settings_from_preset(&((*ranges)[4]),
-											 "UNII Low/Mid (ch. 100-140)", 5470.0f, 5725.0f, 
+											 "UNII Mid (ch. 100-140)", 5470.0f, 5725.0f, 
 											 1122.070f, 428, model);
 		wispydbx_create_settings_from_preset(&((*ranges)[5]),
-											 "UNII Low/Mid (ch. 149-165)", 5725.0f, 5836.0f, 
+											 "UNII High (ch. 149-165)", 5725.0f, 5836.0f, 
 											 375.0f, 428, model);
 	}
 
