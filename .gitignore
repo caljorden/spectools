@@ -1,0 +1,10 @@
+*.o
+spectool_gtk
+spectool_curses
+spectool_raw
+spectool_net
+.depend
+config.h
+config.log
+config.status
+Makefile
