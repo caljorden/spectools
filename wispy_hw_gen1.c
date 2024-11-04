@@ -88,6 +88,7 @@
 
 #include "spectool_container.h"
 #include "wispy_hw_gen1.h"
+#include "wispy_hw_24x.h"
 
 /* Aux tracking struct for wispy1 characteristics */
 typedef struct _wispy1_usb_aux {

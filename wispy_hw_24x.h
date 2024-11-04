@@ -39,4 +39,7 @@ int wispy24x_usb_device_scan(spectool_device_list *list);
 int wispy24x_usb_init_path(spectool_phy *phydev, char *buspath, char *devpath);
 int wispy24x_usb_init(spectool_phy *phydev, spectool_device_rec *rec);
 
+uint32_t wispy24x_adler_checksum(const char *buf1, int len);
+int wispy24x_usb_detach_hack(struct usb_dev_handle *dev, int interface, char *errstr);
+
 #endif

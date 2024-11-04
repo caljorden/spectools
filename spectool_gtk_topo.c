@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include "spectool_gtk_topo.h"
+#include "spectool_gtk.h"
 
 #define KLUGE_NOISE_FLOOR -90
 
@@ -408,9 +409,9 @@ static gboolean spectool_topo_legend_expose(GtkWidget *widget,
 	cairo_pattern_t *pattern;
 	int cp;
 
-	g_return_if_fail(widget != NULL);
-	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_SPECTOOL_TOPO(aux));
+	g_return_val_if_fail(widget != NULL, FALSE);
+	g_return_val_if_fail(aux != NULL, FALSE);
+	g_return_val_if_fail(IS_SPECTOOL_TOPO(aux), FALSE);
 
 	topo = SPECTOOL_TOPO(aux);
 

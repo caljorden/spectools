@@ -81,6 +81,22 @@ typedef struct _spectool_adv_server {
 	struct _spectool_adv_server *next;
 } spectool_adv_server;
 
+#define SPECTOOL_NET_STATE_NONE			0
+#define SPECTOOL_NET_STATE_CONNECTED	1
+#define SPECTOOL_NET_STATE_CONFIGURED	2
+#define SPECTOOL_NET_STATE_ERROR		255
+
+struct _spectool_server;
+
+/* Auxptr struct attached to a spectool_net phydev */
+typedef struct _spectool_net_dev_aux {
+	struct _spectool_server *server;
+	spectool_net_dev *netdev;
+	spectool_sample_sweep *sweep;
+	int new_sweep;
+	int spipe[2];
+} spectool_net_dev_aux;
+
 /* Struct that handles tracking a server we've connected to */
 typedef struct _spectool_server {
 	int sock;
@@ -105,20 +121,6 @@ typedef struct _spectool_server {
 
 	spectool_net_dev *devlist;
 } spectool_server;
-
-#define SPECTOOL_NET_STATE_NONE			0
-#define SPECTOOL_NET_STATE_CONNECTED	1
-#define SPECTOOL_NET_STATE_CONFIGURED	2
-#define SPECTOOL_NET_STATE_ERROR		255
-
-/* Auxptr struct attached to a spectool_net phydev */
-typedef struct _spectool_net_dev_aux {
-	spectool_server *server;
-	spectool_net_dev *netdev;
-	spectool_sample_sweep *sweep;
-	int new_sweep;
-	int spipe[2];
-} spectool_net_dev_aux;
 
 /* Server manipulation commands - one server can have many phydevs linked to it,
  * and an app can conceivably have many servers. */

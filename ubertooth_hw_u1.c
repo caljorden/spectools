@@ -82,6 +82,7 @@
 
 #include "spectool_container.h"
 #include "ubertooth_hw_u1.h"
+#include "wispy_hw_24x.h"
 
 #define endian_swap32(x) \
 ({ \

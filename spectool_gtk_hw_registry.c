@@ -326,10 +326,10 @@ gboolean wdr_bcpoll(GIOChannel *ioch, GIOCondition cond, gpointer data) {
 
 spectool_phy *wdr_get_phy(spectool_device_registry *wdr, int slot) {
 	if (slot < 0 || slot > wdr->max_dev)
-		return;
+		return NULL;
 
 	if (wdr->devices[slot] == NULL)
-		return;
+		return NULL;
 
 	return wdr->devices[slot]->phydev;
 }
@@ -523,10 +523,10 @@ gboolean wdr_netrpoll(GIOChannel *ioch, GIOCondition cond, gpointer data) {
 	char err[SPECTOOL_ERROR_MAX];
 
 	if (wdrpr->slot < 0 || wdrpr->slot > wdrpr->wdr->max_dev)
-		return;
+		return 0;
 
 	if (wdrpr->wdr->netservers[wdrpr->slot] == NULL)
-		return;
+		return 0;
 
 	sr = wdrpr->wdr->netservers[wdrpr->slot]->srv;
 
@@ -537,10 +537,12 @@ gboolean wdr_netrpoll(GIOChannel *ioch, GIOCondition cond, gpointer data) {
 			Spectool_Alert_Dialog(err);
 
 			wdr_close_net(wdrpr->wdr, wdrpr->slot);
-			return;
+			return 0;
 		}
 
 	} while ((r & SPECTOOL_NETCLI_POLL_ADDITIONAL));
+
+	return 1;
 }
 
 GList *wdr_populate_menu(spectool_device_registry *wdr, GtkWidget *menu,
