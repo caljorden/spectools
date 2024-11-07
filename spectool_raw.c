@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
 
 		if (o == 'h') {
 			Usage();
-			return;
+			return 0;
 		} else if (o == 'b') {
 			bcastlisten = 1;
 		} else if (o == 'n') {

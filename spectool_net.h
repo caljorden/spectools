@@ -187,5 +187,8 @@ typedef struct _spectool_fr_broadcast {
 	uint16_t server_port;
 } __attribute__ ((packed)) spectool_fr_broadcast;
 
+struct _spectool_server;
+int spectool_netcli_writepoll(struct _spectool_server *sr, char *errstr);
+
 #endif
 

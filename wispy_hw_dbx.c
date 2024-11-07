@@ -1286,7 +1286,7 @@ int wispydbx_usb_setposition(spectool_phy *phydev, int in_profile,
 		rfset2.dither_steps = 1;
 		rfset2.reserved = 0;
 
-		use_rfset = &rfset2;
+		use_rfset = (unsigned char *)&rfset2;
 		rfset_len = (int) sizeof(wispydbx_rfsettings_v2);
 	} else {
 		rfset.report_id = 0x53;
@@ -1309,7 +1309,7 @@ int wispydbx_usb_setposition(spectool_phy *phydev, int in_profile,
 #endif
 		rfset.samples_per_point = samples_per_point;
 
-		use_rfset = &rfset;
+		use_rfset = (unsigned char *)&rfset;
 		rfset_len = (int) sizeof(wispydbx_rfsettings);
 
 	}

@@ -182,7 +182,7 @@ static gboolean main_nodev_menu_button_press(gpointer *aux,
 	GtkWidget *menu;
 	nb_aux *nbaux = (nb_aux *) aux;
 
-	g_return_if_fail(aux != NULL);
+	g_return_val_if_fail(aux != NULL, FALSE);
 
 	if (event->type == GDK_BUTTON_PRESS) {
 		GdkEventButton *bevent = (GdkEventButton *) event;

@@ -190,8 +190,8 @@ static gboolean spectool_widget_menu_button_press(gpointer *widget,
 	SpectoolWidgetController *con = (SpectoolWidgetController *) widget;
 	char alt_title_text[32];
 
-	g_return_if_fail(widget != NULL);
-	g_return_if_fail(event != NULL);
+	g_return_val_if_fail(widget != NULL, FALSE);
+	g_return_val_if_fail(event != NULL, FALSE);
 
 	if (event->type == GDK_BUTTON_PRESS) {
 		GdkEventButton *bevent = (GdkEventButton *) event;
@@ -237,8 +237,8 @@ SpectoolWidgetController *spectool_widget_buildcontroller(GtkWidget *widget) {
 	GdkColor c;
 	GtkStyle *style;
 
-	g_return_if_fail(widget != NULL);
-	g_return_if_fail(IS_SPECTOOL_WIDGET(widget));
+	g_return_val_if_fail(widget != NULL, NULL);
+	g_return_val_if_fail(IS_SPECTOOL_WIDGET(widget), NULL);
 
 	wwidget = SPECTOOL_WIDGET(widget);
 
@@ -300,9 +300,9 @@ gint spectool_widget_mouse_click(GtkWidget *widget, GdkEventButton *button, gpoi
 	GtkWidget *menu;
 	GdkEvent *event = (GdkEvent *) button;
 
-	g_return_if_fail(widget != NULL);
-	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
+	g_return_val_if_fail(widget != NULL, 0);
+	g_return_val_if_fail(aux != NULL, 0);
+	g_return_val_if_fail(IS_SPECTOOL_WIDGET(aux), 0);
 
 	wwidget = SPECTOOL_WIDGET(aux);
 
@@ -786,8 +786,8 @@ static gint spectool_widget_expose(GtkWidget *widget, GdkEventExpose *event,
 	SpectoolWidget *wwidget;
 	cairo_t *cr;
 
-	g_return_if_fail(widget != NULL);
-	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
+	g_return_val_if_fail(widget != NULL, FALSE);
+	g_return_val_if_fail(IS_SPECTOOL_WIDGET(aux), FALSE);
 	wwidget = SPECTOOL_WIDGET(aux);
 
 	cr = gdk_cairo_create(widget->window);

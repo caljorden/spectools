@@ -329,5 +329,6 @@ static struct spectool_channels channel_list[] = {
 	{ NULL, 0, 0, 0, NULL, 0, NULL }
 };
 
+
 #endif
 

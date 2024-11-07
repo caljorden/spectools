@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include "spectool_gtk_planar.h"
+#include "spectool_gtk.h"
 
 char planar_help_txt[] = 
 "<b>Planar View</b>\n\n"
@@ -44,6 +45,8 @@ static gboolean spectool_planar_button_press(GtkWidget *widget,
 static gboolean spectool_planar_mouse_move(GtkWidget *widget,
 										GdkEventMotion *event,
 										gpointer *aux);
+
+void spectool_widget_update(GtkWidget *widget);
 
 G_DEFINE_TYPE(SpectoolPlanar, spectool_planar, SPECTOOL_TYPE_WIDGET);
 
@@ -351,15 +354,15 @@ static gint spectool_planar_button_press(GtkWidget *widget,
 	SpectoolWidget *wwidget;
 	int ch;
 
-	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_SPECTOOL_PLANAR(aux));
-	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
+	g_return_val_if_fail(aux != NULL, FALSE);
+	g_return_val_if_fail(IS_SPECTOOL_PLANAR(aux), FALSE);
+	g_return_val_if_fail(IS_SPECTOOL_WIDGET(aux), FALSE);
 
 	planar = SPECTOOL_PLANAR(aux);
 	wwidget = SPECTOOL_WIDGET(aux);
 
-	g_return_if_fail(wwidget->sweepcache != NULL);
-	g_return_if_fail(wwidget->sweepcache->avg != NULL);
+	g_return_val_if_fail(wwidget->sweepcache != NULL, FALSE);
+	g_return_val_if_fail(wwidget->sweepcache->avg != NULL, FALSE);
 
 	if (event->button != 1)
 		return TRUE;
@@ -379,15 +382,15 @@ static gboolean spectool_planar_mouse_move(GtkWidget *widget,
 	SpectoolPlanar *planar;
 	SpectoolWidget *wwidget;
 
-	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_SPECTOOL_PLANAR(aux));
-	g_return_if_fail(IS_SPECTOOL_WIDGET(aux));
+	g_return_val_if_fail(aux != NULL, FALSE);
+	g_return_val_if_fail(IS_SPECTOOL_PLANAR(aux), FALSE);
+	g_return_val_if_fail(IS_SPECTOOL_WIDGET(aux), FALSE);
 
 	planar = SPECTOOL_PLANAR(aux);
 	wwidget = SPECTOOL_WIDGET(aux);
 
-	g_return_if_fail(wwidget->sweepcache != NULL);
-	g_return_if_fail(wwidget->sweepcache->avg != NULL);
+	g_return_val_if_fail(wwidget->sweepcache != NULL, FALSE);
+	g_return_val_if_fail(wwidget->sweepcache->avg != NULL, FALSE);
 
 	if (event->is_hint) {
 		gdk_window_get_pointer(event->window, &x, &y, &state);

@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include "spectool_gtk_spectral.h"
+#include "spectool_gtk.h"
 
 char spectral_help_txt[] = 
 "<b>Spectral View</b>\n\n"
@@ -415,9 +416,9 @@ static gboolean spectool_spectral_legend_expose(GtkWidget *widget,
 	cairo_pattern_t *pattern;
 	int cp;
 
-	g_return_if_fail(widget != NULL);
-	g_return_if_fail(aux != NULL);
-	g_return_if_fail(IS_SPECTOOL_SPECTRAL(aux));
+	g_return_val_if_fail(widget != NULL, FALSE);
+	g_return_val_if_fail(aux != NULL, FALSE);
+	g_return_val_if_fail(IS_SPECTOOL_SPECTRAL(aux), FALSE);
 
 	spectral = SPECTOOL_SPECTRAL(aux);
 
